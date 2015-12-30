@@ -5,45 +5,11 @@ require 'binding_of_caller'
 
 module Loba
 
-#  def self.included(base)
-#    @loba_class = base.name
-#    base.extend ClassMethods
-#    puts "************* Base: #{base.name}"
-#  end
-
-  class TimeKeeper
-    include Singleton
-    attr_accessor :timewas, :timenum
-    def initialize
-      @timewas, @timenum = Time.now, 0
-    end
-  end
-
-  class Platform
-    def self.rails?
-      !Rails.logger.nil?
-    end
-
-    def self.logging_ok?(_force_true = false)
-      return true if _force_true
-      return true unless Loba::Platform.rails?
-      begin
-        !Rails.env.production?
-      rescue
-        true   # not Rails production if Rails isn't recognized
-      end
-    end
-
-    def self.logger
-      Rails.logger.nil? ? ->(arg){p arg} : ->(arg){Rails.logger.debug arg}
-    end
-  end
-
   def Loba::ts(_production_ok = false)
-    @loba_logger ||= Loba::Platform.logger
-    @loba_timer ||= Loba::TimeKeeper.instance
-
     if Loba::Platform.logging_ok?  # don't waste calculation in production since logging messages won't show up anyway
+      @loba_logger ||= Loba::Platform.logger
+      @loba_timer ||= Loba::TimeKeeper.instance
+
       begin
         @loba_timer.timenum += 1
         timenow    = Time.now()
@@ -58,21 +24,14 @@ module Loba
     end
     nil
   end
-#  alias 'Loba::ts'.to_sym 'Loba::timestamp'.to_sym
-#  alias_method 'Loba::ts'.to_sym, 'Loba::timestamp'.to_sym
-
-#  def Loba.timestamp
-#    Loba.ts
-#  end
-
-#  alias_method 'Loba.ts'.to_sym, 'Loba.timestamp'.to_sym
-  #alias_method :Loba.ts, :Loba.timestamp
+  # TODO:  support 'timestamp as an alias for :ts (the :: is making that surprisingly challenging)'
 
   def Loba::val(_sym = :nil, _depth = 0)
     @loba_logger ||= Loba::Platform.logger
     tag = Loba::calling_tag(_depth+1)
-    result = binding.of_caller(_depth+1).eval(_sym.to_s)
-    @loba_logger.call "#{tag} #{_sym.to_s}: #{result}"
+    name = _sym.is_a?(Symbol) ? _sym.to_s : nil
+    result = _sym.is_a?(Symbol) ? binding.of_caller(_depth+1).eval(_sym.to_s) : _sym.inspect
+    @loba_logger.call "#{tag} #{name.nil? ? '' : "#{name}:"} #{result.nil? ? '[nil]' : result}    \t(at #{Loba::calling_source_line(_depth+1)})"
   end
 
 private
@@ -104,9 +63,45 @@ private
     binding.of_caller(_depth+1).eval('self.class.name') == 'Class' ? :class : :instance
   end
 
+  def Loba::calling_line_number(_depth = 0)
+    binding.of_caller(_depth+1).eval('__LINE__')
+  end
+
+  def Loba::calling_source_line(_depth = 0)
+    caller[_depth]
+  end
+
   def Loba::calling_tag(_depth = 0)
     delim = {class: '.', instance: '#'}
     "[#{Loba::calling_class_name(_depth+1)}#{delim[Loba::calling_method_type(_depth+1)]}#{Loba::calling_method_name(_depth+1)}]"
+  end
+
+  class TimeKeeper
+    include Singleton
+    attr_accessor :timewas, :timenum
+    def initialize
+      @timewas, @timenum = Time.now, 0
+    end
+  end
+
+  class Platform
+    def self.rails?
+      !Rails.logger.nil?
+    end
+
+    def self.logging_ok?(_force_true = false)
+      return true if _force_true
+      return true unless Loba::Platform.rails?
+      begin
+        !Rails.env.production?
+      rescue
+        true   # not Rails production if Rails isn't recognized
+      end
+    end
+
+    def self.logger
+      Rails.logger.nil? ? ->(arg){puts arg} : ->(arg){Rails.logger.debug arg}
+    end
   end
 
 end

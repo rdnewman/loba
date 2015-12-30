@@ -8,6 +8,7 @@ class LobaClass
     v = "BENJAMIN"
     Loba::ts
     Loba::val :v
+    Loba::val self.methods.sort.uniq
   end
 
   def self.classbase
