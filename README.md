@@ -5,6 +5,7 @@ Easy tracing for debugging. Handy methods for adding trace lines to output or Ra
 This is my first gem.  You've been warned.
 
 [![Dependency Status](https://gemnasium.com/rdnewman/loba.svg)](https://gemnasium.com/rdnewman/loba)
+[![Build Status](https://travis-ci.org/rdnewman/loba.svg)](https://travis-ci.org/rdnewman/loba)
 
 ## Installation
 
