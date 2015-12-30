@@ -22,20 +22,27 @@ Or install it yourself as:
 
 ## Usage
 
+The commands are intended to be terse to minimize typing.  My advise is to align the commands to the far left in your source code so they're easy to remove when you're done.
+
 Quick uses from any ruby code:
 
 #### Timestamp notices
 
+Inserts a timestamped notice either to Rails.logger.debug or to STDOUT if Rails.logger not available.
+
 Useful for quick traces to see the code path and easier than, say, [Kernel#set_trace_func](http://ruby-doc.org/core-2.2.3/Kernel.html#method-i-set_trace_func).
+Also does a simple elapsed time check since previous timestamp notice to help with quick, minimalist profiling.
 
 ```
-Loba::ts   # inserts timestamp notice either to Rails.logger.debug or to STDOUT if Rails.logger not available
+Loba::ts    # no arguments
 ```
 
 #### Variable or method return inspection
 
+Inserts line to Rails.logger.debug (or to STDOUT if Rails.logger not available) showing value with method and class identification
+
 ```
-Loba::val :var_sym   # inserts line showing value with method and class identification
+Loba::val :var_sym   # the :var_sym argument is the variable or method name given as a symbol
 ```
 
 TODO: Provide examples
