@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = %q{Loba: Easy tracing for debugging.}
   spec.description   = %q{Handy methods for adding trace lines to output or Rails logs.}
-  spec.homepage      = "TODO: Put your gem's website or public repo URL here."
+  spec.homepage      = "https://github.com/rdnewman/loba"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org by setting 'allowed_push_host', or
@@ -33,5 +33,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec-rails", "~> 3.0"
 
-#  spec.add_dependency("railties", ">= 4.1.0", "< 5.1")
+  spec.add_dependency "binding_of_caller", "~> 0.7"
 end
