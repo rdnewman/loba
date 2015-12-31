@@ -11,19 +11,26 @@
 
 Easy tracing for debugging: handy methods for adding trace lines to output or Rails logs.
 
-## Usage
+(Installation is pretty much what you'd expect for a gem, but read Environment Notes below first.)
+
+## Overview
 
 There are two kinds of questions I usually want to answer when trying to diagnose code behavior:
+
 1. Is this spot of code being reached (or is it reached in the order I think it is)?
 1. What is the value of this variable?
 
-I wanted a quick way to check that lets me run the code as it normally runs with the least amount of impact to the code behavior, so I would typically just drop in `puts` (e.g., STDOUT) or `Rails.logger.info` (environmental log) to check.  That became tedious after a while, so being a naturally lazy person (i.e., developer), I decided to make it easier.
+Loba statements are intended to be terse to minimize typing.  
 
-Loba statements are intended to be terse to minimize typing.  My advise is to align the commands to the far left in your source code so they're easy to see and remove when you're done.
+Loba statements are intended to be minimally invasive and atomic.  They should not have any (much) more impact than a regular `puts` or `Rails.logger.debug` statement.
+
+Loba statements are expected to be removed when you're done with them.  No point in cluttering up production code.
 
 Loba will check for presence of Rails.  If it's there, it'll write to `Rails.logger.debug`.  If not, it'll write to STDOUT (i.e., `puts`).  Loba will work equally well with or without Rails.
 
-Quick uses from any ruby code:
+## Usage
+
+My advice is to align Loba statements to the far left in your source code (a la `=begin` or `=end`) so they're easy to see and remove when you're done.
 
 #### Timestamp notices:  `Loba::ts`
 
@@ -42,22 +49,9 @@ To invoke,
 Loba::ts    # no arguments
 ```
 
-The resulting notice output format is
+You can read [more detail](readme/ts.md) on this command.
 
-```
-[TIMESTAMP] #=nnnn, diff=ss.ssssss, at=tttttttttt.tttttt, in=/path/to/code/somecode.rb:ll:in 'some_method'
-```
-
-where 
-* `nnn` ("#=") is a sequential numbering (1, 2, 3, ...) of timestamp notices,
-* `ss.ssssss` ("diff=") is number of seconds since the last timestamp notice was output (i.e., relative time),
-* `tttttttttt.tttttt` ("at=") is Time.now (as seconds) (i.e., absolute time),
-* `/path/to/code/somecode.rb` ("in=") is the source code file that invoked `Loba::ts`,
-* `ll` ("in=...:") is the line number of the source code file that invoked `Loba::ts`, and
-* `some_method`is the method in which `Loba::ts` was invoked.
-
-
-#### Variable or method return inspection
+#### Variable or method return inspection:  `Loba::val`
 
 Inserts line to Rails.logger.debug (or to STDOUT if Rails.logger not available) showing value with method and class identification
 
@@ -65,9 +59,55 @@ Inserts line to Rails.logger.debug (or to STDOUT if Rails.logger not available) 
 Loba::val :var_sym   # the :var_sym argument is the variable or method name given as a symbol
 ```
 
-TODO: Provide examples
+For example,
+
+```
+[Target.some_calculation] my_var: 54       (at /home/usracct/src/myapp/app/models/target.rb:55:in `some_calculation')
+```
+
+You can read [more detail](readme/val.md) on this command.
+
+#### Snippet example
+
+```
+class HelloWorld
+  def initialize
+    @x = 42
+Loba::ts        # see? it's easier to see what to remove later
+    @y = "Charlie"
+  end
+
+  def hello
+Loba::val :@x
+    puts "Hello, #{@y}" if @x == 42
+Loba::ts
+  end
+end
+``` 
+
+Output:
+
+```  
+[TIMESTAMP] #=0001, diff=0.178016, at=1451444972.970602, in=/home/usracct/src/lobademo/hello_world.rb:3:in 'initialize'
+[HelloWorld.hello] @x: 42       (at /home/usracct/src/lobademo/hello_world.rb:9:in 'hello')
+[TIMESTAMP] #=0002, diff=0.004041, at=1451444972.974643, in=/home/usracct/src/lobademo/hello_world.rb:11:in 'hello'
+```
+
+## Environment Notes
+
+The expectation is that Loba statements are just for development or test trace statements.  Generally, its a bad idea to leave diagnostic code in production; still, it can happen.   And, occasionally, it can be useful to have trace statements in production too if you've a difficult to reproduce issue.
+
+`Loba::ts` tries to help protect against timestamp notice requests being accidently left in the code by checking for the Rails environment its being run under.  If in production, it will normally just return immediately without rendering anything to help minimize any impact on production code.  However, that behavior can be overridden with a single `true` argument which tells it to output a timestamp notice even when in the production environment.  This latter should be done sparingly if at all.
+
+`Loba::val`, as of this version, has not such protection.  If left in the code, it will always execute full while in production.
+
+These considerations have an impact on how you install the Loba gem when using `bundler`.  If you only install the gem for :development and :test, then any Loba statements left in the code when it goes to production will cause an error because the statements wouldn't be recognized.  That's perhaps a Good Thing, if you never want them left in.
+
+If you simply install the gem for all environments, then Loba will be available in production, but you may not notice as easily if some statements where unintentially left in.  Of course, if you want those statements to work in production, then you should install the gem for all environments.
 
 ## Installation
+
+See above Environment Notes.
 
 Add this line to your application's Gemfile:
 
@@ -76,6 +116,13 @@ group :development, :test do
   gem 'loba', require: false, github: 'rdnewman/loba'   # until I publish it on RubyGems
 end
 ```
+
+or for all environments:
+
+```ruby
+gem 'loba', require: false, github: 'rdnewman/loba'   # until I publish it on RubyGems
+```
+
 
 And then execute:
 
