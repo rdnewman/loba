@@ -5,17 +5,17 @@ class LobaClass
 
   def base
     Loba.ts
-    v = "BENJAMIN"
+    _v = "BENJAMIN"
     Loba::ts
-    Loba::val :v
+    Loba::val :_v
     Loba::val self.methods.sort.uniq
   end
 
   def self.classbase
     Loba::ts
-    w = "CLAUDIA"
+    _w = "CLAUDIA"
     Loba::ts
-    Loba::val :w
+    Loba::val :_w
   end
 end
 
@@ -29,9 +29,9 @@ describe Loba do
       Class.new(LobaClass) do
         def hello
           Loba.ts
-          v = "hello"
+          _v = "hello"
           Loba::ts
-          Loba::val :v
+          Loba::val :_v
         #  ts  # should fail
           v
         end

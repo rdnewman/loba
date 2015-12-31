@@ -5,8 +5,8 @@ require 'binding_of_caller'
 
 module Loba
 
-  def Loba::ts(_production_ok = false)
-    if Loba::Platform.logging_ok?  # don't waste calculation in production since logging messages won't show up anyway
+  def Loba::ts(production_is_ok = false)
+    if Loba::Platform.logging_ok?(production_is_ok)  # don't waste calculation in production since logging messages won't show up anyway
       @loba_logger ||= Loba::Platform.logger
       @loba_timer ||= Loba::TimeKeeper.instance
 
@@ -24,56 +24,55 @@ module Loba
     end
     nil
   end
-  # TODO:  support 'timestamp as an alias for :ts (the :: is making that surprisingly challenging)'
 
-  def Loba::val(_sym = :nil, _depth = 0)
+  def Loba::val(argument = :nil, depth = 0)
     @loba_logger ||= Loba::Platform.logger
-    tag = Loba::calling_tag(_depth+1)
-    name = _sym.is_a?(Symbol) ? _sym.to_s : nil
-    result = _sym.is_a?(Symbol) ? binding.of_caller(_depth+1).eval(_sym.to_s) : _sym.inspect
-    @loba_logger.call "#{tag} #{name.nil? ? '' : "#{name}:"} #{result.nil? ? '[nil]' : result}    \t(at #{Loba::calling_source_line(_depth+1)})"
+    tag = Loba::calling_tag(depth+1)
+    name = argument.is_a?(Symbol) ? argument.to_s : nil
+    result = argument.is_a?(Symbol) ? binding.of_caller(depth+1).eval(argument.to_s) : argument.inspect
+    @loba_logger.call "#{tag} #{name.nil? ? '' : "#{name}:"} #{result.nil? ? '[nil]' : result}    \t(at #{Loba::calling_source_line(depth+1)})"
   end
 
 private
   LOBA_CLASS_NAME = 'self.class.name'
-  def Loba::calling_class_name(_depth = 0)
-    m = binding.of_caller(_depth+1).eval(Loba::LOBA_CLASS_NAME)
+  def Loba::calling_class_name(depth = 0)
+    m = binding.of_caller(depth+1).eval(Loba::LOBA_CLASS_NAME)
     if m.blank?
       '<anonymous class>'
     elsif m == 'Class'
-      binding.of_caller(_depth+1).eval('self.name')
+      binding.of_caller(depth+1).eval('self.name')
     else
       m
     end
   end
-  def Loba::calling_class_anonymous?(_depth = 0)
-    binding.of_caller(_depth+1).eval(Loba::LOBA_CLASS_NAME).blank?
+  def Loba::calling_class_anonymous?(depth = 0)
+    binding.of_caller(depth+1).eval(Loba::LOBA_CLASS_NAME).blank?
   end
 
   LOBA_METHOD_NAME = 'self.send(:__method__)'
-  def Loba::calling_method_name(_depth = 0)
-    m = binding.of_caller(_depth+1).eval(Loba::LOBA_METHOD_NAME)
+  def Loba::calling_method_name(depth = 0)
+    m = binding.of_caller(depth+1).eval(Loba::LOBA_METHOD_NAME)
     m.blank? ? '<anonymous method>' : m
   end
-  def Loba::calling_method_anonymous?(_depth = 0)
-     binding.of_caller(_depth+1).eval(Loba::LOBA_METHOD_NAME).blank?
+  def Loba::calling_method_anonymous?(depth = 0)
+     binding.of_caller(depth+1).eval(Loba::LOBA_METHOD_NAME).blank?
   end
 
-  def Loba::calling_method_type(_depth = 0)
-    binding.of_caller(_depth+1).eval('self.class.name') == 'Class' ? :class : :instance
+  def Loba::calling_method_type(depth = 0)
+    binding.of_caller(depth+1).eval('self.class.name') == 'Class' ? :class : :instance
   end
 
-  def Loba::calling_line_number(_depth = 0)
-    binding.of_caller(_depth+1).eval('__LINE__')
+  def Loba::calling_line_number(depth = 0)
+    binding.of_caller(depth+1).eval('__LINE__')
   end
 
-  def Loba::calling_source_line(_depth = 0)
-    caller[_depth]
+  def Loba::calling_source_line(depth = 0)
+    caller[depth]
   end
 
-  def Loba::calling_tag(_depth = 0)
+  def Loba::calling_tag(depth = 0)
     delim = {class: '.', instance: '#'}
-    "[#{Loba::calling_class_name(_depth+1)}#{delim[Loba::calling_method_type(_depth+1)]}#{Loba::calling_method_name(_depth+1)}]"
+    "[#{Loba::calling_class_name(depth+1)}#{delim[Loba::calling_method_type(depth+1)]}#{Loba::calling_method_name(depth+1)}]"
   end
 
   class TimeKeeper
@@ -89,8 +88,8 @@ private
       !Rails.logger.nil?
     end
 
-    def self.logging_ok?(_force_true = false)
-      return true if _force_true
+    def self.logging_ok?(force_true = false)
+      return true if force_true
       return true unless Loba::Platform.rails?
       begin
         !Rails.env.production?
