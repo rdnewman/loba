@@ -8,7 +8,10 @@ This is my first gem.  You've been warned.
 [![Build Status](https://travis-ci.org/rdnewman/loba.svg?branch=master)](https://travis-ci.org/rdnewman/loba)
 [![Code Climate](https://codeclimate.com/github/rdnewman/loba/badges/gpa.svg)](https://codeclimate.com/github/rdnewman/loba)
 [![Issue Count](https://codeclimate.com/github/rdnewman/loba/badges/issue_count.svg)](https://codeclimate.com/github/rdnewman/loba)
+[![Test Coverage](https://codeclimate.com/github/rdnewman/loba/badges/coverage.svg)](https://codeclimate.com/github/rdnewman/loba/coverage)
 [![security](https://hakiri.io/github/rdnewman/loba/master.svg)](https://hakiri.io/github/rdnewman/loba/master)
+
+[![Loba is "write" in zulu](readme/zulu.png)]
 
 ## Installation
 
