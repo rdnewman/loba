@@ -29,9 +29,9 @@ describe Loba do
       Class.new(LobaClass) do
         def hello
           Loba.ts
-          _v = "hello"
+          v = "hello"
           Loba::ts
-          Loba::val :_v
+          Loba::val :v
         #  ts  # should fail
           v
         end
