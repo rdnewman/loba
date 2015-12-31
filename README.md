@@ -1,9 +1,3 @@
-# Loba
-
-Easy tracing for debugging. Handy methods for adding trace lines to output or Rails logs.
-
-This is my first gem.  You've been warned.
-
 [![Dependency Status](https://gemnasium.com/rdnewman/loba.svg)](https://gemnasium.com/rdnewman/loba)
 [![Build Status](https://travis-ci.org/rdnewman/loba.svg?branch=master)](https://travis-ci.org/rdnewman/loba)
 [![Code Climate](https://codeclimate.com/github/rdnewman/loba/badges/gpa.svg)](https://codeclimate.com/github/rdnewman/loba)
@@ -11,14 +5,22 @@ This is my first gem.  You've been warned.
 [![Test Coverage](https://codeclimate.com/github/rdnewman/loba/badges/coverage.svg)](https://codeclimate.com/github/rdnewman/loba/coverage)
 [![security](https://hakiri.io/github/rdnewman/loba/master.svg)](https://hakiri.io/github/rdnewman/loba/master)
 
-[![Loba is "write" in zulu](readme/zulu.png)]
+# Loba
+
+![Loba is "write" in zulu](readme/zulu.png)
+
+Easy tracing for debugging. Handy methods for adding trace lines to output or Rails logs.
+
+(This is my first gem.  You've been warned.)
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'loba'
+group :development, :test do
+  gem 'loba', require: false, github: 'rdnewman/loba'   # until I publish it on RubyGems
+end
 ```
 
 And then execute:
