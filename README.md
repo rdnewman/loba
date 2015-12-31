@@ -45,7 +45,7 @@ For example,
 
 To invoke,
 
-```
+```ruby
 Loba::ts    # no arguments
 ```
 
@@ -55,7 +55,7 @@ You can read [more detail](readme/ts.md) on this command.
 
 Inserts line to Rails.logger.debug (or to STDOUT if Rails.logger not available) showing value with method and class identification
 
-```
+```ruby
 Loba::val :var_sym   # the :var_sym argument is the variable or method name given as a symbol
 ```
 
@@ -69,7 +69,7 @@ You can read [more detail](readme/val.md) on this command.
 
 #### Snippet example
 
-```
+```ruby
 class HelloWorld
   def initialize
     @x = 42
