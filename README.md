@@ -83,14 +83,15 @@ Loba::val :@x
 Loba::ts
   end
 end
-``` 
+```
 
 Output:
 
 ```  
-[TIMESTAMP] #=0001, diff=0.178016, at=1451444972.970602, in=/home/usracct/src/lobademo/hello_world.rb:3:in 'initialize'
-[HelloWorld.hello] @x: 42       (at /home/usracct/src/lobademo/hello_world.rb:9:in 'hello')
-[TIMESTAMP] #=0002, diff=0.004041, at=1451444972.974643, in=/home/usracct/src/lobademo/hello_world.rb:11:in 'hello'
+[TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411, in=/home/usracct/src/lobademo/hello_world.rb:4:in 'initialize'
+[HelloWorld#hello] @x: 42       (at /home/richard/src/loba/spec/hello_world.rb:9:in `hello')
+Hello, Charlie
+[TIMESTAMP] #=0002, diff=0.000720, at=1451615389.506132, in=/home/usracct/src/lobademo/hello_world.rb:11:in 'hello'
 ```
 
 ## Environment Notes
