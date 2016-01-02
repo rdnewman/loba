@@ -65,7 +65,7 @@ module Loba
     @loba_logger ||= Loba::Platform.logger
     tag = Loba::calling_tag(depth+1)
     name = argument.is_a?(Symbol) ? argument.to_s : nil
-    result = argument.is_a?(Symbol) ? binding.of_caller(depth+1).eval(argument.to_s) : argument.inspect
+    result = argument.is_a?(Symbol) ? binding.of_caller(depth+1).eval(argument.to_s) : argument # eval(argument).inspect
     @loba_logger.call "#{tag} #{name.nil? ? '' : "#{name}:"} #{result.nil? ? '[nil]' : result}    \t(at #{Loba::calling_source_line(depth+1)})"
     nil
   end
