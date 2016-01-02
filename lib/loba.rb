@@ -3,11 +3,23 @@ require 'singleton'
 require 'rails'
 require 'binding_of_caller'
 
+# Loba module for quick tracing of Ruby and Rails.
+# If a Rails application, will use Rails.logger.debug.
+# If not a Rails application, will use STDOUT.
 module Loba
 
+  # Outputs a timestamped notice, useful for quick traces to see the code path.
+  # Also does a simple elapsed time check since the previous timestamp notice to help with quick, minimalist profiling.
+  # @param production_is_ok [Boolean] true if this timestamp notice is enabled when running in :production environment
+  # @return [NilClass] nil
+  # @example Basic use
+  #   def hello
+  #     Loba::ts
+  #   end
+  #   #=> [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411, in=/path/to/file.rb:2:in 'hello'
   def Loba::ts(production_is_ok = false)
-    if Loba::Platform.logging_ok?(production_is_ok)  # don't waste calculation in production since logging messages won't show up anyway
-      @loba_logger ||= Loba::Platform.logger
+    if Platform.logging_ok?(production_is_ok)  # don't waste calculation in production since logging messages won't show up anyway
+      @loba_logger ||= Platform.logger
       @loba_timer ||= Loba::TimeKeeper.instance
 
       begin
@@ -25,16 +37,41 @@ module Loba
     nil
   end
 
-  def Loba::val(argument = :nil, depth = 0)
+  # Outputs a value notice showing value of provided argument including method and class identification
+  # @param argument [various] the value to be evaluated and shown; if given as a Symbol, a label based on the argument will proceed the value the argument refers to
+  # @return [NilClass] nil
+  # @example Using Symbol as argument
+  #   class HelloWorld
+  #     def hello(name)
+  #   Loba::val :name       # best to put Loba statement to far left for easy removal when done
+  #       puts "Hello, #{name}!"
+  #     end
+  #   end
+  #   HelloWorld.new.hello("Charlie")
+  #   #=> [HelloWorld#hello] name: Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
+  #   #=> Hello, Charlie!
+  # @example Using non-Symbol as argument
+  #   class HelloWorld
+  #     def hello(name)
+  #   Loba::val name
+  #       puts "Hello, #{name}!"
+  #     end
+  #   end
+  #   HelloWorld.new.hello("Charlie")
+  #   #=> [HelloWorld#hello] Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
+  #   #=> Hello, Charlie!
+  def Loba::val(argument = :nil)
+    depth = 0
     @loba_logger ||= Loba::Platform.logger
     tag = Loba::calling_tag(depth+1)
     name = argument.is_a?(Symbol) ? argument.to_s : nil
     result = argument.is_a?(Symbol) ? binding.of_caller(depth+1).eval(argument.to_s) : argument.inspect
     @loba_logger.call "#{tag} #{name.nil? ? '' : "#{name}:"} #{result.nil? ? '[nil]' : result}    \t(at #{Loba::calling_source_line(depth+1)})"
+    nil
   end
 
 private
-  LOBA_CLASS_NAME = 'self.class.name'
+  Loba::LOBA_CLASS_NAME = 'self.class.name'
   def Loba::calling_class_name(depth = 0)
     m = binding.of_caller(depth+1).eval(Loba::LOBA_CLASS_NAME)
     if m.blank?
@@ -45,11 +82,12 @@ private
       m
     end
   end
+
   def Loba::calling_class_anonymous?(depth = 0)
     binding.of_caller(depth+1).eval(Loba::LOBA_CLASS_NAME).blank?
   end
 
-  LOBA_METHOD_NAME = 'self.send(:__method__)'
+  Loba::LOBA_METHOD_NAME = 'self.send(:__method__)'
   def Loba::calling_method_name(depth = 0)
     m = binding.of_caller(depth+1).eval(Loba::LOBA_METHOD_NAME)
     m.blank? ? '<anonymous method>' : m
@@ -75,6 +113,7 @@ private
     "[#{Loba::calling_class_name(depth+1)}#{delim[Loba::calling_method_type(depth+1)]}#{Loba::calling_method_name(depth+1)}]"
   end
 
+  # Internal class for tracking time stamps; should not be used directly
   class TimeKeeper
     include Singleton
     attr_accessor :timewas, :timenum
@@ -83,11 +122,14 @@ private
     end
   end
 
+  # Internal class for managing logging across Rails and non-Rails applications
   class Platform
+    # Returns true if Rails logging appears to be available
     def self.rails?
       !Rails.logger.nil?
     end
 
+    # Returns true if logging is to be allowed
     def self.logging_ok?(force_true = false)
       return true if force_true
       return true unless Loba::Platform.rails?
@@ -98,6 +140,7 @@ private
       end
     end
 
+    # Returns a logging mechanism appropriate for the application
     def self.logger
       Rails.logger.nil? ? ->(arg){puts arg} : ->(arg){Rails.logger.debug arg}
     end
