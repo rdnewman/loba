@@ -21,7 +21,7 @@ Loba::val some_identifier "My label:"  # same as direct variable, but allows a c
 Will produce a notice similar to the following:
 
 ```
-[Target.some_calculation] my_var: 54       (at /home/usracct/src/myapp/app/models/target.rb:55:in `some_calculation')
+[Target.some_calculation] my_var: 54       (in /home/usracct/src/myapp/app/models/target.rb:55:in `some_calculation')
 ```
 
 ###### Example 1: Using simple Symbol as argument
@@ -33,7 +33,7 @@ Loba::val :name       # best to put Loba statement to far left for easy removal 
   end
 end
 HelloWorld.new.hello("Charlie")
-#=> [HelloWorld#hello] name: Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
+#=> [HelloWorld#hello] name: Charlie        (in /path/to/file/hello_world.rb:3:in `hello')
 #=> Hello, Charlie!
 ```
 
@@ -48,7 +48,7 @@ Loba::val "myHash[name]".to_sym   # will work -- just express the name as a Stri
   end
 end
 HelloWorld.new.hello("Charlie")
-#=> [HelloWorld#hello] myHash[name]: Charlie        (at /path/to/file/hello_world.rb:5:in `hello')
+#=> [HelloWorld#hello] myHash[name]: Charlie        (in /path/to/file/hello_world.rb:5:in `hello')
 #=> Hello, Charlie!
 ```
 
@@ -61,7 +61,7 @@ Loba::val name
   end
 end
 HelloWorld.new.hello("Charlie")
-#=> [HelloWorld#hello] Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
+#=> [HelloWorld#hello] Charlie        (in /path/to/file/hello_world.rb:3:in `hello')
 #=> Hello, Charlie!
 ```
 
@@ -74,7 +74,7 @@ Loba::val name, "Name:"
   end
 end
 HelloWorld.new.hello("Charlie")
-#=> [HelloWorld#hello] Name: Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
+#=> [HelloWorld#hello] Name: Charlie        (in /path/to/file/hello_world.rb:3:in `hello')
 #=> Hello, Charlie!
 ```
 
@@ -83,7 +83,7 @@ HelloWorld.new.hello("Charlie")
 The resulting notice output format is
 
 ```
-[ccccc.mmmmm] vvvvv: rrrrr         (at /path/to/code/somecode.rb:ll:in 'some_method')
+[ccccc.mmmmm] vvvvv: rrrrr         (in /path/to/code/somecode.rb:LL:in 'some_method')
 ```
 
 where
@@ -92,7 +92,7 @@ where
 * `vvvvv` is generally the name of the variable for which `Loba::val` is inspecting, or any custom label given,
 * `rrrrr` is the result of inspecting what `Loba::val` was invoked against,
 * `/path/to/code/somecode.rb` is the source code file that invoked `Loba::val`,
-* `ll` is the line number of the source code file that invoked `Loba::val`, and
+* `LL` is the line number of the source code file that invoked `Loba::val`, and
 * `some_method`is the method in which `Loba::val` was invoked.
 
 
