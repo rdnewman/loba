@@ -39,6 +39,7 @@ module Loba
 
   # Outputs a value notice showing value of provided argument including method and class identification
   # @param argument [various] the value to be evaluated and shown; if given as a Symbol, a label based on the argument will proceed the value the argument refers to
+  # @param label [String] an optional, explicit label to be used instead of attempting to infer from the argument
   # @return [NilClass] nil
   # @example Using Symbol as argument
   #   class HelloWorld
@@ -60,13 +61,24 @@ module Loba
   #   HelloWorld.new.hello("Charlie")
   #   #=> [HelloWorld#hello] Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
   #   #=> Hello, Charlie!
-  def Loba::val(argument = :nil)
+  # @example Using non-Symbol as argument with a label
+  #   class HelloWorld
+  #     def hello(name)
+  #   Loba::val name, "Name:"
+  #       puts "Hello, #{name}!"
+  #     end
+  #   end
+  #   HelloWorld.new.hello("Charlie")
+  #   #=> [HelloWorld#hello] Name: Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
+  #   #=> Hello, Charlie!
+  def Loba::val(argument = :nil, label = nil)
     depth = 0
     @loba_logger ||= Loba::Platform.logger
     tag = Loba::calling_tag(depth+1)
-    name = argument.is_a?(Symbol) ? argument.to_s : nil
+    name = argument.is_a?(Symbol) ? "#{argument.to_s}:" : nil
+    text = label.nil? ? name : label
     result = argument.is_a?(Symbol) ? binding.of_caller(depth+1).eval(argument.to_s) : argument # eval(argument).inspect
-    @loba_logger.call "#{tag} #{name.nil? ? '' : "#{name}:"} #{result.nil? ? '[nil]' : result}    \t(at #{Loba::calling_source_line(depth+1)})"
+    @loba_logger.call "#{tag} #{text.nil? ? '' : "#{text}"} #{result.nil? ? '[nil]' : result}    \t(at #{Loba::calling_source_line(depth+1)})"
     nil
   end
 
