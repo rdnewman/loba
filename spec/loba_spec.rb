@@ -143,17 +143,17 @@ describe Loba do
     context 'in HelloWorld demo,' do
       subject(:hello_world) { HelloWorld.new.hello }
       it 'writes a first timestamp' do
-        expected_output = /\[TIMESTAMP\] #=.*, diff=.*, at=.*, in=.*.rb:4:in `initialize'/
+        expected_output = /\[TIMESTAMP\].*#=.*, diff=.*, at=.*in=.*.rb:4:in `initialize'/
         expect{subject}.to output(expected_output).to_stdout
       end
 
       it 'writes a value notice' do
-        expected_output = /\[HelloWorld#hello\] @x: 42.*at .*.rb:9:in `hello'/
+        expected_output = /\[HelloWorld#hello\].*@x:.*42.*\(in .*.rb:9:in `hello'/
         expect{subject}.to output(expected_output).to_stdout
       end
 
       it 'writes a second timestamp' do
-        expected_output = /\[TIMESTAMP\] #=.*, diff=.*, at=.*, in=.*.rb:11:in `hello'/
+        expected_output = /\[TIMESTAMP\].*#=.*, diff=.*, at=.*in=.*.rb:11:in `hello'/
         expect{subject}.to output(expected_output).to_stdout
       end
     end
