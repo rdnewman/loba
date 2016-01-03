@@ -100,7 +100,7 @@ The expectation is that Loba statements are just for development or test trace s
 
 `Loba::ts` tries to help protect against timestamp notice requests being accidently left in the code by checking for the Rails environment its being run under.  If in production, it will normally just return immediately without rendering anything to help minimize any impact on production code.  However, that behavior can be overridden with a single `true` argument which tells it to output a timestamp notice even when in the production environment.  This latter should be done sparingly if at all.
 
-`Loba::val`, as of this version, has not such protection.  If left in the code, it will always execute full while in production.
+`Loba::val`, as of this version, has no such protection.  If left in the code, it will always execute with output while in production.
 
 These considerations have an impact on how you install the Loba gem when using `bundler`.  If you only install the gem for :development and :test, then any Loba statements left in the code when it goes to production will cause an error because the statements wouldn't be recognized.  That's perhaps a Good Thing, if you never want them left in.
 
