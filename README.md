@@ -28,6 +28,8 @@ Loba statements are expected to be removed when you're done with them.  No point
 
 Loba will check for presence of Rails.  If it's there, it'll write to `Rails.logger.debug`.  If not, it'll write to STDOUT (i.e., `puts`).  Loba will work equally well with or without Rails.
 
+Loba uses the [colorize gem](https://rubygems.org/gems/colorize) to help make trace statements more visible.
+
 ## Usage
 
 My advice is to align Loba statements to the far left in your source code (a la `=begin` or `=end`) so they're easy to see and remove when you're done.
@@ -40,7 +42,7 @@ Also does a simple elapsed time check since the previous timestamp notice to hel
 For example,
 
 ```
-[TIMESTAMP] #=0002, diff=93.478016, at=1451444972.970602, in=/home/usracct/src/myapp/app/models/target.rb:55:in `some_calculation'
+[TIMESTAMP] #=0002, diff=93.478016, at=1451444972.970602     (in=/home/usracct/src/myapp/app/models/target.rb:55:in `some_calculation')
 ```
 
 To invoke,
@@ -62,7 +64,7 @@ Loba::val :var_sym   # the :var_sym argument is the variable or method name give
 For example,
 
 ```
-[Target.some_calculation] my_var: 54       (at /home/usracct/src/myapp/app/models/target.rb:55:in `some_calculation')
+[Target.some_calculation] my_var: 54       (in /home/usracct/src/myapp/app/models/target.rb:55:in `some_calculation')
 ```
 
 You can read [more detail](readme/val.md) on this command.
@@ -70,7 +72,7 @@ You can read [more detail](readme/val.md) on this command.
 #### Snippet example
 
 ```ruby
-require 'loba'    # shouldn't be necessary in Rails projects
+require 'loba'    # not generally necessary in Rails projects
 class HelloWorld
   def initialize
     @x = 42
@@ -90,10 +92,10 @@ HelloWorld.new.hello
 Output:
 
 ```  
-[TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411, in=/home/usracct/src/lobademo/hello_world.rb:4:in 'initialize'
-[HelloWorld#hello] @x: 42       (at /home/richard/src/loba/spec/hello_world.rb:9:in `hello')
+[TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411   (in=/home/usracct/src/lobademo/hello_world.rb:4:in 'initialize'
+[HelloWorld#hello] @x: 42       (in /home/richard/src/loba/spec/hello_world.rb:9:in `hello')
 Hello, Charlie
-[TIMESTAMP] #=0002, diff=0.000720, at=1451615389.506132, in=/home/usracct/src/lobademo/hello_world.rb:11:in 'hello'
+[TIMESTAMP] #=0002, diff=0.000720, at=1451615389.506132   (in=/home/usracct/src/lobademo/hello_world.rb:11:in 'hello'
 ```
 
 ## Environment Notes
