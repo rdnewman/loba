@@ -24,8 +24,7 @@ Will produce a notice similar to the following:
 [Target.some_calculation] my_var: 54       (at /home/usracct/src/myapp/app/models/target.rb:55:in `some_calculation')
 ```
 
-
-###### Example 1: Using Symbol as argument
+###### Example 1: Using simple Symbol as argument
 ```ruby
 class HelloWorld
   def hello(name)
@@ -38,7 +37,22 @@ HelloWorld.new.hello("Charlie")
 #=> Hello, Charlie!
 ```
 
-###### Example 2: Using a non-Symbol as argument without a label
+###### Example 2: Using more complex Symbol as argument
+```ruby
+class HelloWorld
+  def hello(name)
+    myHash = {somename: name}
+# Loba::val :myHash[name]  won't work directly, but...
+Loba::val "myHash[name]".to_sym   # will work -- just express the name as a String and cast to a Symbol
+    puts "Hello, #{name}!"
+  end
+end
+HelloWorld.new.hello("Charlie")
+#=> [HelloWorld#hello] myHash[name]: Charlie        (at /path/to/file/hello_world.rb:5:in `hello')
+#=> Hello, Charlie!
+```
+
+###### Example 3: Using a non-Symbol as argument without a label
 ```ruby
 class HelloWorld
   def hello(name)
@@ -51,7 +65,7 @@ HelloWorld.new.hello("Charlie")
 #=> Hello, Charlie!
 ```
 
-###### Example 3: Using a non-Symbol as argument with a label
+###### Example 4: Using a non-Symbol as argument with a label
 ```ruby
 class HelloWorld
   def hello(name)
