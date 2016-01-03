@@ -2,6 +2,7 @@ require 'loba/version'
 require 'singleton'
 require 'rails'
 require 'binding_of_caller'
+require 'colorize'
 
 # Loba module for quick tracing of Ruby and Rails.
 # If a Rails application, will use Rails.logger.debug.
@@ -28,10 +29,10 @@ module Loba
         stamptag   = '%04d'%@loba_timer.timenum
         timemark   = '%.6f'%(timenow.round(6).to_f)
         timechg    = '%.6f'%(timenow - @loba_timer.timewas)
-        @loba_logger.call "[TIMESTAMP] #=#{stamptag}, diff=#{timechg}, at=#{timemark}, in=#{caller[0]}"
+        @loba_logger.call "[TIMESTAMP] #=#{stamptag}, diff=#{timechg}, at=#{timemark}, in=#{caller[0]}".colorize(:brown)
         @loba_timer.timewas = timenow
       rescue StandardError => e
-        @loba_logger.call "[TIMESTAMP] #=FAIL, in=#{caller[0]}, err=#{e}"
+        @loba_logger.call "[TIMESTAMP] #=FAIL, in=#{caller[0]}, err=#{e}".colorize(:red)
       end
     end
     nil

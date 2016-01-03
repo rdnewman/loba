@@ -34,4 +34,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec-rails", "~> 3.0"
 
   spec.add_dependency "binding_of_caller", "~> 0.7"
+  spec.add_dependency "colorize", "~> 0.7"
 end
