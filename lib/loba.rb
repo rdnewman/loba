@@ -2,6 +2,7 @@ require 'loba/version'
 require 'singleton'
 require 'rails'
 require 'binding_of_caller'
+require 'colorize'
 
 # Loba module for quick tracing of Ruby and Rails.
 # If a Rails application, will use Rails.logger.debug.
@@ -28,10 +29,17 @@ module Loba
         stamptag   = '%04d'%@loba_timer.timenum
         timemark   = '%.6f'%(timenow.round(6).to_f)
         timechg    = '%.6f'%(timenow - @loba_timer.timewas)
-        @loba_logger.call "[TIMESTAMP] #=#{stamptag}, diff=#{timechg}, at=#{timemark}, in=#{caller[0]}"
+        @loba_logger.call "[TIMESTAMP]".light_white.on_light_black +
+                          " #=".yellow +
+                          "#{stamptag}" +
+                          ", diff=".yellow +
+                          "#{timechg}" +
+                          ", at=".yellow +
+                          "#{timemark}" +
+                          "    \t(in=#{caller[0]})".light_black
         @loba_timer.timewas = timenow
       rescue StandardError => e
-        @loba_logger.call "[TIMESTAMP] #=FAIL, in=#{caller[0]}, err=#{e}"
+        @loba_logger.call "[TIMESTAMP] #=FAIL, in=#{caller[0]}, err=#{e}".colorize(:red)
       end
     end
     nil
@@ -39,6 +47,7 @@ module Loba
 
   # Outputs a value notice showing value of provided argument including method and class identification
   # @param argument [various] the value to be evaluated and shown; if given as a Symbol, a label based on the argument will proceed the value the argument refers to
+  # @param label [String] an optional, explicit label to be used instead of attempting to infer from the argument
   # @return [NilClass] nil
   # @example Using Symbol as argument
   #   class HelloWorld
@@ -60,13 +69,29 @@ module Loba
   #   HelloWorld.new.hello("Charlie")
   #   #=> [HelloWorld#hello] Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
   #   #=> Hello, Charlie!
-  def Loba::val(argument = :nil)
+  # @example Using non-Symbol as argument with a label
+  #   class HelloWorld
+  #     def hello(name)
+  #   Loba::val name, "Name:"
+  #       puts "Hello, #{name}!"
+  #     end
+  #   end
+  #   HelloWorld.new.hello("Charlie")
+  #   #=> [HelloWorld#hello] Name: Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
+  #   #=> Hello, Charlie!
+  def Loba::val(argument = :nil, label = nil)
     depth = 0
     @loba_logger ||= Loba::Platform.logger
     tag = Loba::calling_tag(depth+1)
-    name = argument.is_a?(Symbol) ? argument.to_s : nil
-    result = argument.is_a?(Symbol) ? binding.of_caller(depth+1).eval(argument.to_s) : argument.inspect
-    @loba_logger.call "#{tag} #{name.nil? ? '' : "#{name}:"} #{result.nil? ? '[nil]' : result}    \t(at #{Loba::calling_source_line(depth+1)})"
+    name = argument.is_a?(Symbol) ? "#{argument.to_s}:" : nil
+    text = label.nil? ? name : label
+    result = argument.is_a?(Symbol) ? binding.of_caller(depth+1).eval(argument.to_s) : argument # eval(argument).inspect
+
+
+    @loba_logger.call "#{tag} ".light_green +
+                      "#{text.nil? ? '' : "#{text}"} ".light_green +
+                      "#{result.nil? ? '[nil]' : result}" +
+                      "    \t(in #{Loba::calling_source_line(depth+1)})".light_black
     nil
   end
 
