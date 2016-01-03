@@ -70,10 +70,11 @@ You can read [more detail](readme/val.md) on this command.
 #### Snippet example
 
 ```ruby
+require 'loba'    # shouldn't be necessary in Rails projects
 class HelloWorld
   def initialize
     @x = 42
-Loba::ts        # see? it's easier to see what to remove later
+Loba::ts          # see? it's easier to see what to remove later
     @y = "Charlie"
   end
 
@@ -83,6 +84,7 @@ Loba::val :@x
 Loba::ts
   end
 end
+HelloWorld.new.hello
 ```
 
 Output:
