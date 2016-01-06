@@ -29,7 +29,7 @@ module Loba
         stamptag   = '%04d'%@loba_timer.timenum
         timemark   = '%.6f'%(timenow.round(6).to_f)
         timechg    = '%.6f'%(timenow - @loba_timer.timewas)
-        @loba_logger.call "[TIMESTAMP]".light_white.on_light_black +
+        @loba_logger.call "[TIMESTAMP]".black.on_light_black +
                           " #=".yellow +
                           "#{stamptag}" +
                           ", diff=".yellow +
@@ -93,7 +93,7 @@ module Loba
     result = argument.is_a?(Symbol) ? binding.of_caller(depth+1).eval(argument.to_s) : argument # eval(argument).inspect
 
 
-    @loba_logger.call "#{tag} ".light_green.on_light_black +
+    @loba_logger.call "#{tag} ".green +
                       "#{text.nil? ? '' : "#{text}"} ".light_green +
                       "#{result.nil? ? '[nil]' : result}" +
                       "    \t(in #{Loba::calling_source_line(depth+1)})".light_black
