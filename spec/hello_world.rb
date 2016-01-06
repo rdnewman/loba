@@ -10,4 +10,10 @@ Loba::val :@x
     puts "Hello, #{@y}" if @x == 42
 Loba::ts
   end
+
+  def goodbye
+Loba::val @y, '@y'
+    puts "Goodbye, #{@y}" if @x == 42
+Loba::ts
+  end
 end

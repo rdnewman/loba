@@ -140,7 +140,7 @@ describe Loba do
   end
 
   context '[output allowed]' do
-    context 'in HelloWorld demo,' do
+    context 'in HelloWorld demo, using hello method,' do
       subject(:hello_world) { HelloWorld.new.hello }
       it 'writes a first timestamp' do
         expected_output = /\[TIMESTAMP\].*#=.*, diff=.*, at=.*in=.*.rb:4:in `initialize'/
@@ -156,6 +156,16 @@ describe Loba do
         expected_output = /\[TIMESTAMP\].*#=.*, diff=.*, at=.*in=.*.rb:11:in `hello'/
         expect{subject}.to output(expected_output).to_stdout
       end
+    end
+
+    context 'in HelloWorld demo, using goodbye method,' do
+      subject(:hello_world) { HelloWorld.new.goodbye }
+
+      it 'writes a value notice using a label' do
+        expected_output = /\[HelloWorld#goodbye\].*@y:.*Charlie.*\(in .*.rb:15:in `goodbye'/
+        expect{subject}.to output(expected_output).to_stdout
+      end
+
     end
   end
 
