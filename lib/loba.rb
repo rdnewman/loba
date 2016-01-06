@@ -84,11 +84,16 @@ module Loba
     @loba_logger ||= Loba::Platform.logger
     tag = Loba::calling_tag(depth+1)
     name = argument.is_a?(Symbol) ? "#{argument.to_s}:" : nil
-    text = label.nil? ? name : label
+    text = if label.nil?
+             name
+           else
+             label.strip!
+             label += ':' unless label[-1] == ':'
+           end
     result = argument.is_a?(Symbol) ? binding.of_caller(depth+1).eval(argument.to_s) : argument # eval(argument).inspect
 
 
-    @loba_logger.call "#{tag} ".light_green +
+    @loba_logger.call "#{tag} ".light_green.on_light_black +
                       "#{text.nil? ? '' : "#{text}"} ".light_green +
                       "#{result.nil? ? '[nil]' : result}" +
                       "    \t(in #{Loba::calling_source_line(depth+1)})".light_black
