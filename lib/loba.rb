@@ -79,7 +79,7 @@ module Loba
   #   HelloWorld.new.hello("Charlie")
   #   #=> [HelloWorld#hello] Name: Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
   #   #=> Hello, Charlie!
-  def val(argument = :nil, label = nil)
+  def val(argument = :nil, label = nil, production_is_ok = false)
     if Internal::Platform.logging_ok?(production_is_ok)
       depth = 0
       @loba_logger ||= Internal::Platform.logger
