@@ -36,8 +36,7 @@ My advice is to align Loba statements to the far left in your source code (a la 
 
 #### Timestamp notices:  `Loba.ts`
 
-Outputs a timestamped notice, useful for quick traces to see the code path and easier than, say, [Kernel#set_trace_func](http://ruby-doc.org/core-2.2.3/Kernel.html#method-i-set_trace_func).
-Also does a simple elapsed time check since the previous timestamp notice to help with quick, minimalist profiling.
+Outputs a timestamped notice, useful for quick traces to see the code path and easier than, say, [Kernel#set_trace_func](http://ruby-doc.org/core-2.2.3/Kernel.html#method-i-set_trace_func). Also does a simple elapsed time check since the previous timestamp notice to help with quick, minimalist profiling.
 
 For example,
 
@@ -102,19 +101,13 @@ Hello, Charlie
 
 This section is only relevant in Rails environments.
 
-The expectation is that Loba statements are just for development or test trace statements.  Generally, its a bad idea to leave diagnostic code in Rails production; still, it can happen.   
-And, occasionally, it can be useful to have trace statements in production too if you have an issue that is difficult to reproduce.
+The expectation is that Loba statements are just for development or test trace statements.  Generally, its a bad idea to leave diagnostic code in Rails production; still, it can happen. And, occasionally, it can be useful to have trace statements in production too if you have an issue that is difficult to reproduce.
 
-`Loba.ts` and `Loba.val` try to protect against timestamp or value notice requests being accidentally left in the code by checking for the Rails environment Loba is being invoked under.  
-If in production, `Loba.ts` and `Loba.val` will normally just return immediately without rendering anything to help minimize any impact on production code.  
-However, that behavior can be overridden with a `true` as an additional last argument to output a notice even when in the production environment.  In general, this should be done sparingly if at all.
+`Loba.ts` and `Loba.val` try to protect against timestamp or value notice requests being accidentally left in the code by checking for the Rails environment Loba is being invoked under. If in production, `Loba.ts` and `Loba.val` will normally just return immediately without rendering anything to help minimize any impact on production code. However, that behavior can be overridden with a `true` as an additional last argument to output a notice even when in the production environment.  In general, this should be done sparingly if at all.
 
-These considerations also have an impact on how you install the Loba gem when using `bundler`.  
-If you only install the gem for :development and :test, then any Loba statements left in the code when it goes to production will cause an error because the statements wouldn't be recognized.  
-That's perhaps a Good Thing, if you never want them left in.
+These considerations also have an impact on how you install the Loba gem when using `bundler`. If you only install the gem for :development and :test, then any Loba statements left in the code when it goes to production will cause an error because the statements wouldn't be recognized. That's perhaps a Good Thing, if you never want them left in.
 
-If you simply install the gem for all environments, then Loba will be available in production, but you may not notice as easily if some Loba calls are unintentionally left in.  
-Of course, if you want those statements to work in production, then you should install the gem for all environments.
+If you simply install the gem for all environments, then Loba will be available in production, but you may not notice as easily if some Loba calls are unintentionally left in. Of course, if you want those statements to work in production, then you should install the gem for all environments.
 
 The following is the code example snippet but always logging even in Rails production environments:
 
