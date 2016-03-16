@@ -127,10 +127,11 @@ describe Loba do
         end
         expect{test_class.new.hello}.to raise_error NameError
       end
-      it 'can be called if namespaced' do
+
+      it 'can be called if fully namespaced' do
         test_class = Class.new(LobaClass) do
           def hello
-            Loba::Platform.rails?
+            Loba::Internal::Platform.rails?
           end
         end
         expect{test_class.new.hello}.not_to raise_error
