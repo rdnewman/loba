@@ -1,5 +1,4 @@
 class LobaClass
-  include Loba
 
   def base_ts
     Loba.ts
