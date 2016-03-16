@@ -101,7 +101,7 @@ Hello, Charlie
 
 This section is only relevant in Rails environments.
 
-The expectation is that Loba statements are just for development or test trace statements.  Generally, its a bad idea to leave diagnostic code in Rails production; still, it can happen. And, occasionally, it can be useful to have trace statements in production too if you have an issue that is difficult to reproduce.
+The expectation is that Loba statements are just for development or test trace statements.  Generally, it's a bad idea to leave diagnostic code in Rails production; still, it can happen. And, occasionally, it can be useful to have trace statements in production too if you have an issue that is difficult to reproduce.
 
 `Loba.ts` and `Loba.val` try to protect against timestamp or value notice requests being accidentally left in the code by checking for the Rails environment Loba is being invoked under. If in production, `Loba.ts` and `Loba.val` will normally just return immediately without rendering anything to help minimize any impact on production code. However, that behavior can be overridden with a `true` as an additional last argument to output a notice even when in the production environment.  In general, this should be done sparingly if at all.
 
