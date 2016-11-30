@@ -7,7 +7,6 @@ class LobaClass
   def base_val
     _bv = "BENJAMIN"
     Loba.val :_bv
-#    Loba.val self.methods.sort.uniq
   end
 
   def self.classbase_ts
