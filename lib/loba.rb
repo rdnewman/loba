@@ -104,7 +104,7 @@ module Loba
 
       @loba_logger.call "#{tag} ".green +
                         "#{text.nil? ? '' : "#{text}"} ".light_green +
-                        "#{result.nil? ? '[nil]' : result}" +
+                        "#{result.nil? ? '-nil-' : result}" +
                         "    \t(in #{source_line})".light_black
     end
     nil
