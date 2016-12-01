@@ -115,7 +115,7 @@ The following is the code example snippet but always logging even in Rails produ
 class HelloWorld
   def initialize
     @x = 42
-Loba.ts(true)          # see? it's easier to see what to remove later
+Loba.ts(true)
     @y = "Charlie"
   end
 
