@@ -85,7 +85,7 @@ module Loba
       @loba_logger ||= Internal::Platform.logger
 
       tag = Internal.calling_tag(depth+1)
-      name = argument.is_a?(Symbol) ? "#{argument.to_s}:" : nil
+      name = argument.is_a?(Symbol) ? "#{argument}:" : nil
 
       text = if label.nil?
                name
@@ -134,7 +134,11 @@ module Loba
       end
 
       def calling_method_type(depth = 0)
-        binding.of_caller(depth+1).eval('self.class.name') == 'Class' ? :class : :instance
+        if binding.of_caller(depth+1).eval('self.class.name') == 'Class'
+          :class
+        else
+          :instance
+        end
       end
 
       def calling_line_number(depth = 0)
@@ -185,7 +189,11 @@ module Loba
 
         # Returns a logging mechanism appropriate for the application
         def logger
-          (rails? && Rails.logger.present?) ? ->(arg){Rails.logger.debug arg} : ->(arg){puts arg}
+          if (rails? && Rails.logger.present?)
+            ->(arg){Rails.logger.debug arg}
+          else
+            ->(arg){puts arg}
+          end
         end
       end
     end
