@@ -15,7 +15,7 @@ Loba.val some_identifier  # directly give a variable or method name instead of a
 or
 
 ```
-Loba.val some_identifier "My label:"  # same as direct variable, but allows a custom label
+Loba.val some_identifier, "My label:"  # same as direct variable, but allows a custom label
 ```
 
 Will produce a notice similar to the following:
