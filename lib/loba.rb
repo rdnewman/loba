@@ -24,13 +24,13 @@ module Loba
                          false
                          options[:production] if options[:production]
                        when TrueClass
-                         Internal.deprecated_0_2_1(true)
+                         Internal::Deprecated._0_3_0(true)
                          true
                        when FalseClass
-                         Internal.deprecated_0_2_1(false)
+                         Internal::Deprecated._0_3_0(false)
                          false
                        else
-                         Internal.deprecated_0_2_1(true)
+                         Internal::Deprecated._0_3_0(true)
                          false # but to be safe, treat as false
                        end
 
@@ -103,13 +103,13 @@ module Loba
                          false
                          options[:production] if options[:production]
                        when TrueClass
-                         Internal.deprecated_0_2_1(true)
+                         Internal::Deprecated._0_3_0(true)
                          true
                        when FalseClass
-                         Internal.deprecated_0_2_1(false)
+                         Internal::Deprecated._0_3_0(false)
                          false
                        else
-                         Internal.deprecated_0_2_1(true)
+                         Internal::Deprecated._0_3_0(true)
                          false # but to be safe, treat as false
                        end
 
@@ -186,11 +186,16 @@ module Loba
         delim = {class: '.', instance: '#'}
         "[#{calling_class_name(depth+1)}#{delim[calling_method_type(depth+1)]}#{calling_method_name(depth+1)}]"
       end
+    end
 
-      def deprecated_0_2_1(value)
-        bool = value ? "true" : "false"
-        verb = value ? "enabled" : "disabled"
-        warn "DEPRECATION WARNING: use {:production => #{bool}} instead to indicate notice is #{verb} in production"
+    # Internal class for deprecation warnings
+    class Deprecated
+      class << self
+        def _0_3_0(value)
+          bool = value ? "true" : "false"
+          verb = value ? "enabled" : "disabled"
+          warn "DEPRECATION WARNING: use {:production => #{bool}} instead to indicate notice is #{verb} in production"
+        end
       end
     end
 
