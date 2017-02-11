@@ -21,9 +21,9 @@ The resulting notice output format is
 ```
 
 where
-* `nnn` ("#=") is a sequential numbering (1, 2, 3, ...) of timestamp notices,
-* `ss.ssssss` ("diff=") is number of seconds since the last timestamp notice was output (i.e., relative time),
-* `tttttttttt.tttttt` ("at=") is Time.now (as seconds) (i.e., absolute time),
-* `/path/to/code/somecode.rb` ("in=") is the source code file that invoked `Loba.ts`,
-* `LL` ("in=...:") is the line number of the source code file that invoked `Loba.ts`, and
-* `some_method`is the method in which `Loba.ts` was invoked.
+*   `nnn` ("#=") is a sequential numbering (1, 2, 3, ...) of timestamp notices,
+*   `ss.ssssss` ("diff=") is number of seconds since the last timestamp notice was output (i.e., relative time),
+*   `tttttttttt.tttttt` ("at=") is Time.now (as seconds) (i.e., absolute time),
+*   `/path/to/code/somecode.rb` ("in=") is the source code file that invoked `Loba.ts`,
+*   `LL` ("in=...:") is the line number of the source code file that invoked `Loba.ts`, and
+*   `some_method`is the method in which `Loba.ts` was invoked.
