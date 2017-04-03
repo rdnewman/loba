@@ -1,3 +1,5 @@
+require 'line_enumerator'
+
 module Loba
   module TaskSupport
 

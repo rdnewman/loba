@@ -1,4 +1,6 @@
 require 'loba/version'
+require 'loba/railtie' if defined?(Rails)
+
 require 'singleton'
 require 'binding_of_caller'
 require 'colorize'
