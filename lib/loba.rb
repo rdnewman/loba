@@ -1,4 +1,5 @@
 require 'loba/version'
+
 require 'singleton'
 require 'binding_of_caller'
 require 'colorize'
@@ -10,14 +11,29 @@ module Loba
 
   # Outputs a timestamped notice, useful for quick traces to see the code path.
   # Also does a simple elapsed time check since the previous timestamp notice to help with quick, minimalist profiling.
-  # @param production_is_ok [Boolean] true if this timestamp notice is enabled when running in :production environment
+  # @param options [Hash] options for use
+  # @option options [Boolean] :production (false) true if this timestamp notice is enabled when running in :production environment
   # @return [NilClass] nil
   # @example Basic use
   #   def hello
   #     Loba.ts
   #   end
   #   #=> [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411, in=/path/to/file.rb:2:in 'hello'
-  def ts(production_is_ok = false)
+  def ts(options = {})
+    production_is_ok = case options
+                       when Hash
+                         !!options[:production]
+                       when TrueClass
+                         Internal::Deprecated._0_3_0(true)
+                         true
+                       when FalseClass
+                         Internal::Deprecated._0_3_0(false)
+                         false
+                       else   # to be safe, treat as false
+                         Internal::Deprecated._0_3_0(false)
+                         false
+                       end
+
     if Internal::Platform.logging_ok?(production_is_ok)
       @loba_logger ||= Internal::Platform.logger
       @loba_timer ||= Internal::TimeKeeper.instance
@@ -48,6 +64,8 @@ module Loba
   # Outputs a value notice showing value of provided argument including method and class identification
   # @param argument [various] the value to be evaluated and shown; if given as a Symbol, a label based on the argument will proceed the value the argument refers to
   # @param label [String] an optional, explicit label to be used instead of attempting to infer from the argument
+  # @param options [Hash] options for use
+  # @option options [Boolean] :production (false) true if this value notice is enabled when running in :production environment
   # @return [NilClass] nil
   # @example Using Symbol as argument
   #   class HelloWorld
@@ -79,7 +97,21 @@ module Loba
   #   HelloWorld.new.hello("Charlie")
   #   #=> [HelloWorld#hello] Name: Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
   #   #=> Hello, Charlie!
-  def val(argument = :nil, label = nil, production_is_ok = false)
+  def val(argument = :nil, label = nil, options = {})
+    production_is_ok = case options
+                       when Hash
+                         !!options[:production]
+                       when TrueClass
+                         Internal::Deprecated._0_3_0(true)
+                         true
+                       when FalseClass
+                         Internal::Deprecated._0_3_0(false)
+                         false
+                       else   # to be safe, treat as false
+                         Internal::Deprecated._0_3_0(false)
+                         false
+                       end
+
     if Internal::Platform.logging_ok?(production_is_ok)
       depth = 0
       @loba_logger ||= Internal::Platform.logger
@@ -95,9 +127,9 @@ module Loba
              end
 
       result = if argument.is_a?(Symbol)
-                 binding.of_caller(depth+1).eval(argument.to_s)
+                 binding.of_caller(depth+1).eval(argument.to_s).inspect
                else
-                 argument
+                 argument.inspect
                end
 
       source_line = Internal.calling_source_line(depth+1)
@@ -152,6 +184,17 @@ module Loba
       def calling_tag(depth = 0)
         delim = {class: '.', instance: '#'}
         "[#{calling_class_name(depth+1)}#{delim[calling_method_type(depth+1)]}#{calling_method_name(depth+1)}]"
+      end
+    end
+
+    # Internal class for deprecation warnings
+    class Deprecated
+      class << self
+        def _0_3_0(value)
+          bool = value ? "true" : "false"
+          verb = value ? "enabled" : "disabled"
+          warn "DEPRECATION WARNING: use {:production => #{bool}} instead to indicate notice is #{verb} in production"
+        end
       end
     end
 

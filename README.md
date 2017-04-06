@@ -18,8 +18,8 @@ Easy tracing for debugging: handy methods for adding trace lines to output or Ra
 
 There are two kinds of questions I usually want to answer when trying to diagnose code behavior:
 
-1. Is this spot of code being reached (or is it reached in the order I think it is)?
-1. What is the value of this variable?
+1.  Is this spot of code being reached (or is it reached in the order I think it is)?
+1.  What is the value of this variable?
 
 Loba statements are intended to be terse to minimize typing.  
 
@@ -104,7 +104,7 @@ This section is only relevant in Rails environments.
 
 The expectation is that Loba statements are just for development or test trace statements.  Generally, it's a bad idea to leave diagnostic code in Rails production; still, it can happen. And, occasionally, it can be useful to have trace statements in production too if you have an issue that is difficult to reproduce.
 
-`Loba.ts` and `Loba.val` try to protect against timestamp or value notice requests being accidentally left in the code by checking for the Rails environment Loba is being invoked under. If in production, `Loba.ts` and `Loba.val` will normally just return immediately without rendering anything to help minimize any impact on production code. However, that behavior can be overridden with a `true` as an additional last argument to output a notice even when in the production environment.  In general, this should be done sparingly if at all.
+`Loba.ts` and `Loba.val` try to protect against timestamp or value notice requests being accidentally left in the code by checking for the Rails environment Loba is being invoked under. If in production, `Loba.ts` and `Loba.val` will normally just return immediately without rendering anything to help minimize any impact on production code. However, that behavior can be overridden by using the options hash with `:production => true` as an additional last argument to output a notice even when in the production environment.  In general, this should be done sparingly if at all.
 
 These considerations also have an impact on how you install the Loba gem when using `bundler`. If you only install the gem for :development and :test, then any Loba statements left in the code when it goes to production will cause an error because the statements wouldn't be recognized. That's perhaps a Good Thing, if you never want them left in.
 
@@ -116,12 +116,12 @@ The following is the code example snippet but always logging even in Rails produ
 class HelloWorld
   def initialize
     @x = 42
-Loba.ts(true)
+Loba.ts production: true
     @y = "Charlie"
   end
 
   def hello
-Loba.val :@x, nil, true
+Loba.val :@x, nil, production: true
     puts "Hello, #{@y}" if @x == 42
 Loba.ts true
   end
@@ -150,11 +150,15 @@ gem 'loba', require: false
 
 And then execute:
 
-    $ bundle
+```bash
+$ bundle
+```
 
 Or install it yourself as:
 
-    $ gem install loba
+```bash
+$ gem install loba
+```
 
 ## Development
 
@@ -165,12 +169,22 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Changelog
 |version|notes|
 |-------|-----|
+|0.3.0|updated dependences; amended parameters*|
 |0.2.0|release on RubyGems.org|
 |0.1.0|initial development|
 
+### Deprecations
+
+#### 0.3.0
+In prior versions, to allow Loba notes to write to the log while in :production, an optional third parameter could be supplied as merely a boolean value.  In 0.3.0 and later versions, this must now be specified as part of an options hash as `{:production => true}`
+
+### Semantic versions
+
+As of version 0.3.0 and later, this gem follows semantic versioning [2.0.0](http://semver.org/spec/v2.0.0.html) conventions.
+
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/rdnewman/loba. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at <https://github.com/rdnewman/loba>. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
 ## License
 
