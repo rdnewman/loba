@@ -102,7 +102,7 @@ describe Loba do
             Loba.ts []
           end
         end
-        expected_text = "DEPRECATION WARNING: use {:production => true} instead to indicate notice is enabled in production\n"
+        expected_text = "DEPRECATION WARNING: use {:production => false} instead to indicate notice is disabled in production\n"
         expect{test_class.new.hello}.to output(expected_text).to_stderr
       end
     end
@@ -196,7 +196,7 @@ describe Loba do
               Loba.val _v, 'value', []
             end
           end
-          expected_text = "DEPRECATION WARNING: use {:production => true} instead to indicate notice is enabled in production\n"
+          expected_text = "DEPRECATION WARNING: use {:production => false} instead to indicate notice is disabled in production\n"
           expect{test_class.new.hello}.to output(expected_text).to_stderr
         end
       end

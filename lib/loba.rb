@@ -22,17 +22,16 @@ module Loba
   def ts(options = {})
     production_is_ok = case options
                        when Hash
-                         false
-                         options[:production] if options[:production]
+                         !!options[:production]
                        when TrueClass
                          Internal::Deprecated._0_3_0(true)
                          true
                        when FalseClass
                          Internal::Deprecated._0_3_0(false)
                          false
-                       else
-                         Internal::Deprecated._0_3_0(true)
-                         false # but to be safe, treat as false
+                       else   # to be safe, treat as false
+                         Internal::Deprecated._0_3_0(false)
+                         false
                        end
 
     if Internal::Platform.logging_ok?(production_is_ok)
@@ -101,17 +100,16 @@ module Loba
   def val(argument = :nil, label = nil, options = {})
     production_is_ok = case options
                        when Hash
-                         false
-                         options[:production] if options[:production]
+                         !!options[:production]
                        when TrueClass
                          Internal::Deprecated._0_3_0(true)
                          true
                        when FalseClass
                          Internal::Deprecated._0_3_0(false)
                          false
-                       else
-                         Internal::Deprecated._0_3_0(true)
-                         false # but to be safe, treat as false
+                       else   # to be safe, treat as false
+                         Internal::Deprecated._0_3_0(false)
+                         false
                        end
 
     if Internal::Platform.logging_ok?(production_is_ok)
