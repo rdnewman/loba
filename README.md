@@ -176,11 +176,11 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ### Deprecations
 
 #### 0.3.0
-In prior versions, to allow Loba notes to log in :production, an optional third parameter could be supplied as merely a boolean value.  In 0.3.0 and later versions, this must now be specified as part of an options hash as `{:production => true}`
+In prior versions, to allow Loba notes to write to the log while in :production, an optional third parameter could be supplied as merely a boolean value.  In 0.3.0 and later versions, this must now be specified as part of an options hash as `{:production => true}`
 
 ### Semantic versions
 
-This gem follows semantic versioning [2.0.0](http://semver.org/spec/v2.0.0.html) conventions.
+As of version 0.3.0 and later, this gem follows semantic versioning [2.0.0](http://semver.org/spec/v2.0.0.html) conventions.
 
 ## Contributing
 
