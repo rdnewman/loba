@@ -169,7 +169,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Changelog
 |version|notes|
 |-------|-----|
-|0.3.0|updated dependences; added inspect to Loba.val, amended parameters*|
+|0.3.0|updated dependences; added inspect to Loba.val; amended parameters*|
 |0.2.0|release on RubyGems.org|
 |0.1.0|initial development|
 
