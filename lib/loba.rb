@@ -139,6 +139,7 @@ module Loba
     class << self
 
       # Prepare display of class name from where Loba was invoked
+      # @param depth [integer] internal tracking of call stack depth
       def calling_class_name(depth = 0)
         m = binding.of_caller(depth+1).eval('self.class.name')
         if m.nil? || m.empty?
@@ -151,12 +152,14 @@ module Loba
       end
 
       # Prepare display of method name from where Loba was invoked
+      # @param depth [integer] internal tracking of call stack depth
       def calling_method_name(depth = 0)
         m = binding.of_caller(depth+1).eval('self.send(:__method__)')
         (m.nil? || m.empty?) ? '<anonymous method>' : m
       end
 
       # Prepare display of whether the method from where Loba was invoked is for a class or an instance
+      # @param depth [integer] internal tracking of call stack depth
       def calling_method_type(depth = 0)
         if binding.of_caller(depth+1).eval('self.class.name') == 'Class'
           :class
@@ -166,22 +169,27 @@ module Loba
       end
 
       # Prepare display of line number from where Loba was invoked [UNUSED]
+      # @param depth [integer] internal tracking of call stack depth
       def calling_line_number(depth = 0)
         binding.of_caller(depth+1).eval('__LINE__')
       end
 
       # Assemble display that shows the method invoking Loba
+      # @param depth [integer] internal tracking of call stack depth
       def calling_tag(depth = 0)
         delim = {class: '.', instance: '#'}
         "[#{calling_class_name(depth+1)}#{delim[calling_method_type(depth+1)]}#{calling_method_name(depth+1)}]"
       end
 
       # Identify source code line from where Loba was invoked
+      # @param depth [integer] internal tracking of call stack depth
       def calling_source_line(depth = 0)
         caller[depth]
       end
 
       # Filters options argument for deprecated or unexpected use
+      # @param options [various] options argument to filter
+      # @param allowed_keys [array] array of expected keys in options
       def filter_options(options, allowed_keys = [])
         result = {}
         allowed_keys.each { |key| result[key] = false }
