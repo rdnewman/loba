@@ -52,6 +52,8 @@ module Loba
     nil
   end
   module_function :ts
+
+  # Alias for Loba.ts
   alias_method :timestamp, :ts
   module_function :timestamp
 
