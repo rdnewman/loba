@@ -21,19 +21,9 @@ module Loba
   #   #=> [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411, in=/path/to/file.rb:2:in 'hello'
   def ts(options = {})
 
-    # evaluate options hash
-    production_is_ok = false
-    case options
-    when Hash
-      production_is_ok = !!options[:production]
-    when TrueClass
-      Internal::Deprecated._0_3_0(true)
-      production_is_ok = true
-    when FalseClass
-      Internal::Deprecated._0_3_0(false)
-    else   # to be safe, treat as false
-      Internal::Deprecated._0_3_0(false)
-    end
+    # evaluate options
+    filtered_options = Internal.filter_options(options, [:production])
+    production_is_ok = filtered_options[:production]
 
     # log if possible
     if Internal::Platform.logging_ok?(production_is_ok)
@@ -102,21 +92,10 @@ module Loba
   #   #=> Hello, Charlie!
   def val(argument = :nil, label = nil, options = {inspect: true})
 
-    # evaluate options hash
-    production_is_ok = false
-    will_inspect = true
-    case options
-    when Hash
-      production_is_ok = !!options[:production]
-      will_inspect = options[:inspect] unless options[:inspect].nil?
-    when TrueClass
-      Internal::Deprecated._0_3_0(true)
-      production_is_ok = true
-    when FalseClass
-      Internal::Deprecated._0_3_0(false)
-    else   # to be safe, treat as false
-      Internal::Deprecated._0_3_0(false)
-    end
+    # evaluate options
+    filtered_options = Internal.filter_options(options, [:production, :inspect])
+    production_is_ok = filtered_options[:production]
+    will_inspect = filtered_options[:inspect]
 
     # log if possible
     if Internal::Platform.logging_ok?(production_is_ok)
@@ -162,9 +141,10 @@ module Loba
   module Internal
 
     class << self
-      LOBA_CLASS_NAME = 'self.class.name'
+
+      # Prepare display of class name from where Loba was invoked
       def calling_class_name(depth = 0)
-        m = binding.of_caller(depth+1).eval(LOBA_CLASS_NAME)
+        m = binding.of_caller(depth+1).eval('self.class.name')
         if m.nil? || m.empty?
           '<anonymous class>'
         elsif m == 'Class'
@@ -174,12 +154,13 @@ module Loba
         end
       end
 
-      LOBA_METHOD_NAME = 'self.send(:__method__)'
+      # Prepare display of method name from where Loba was invoked
       def calling_method_name(depth = 0)
-        m = binding.of_caller(depth+1).eval(LOBA_METHOD_NAME)
+        m = binding.of_caller(depth+1).eval('self.send(:__method__)')
         (m.nil? || m.empty?) ? '<anonymous method>' : m
       end
 
+      # Prepare display of whether the method from where Loba was invoked is for a class or an instance
       def calling_method_type(depth = 0)
         if binding.of_caller(depth+1).eval('self.class.name') == 'Class'
           :class
@@ -188,23 +169,53 @@ module Loba
         end
       end
 
+      # Prepare display of line number from where Loba was invoked [UNUSED]
       def calling_line_number(depth = 0)
         binding.of_caller(depth+1).eval('__LINE__')
       end
 
-      def calling_source_line(depth = 0)
-        caller[depth]
-      end
-
+      # Assemble display that shows the method invoking Loba
       def calling_tag(depth = 0)
         delim = {class: '.', instance: '#'}
         "[#{calling_class_name(depth+1)}#{delim[calling_method_type(depth+1)]}#{calling_method_name(depth+1)}]"
       end
+
+      # Identify source code line from where Loba was invoked
+      def calling_source_line(depth = 0)
+        caller[depth]
+      end
+
+      # Filters options argument for deprecated or unexpected use
+      def filter_options(options, allowed_keys = [])
+        result = {}
+        allowed_keys.each { |key| result[key] = false }
+
+        case options
+        when Hash
+          allowed_keys.each do |key|
+            result[key] = !!options[key] unless options[key].nil?
+          end
+        when TrueClass
+          if allowed_keys.include? :production
+            Internal::Deprecated._0_3_0(true)
+            result[:production] = true
+          end
+        when FalseClass
+          Internal::Deprecated._0_3_0(false)
+        else   # to be safe, treat as false
+          Internal::Deprecated._0_3_0(false)
+        end
+
+        result
+      end
+
     end
 
-    # Internal class for deprecation warnings
+    # Internal class for deprecation warnings.
     class Deprecated
       class << self
+        # Deprecations as of version 0.3.0
+        # @param value [boolean] deprecated value supplied in original call to use in deprecation message
         def _0_3_0(value)
           bool = value ? "true" : "false"
           verb = value ? "enabled" : "disabled"
