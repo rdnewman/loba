@@ -119,11 +119,7 @@ module Loba
                    binding.of_caller(depth+1).eval(argument.to_s)
                  end
                else
-                 if will_inspect
-                   argument.inspect
-                 else
-                   argument
-                 end
+                 will_inspect ? argument.inspect : argument
                end
 
       source_line = Internal.calling_source_line(depth+1)
