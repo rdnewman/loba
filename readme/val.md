@@ -100,4 +100,18 @@ Notes:
 *   `ccccc`:  Ruby supports anonymous classes (e.g., `= Class.new`).  If an anonymous class, "<anonymous class>" will be output here.
 *   `mmmmm`:  Ruby supports anonymous methods, procs, and lambdas.  If an anonymous method, et al, "<anonymous method>" will be output here.
 *   `vvvvv`:  This depends on the argument being provided:  if a symbol, then this field will use that symbol to determine the name and present it here.  If not, nothing will appear for this field.
-*   `rrrrr`:  The value of the variable given to `Loba.val`.  `inspect` may be used.
+*   `rrrrr`:  The value of the variable given to `Loba.val`.  `inspect` may be used (see [options](#options) below).
+
+##### Options
+
+As the last argument, an options hash may be provided:
+*   `inspect` true if this value notice is to use #inspect against the content being evaluated \[_default: `true`_\]
+*   `production` true if this value notice is enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
+
+###### Example 5: Using options hash
+```ruby
+Loba.val name, "Name:", inspect: false, production: true
+```
+```ruby
+Loba.val :name, nil, {production: true}
+```

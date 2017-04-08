@@ -179,14 +179,99 @@ describe Loba do
           expect{test_class.new.hello}.to output(expected_text).to_stderr
         end
 
-        it 'as an options hash, will not mark as deprecated' do
-          test_class = Class.new(LobaClass) do
-            def hello
-              _v = "hello"
-              Loba.val _v, 'value', {}
+        describe 'as an options hash,' do
+          it 'will not mark as deprecated' do
+            test_class = Class.new(LobaClass) do
+              def hello
+                _v = "hello"
+                Loba.val _v, 'value', {}
+              end
             end
+            expect{test_class.new.hello}.not_to output.to_stderr
           end
-          expect{test_class.new.hello}.not_to output.to_stderr
+
+          describe 'and with an object as second value' do
+            context '(supplied via symbol)' do
+              let(:notice_without_instance_variable) do
+                /^.*?\[\<anonymous class\>\#hello\].*?self:.*?\#\<\#\<Class\:0[xX][0-9a-fA-F]{14}\>\:0[xX][0-9a-fA-F]{14}?\>.*?\(in .*?\:\d+\:in `hello'\).*?$/
+              end
+
+              let(:notice_with_instance_variable) do
+                /^.*?\[\<anonymous class\>\#hello\].*?self:.*?\#\<\#\<Class\:0[xX][0-9a-fA-F]{14}\>\:0[xX][0-9a-fA-F]{14}? @test_val=5\>.*?\(in .*?\:\d+\:in `hello'\).*?$/
+              end
+
+              it 'will inspect by default' do
+                test_class = Class.new() do
+                  def hello
+                    @test_val = 5
+                    Loba.val :self
+                  end
+                end
+                expect{test_class.new.hello}.to output(notice_with_instance_variable).to_stdout
+              end
+
+              it 'will inspect if option is true' do
+                test_class = Class.new() do
+                  def hello
+                    @test_val = 5
+                    Loba.val :self, nil, {inspect: true}
+                  end
+                end
+                expect{test_class.new.hello}.to output(notice_with_instance_variable).to_stdout
+              end
+
+              it 'will not inspect if option is false' do
+                test_class = Class.new(LobaClass) do
+                  def hello
+                    @test_val = 5
+                    Loba.val :self, nil, {inspect: false}
+                  end
+                end
+                expect{test_class.new.hello}.to output(notice_without_instance_variable).to_stdout
+              end
+            end
+
+            context '(supplied directly)' do
+              let(:notice_with_instance_variable) do
+                /^.*?\[\<anonymous class\>\#hello\].*?hello:.*?\#\<\#\<Class\:0[xX][0-9a-fA-F]{14}\>\:0[xX][0-9a-fA-F]{14}? @test_val=5\>.*?\(in .*?\:\d+\:in `hello'\).*?$/
+              end
+
+              let(:notice_without_instance_variable) do
+                /^.*?\[\<anonymous class\>\#hello\].*?hello:.*?\#\<\#\<Class\:0[xX][0-9a-fA-F]{14}\>\:0[xX][0-9a-fA-F]{14}?\>.*?\(in .*?\:\d+\:in `hello'\).*?$/
+              end
+
+              it 'will inspect by default' do
+                test_class = Class.new() do
+                  def hello
+                    @test_val = 5
+                    Loba.val self, 'hello'
+                  end
+                end
+                expect{test_class.new.hello}.to output(notice_with_instance_variable).to_stdout
+              end
+
+              it 'will inspect if option is true' do
+                test_class = Class.new() do
+                  def hello
+                    @test_val = 5
+                    Loba.val self, 'hello', {inspect: true}
+                  end
+                end
+                expect{test_class.new.hello}.to output(notice_with_instance_variable).to_stdout
+              end
+
+              it 'will not inspect if option is false' do
+                test_class = Class.new(LobaClass) do
+                  def hello
+                    @test_val = 5
+                    Loba.val self, 'hello', {inspect: false}
+                  end
+                end
+                expect{test_class.new.hello}.to output(notice_without_instance_variable).to_stdout
+              end
+            end
+
+          end
         end
 
         it 'given but unrecognized object, treat as deprecated' do

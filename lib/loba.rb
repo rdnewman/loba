@@ -20,20 +20,22 @@ module Loba
   #   end
   #   #=> [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411, in=/path/to/file.rb:2:in 'hello'
   def ts(options = {})
-    production_is_ok = case options
-                       when Hash
-                         !!options[:production]
-                       when TrueClass
-                         Internal::Deprecated._0_3_0(true)
-                         true
-                       when FalseClass
-                         Internal::Deprecated._0_3_0(false)
-                         false
-                       else   # to be safe, treat as false
-                         Internal::Deprecated._0_3_0(false)
-                         false
-                       end
 
+    # evaluate options hash
+    production_is_ok = false
+    case options
+    when Hash
+      production_is_ok = !!options[:production]
+    when TrueClass
+      Internal::Deprecated._0_3_0(true)
+      production_is_ok = true
+    when FalseClass
+      Internal::Deprecated._0_3_0(false)
+    else   # to be safe, treat as false
+      Internal::Deprecated._0_3_0(false)
+    end
+
+    # log if possible
     if Internal::Platform.logging_ok?(production_is_ok)
       @loba_logger ||= Internal::Platform.logger
       @loba_timer ||= Internal::TimeKeeper.instance
@@ -65,6 +67,7 @@ module Loba
   # @param argument [various] the value to be evaluated and shown; if given as a Symbol, a label based on the argument will proceed the value the argument refers to
   # @param label [String] an optional, explicit label to be used instead of attempting to infer from the argument
   # @param options [Hash] options for use
+  # @option options [Boolean] :inspect (true) true if this value notice is to use #inspect against the content being evaluated
   # @option options [Boolean] :production (false) true if this value notice is enabled when running in :production environment
   # @return [NilClass] nil
   # @example Using Symbol as argument
@@ -97,21 +100,25 @@ module Loba
   #   HelloWorld.new.hello("Charlie")
   #   #=> [HelloWorld#hello] Name: Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
   #   #=> Hello, Charlie!
-  def val(argument = :nil, label = nil, options = {})
-    production_is_ok = case options
-                       when Hash
-                         !!options[:production]
-                       when TrueClass
-                         Internal::Deprecated._0_3_0(true)
-                         true
-                       when FalseClass
-                         Internal::Deprecated._0_3_0(false)
-                         false
-                       else   # to be safe, treat as false
-                         Internal::Deprecated._0_3_0(false)
-                         false
-                       end
+  def val(argument = :nil, label = nil, options = {inspect: true})
 
+    # evaluate options hash
+    production_is_ok = false
+    will_inspect = true
+    case options
+    when Hash
+      production_is_ok = !!options[:production]
+      will_inspect = options[:inspect] unless options[:inspect].nil?
+    when TrueClass
+      Internal::Deprecated._0_3_0(true)
+      production_is_ok = true
+    when FalseClass
+      Internal::Deprecated._0_3_0(false)
+    else   # to be safe, treat as false
+      Internal::Deprecated._0_3_0(false)
+    end
+
+    # log if possible
     if Internal::Platform.logging_ok?(production_is_ok)
       depth = 0
       @loba_logger ||= Internal::Platform.logger
@@ -127,9 +134,17 @@ module Loba
              end
 
       result = if argument.is_a?(Symbol)
-                 binding.of_caller(depth+1).eval(argument.to_s).inspect
+                 if will_inspect
+                   binding.of_caller(depth+1).eval(argument.to_s).inspect
+                 else
+                   binding.of_caller(depth+1).eval(argument.to_s)
+                 end
                else
-                 argument.inspect
+                 if will_inspect
+                   argument.inspect
+                 else
+                   argument
+                 end
                end
 
       source_line = Internal.calling_source_line(depth+1)

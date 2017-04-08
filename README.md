@@ -48,7 +48,7 @@ For example,
 To invoke,
 
 ```ruby
-Loba.ts    # no arguments, generally (see Environment Notes below)
+Loba.ts    # or with optional arguments
 ```
 
 You can read [more detail](readme/ts.md) on this command.
