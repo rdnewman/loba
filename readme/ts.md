@@ -32,7 +32,7 @@ where
 ##### Options
 
 As the last argument, an options hash may be provided:
-*   `production` true if this value notice is enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
+*   `production`: true if this value notice is enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
 
 ###### Example 5: Using options hash
 ```ruby

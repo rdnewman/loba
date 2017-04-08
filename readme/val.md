@@ -105,8 +105,8 @@ Notes:
 ##### Options
 
 As the last argument, an options hash may be provided:
-*   `inspect` true if this value notice is to use #inspect against the content being evaluated \[_default: `true`_\]
-*   `production` true if this value notice is enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
+*   `inspect`: true if this value notice is to use #inspect against the content being evaluated \[_default: `true`_\]
+*   `production`: true if this value notice is enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
 
 ###### Example 5: Using options hash
 ```ruby
