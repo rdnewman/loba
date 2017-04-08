@@ -52,6 +52,8 @@ module Loba
     nil
   end
   module_function :ts
+  alias_method :timestamp, :ts
+  module_function :timestamp
 
   # Outputs a value notice showing value of provided argument including method and class identification
   # @param argument [various] the value to be evaluated and shown; if given as a Symbol, a label based on the argument will proceed the value the argument refers to

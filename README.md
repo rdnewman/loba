@@ -51,6 +51,8 @@ To invoke,
 Loba.ts    # or with optional arguments
 ```
 
+`Loba.timestamp` is an alias for `Loba.ts`.
+
 You can read [more detail](readme/ts.md) on this command.
 
 #### Variable or method return inspection:  `Loba.val`

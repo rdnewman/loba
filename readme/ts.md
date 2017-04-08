@@ -14,6 +14,8 @@ To invoke,
 Loba.ts    # no arguments
 ```
 
+`Loba.timestamp` is an alias for `Loba.ts`.
+
 The resulting notice output format is
 
 ```

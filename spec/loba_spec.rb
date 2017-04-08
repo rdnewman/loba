@@ -41,6 +41,15 @@ describe Loba do
         expect{test_class.new.hello}.not_to raise_error
       end
 
+      it 'can be called as Loba.timestamp' do
+        test_class = Class.new(LobaClass) do
+          def hello
+            Loba.timestamp
+          end
+        end
+        expect{test_class.new.hello}.not_to raise_error
+      end
+
       it 'cannot be called as ts only' do
         test_class = Class.new(LobaClass) do
           def hello
@@ -62,6 +71,15 @@ describe Loba do
         test_class = Class.new(LobaClass) do
           def hello
             Loba.ts
+          end
+        end
+        expect{test_class.new.hello}.to output(/\[TIMESTAMP\]/).to_stdout
+      end
+
+      it 'can write to STDOUT when invoked as Loba.timestamp' do
+        test_class = Class.new(LobaClass) do
+          def hello
+            Loba.timestamp
           end
         end
         expect{test_class.new.hello}.to output(/\[TIMESTAMP\]/).to_stdout
