@@ -1,13 +1,9 @@
 require_relative 'loba_class'
 
 RSpec.describe Loba, '.ts' do
-  before do
-    LobaSpecSupport::OutputControl.suppress!
-  end
+  before { LobaSpecSupport::OutputControl.suppress! }
 
-  after do
-    LobaSpecSupport::OutputControl.restore!
-  end
+  after { LobaSpecSupport::OutputControl.restore! }
 
   it 'can be called as Loba.ts' do
     test_class = Class.new(LobaClass) do
@@ -44,7 +40,7 @@ RSpec.describe Loba, '.ts' do
     expect { LobaClass.classbase_ts }.not_to raise_error
   end
 
-  it 'can write to STDOUT' do
+  it 'writes to STDOUT' do
     test_class = Class.new(LobaClass) do
       def hello
         Loba.ts
@@ -53,7 +49,7 @@ RSpec.describe Loba, '.ts' do
     expect { test_class.new.hello }.to output(/\[TIMESTAMP\]/).to_stdout
   end
 
-  it 'can write to STDOUT when invoked as Loba.timestamp' do
+  it 'write to STDOUT when invoked as Loba.timestamp' do
     test_class = Class.new(LobaClass) do
       def hello
         Loba.timestamp
