@@ -13,7 +13,7 @@ module LobaSpecSupport
     def self.redirect!(path)
       # BEST USE in diagnosing specs:
       #   begin
-      #     LobaSpecSupport::OutputControl.redirect!('./x.y')
+      #     LobaSpecSupport::OutputControl.redirect!('./filename.ext')
       #     # your code to generate output goes here
       #   ensure
       #     LobaSpecSupport::OutputControl.suppress! # or restore!
