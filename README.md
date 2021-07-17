@@ -1,8 +1,7 @@
 [![Gem Version](https://badge.fury.io/rb/loba.svg)](https://badge.fury.io/rb/loba)
-[![Dependency Status](https://gemnasium.com/rdnewman/loba.svg)](https://gemnasium.com/rdnewman/loba)
 [![Build Status](https://travis-ci.org/rdnewman/loba.svg?branch=master)](https://travis-ci.org/rdnewman/loba)
-[![Code Climate](https://codeclimate.com/github/rdnewman/loba/badges/gpa.svg)](https://codeclimate.com/github/rdnewman/loba)
-[![Test Coverage](https://codeclimate.com/github/rdnewman/loba/badges/coverage.svg)](https://codeclimate.com/github/rdnewman/loba/coverage)
+<!-- [![Code Climate](https://codeclimate.com/github/rdnewman/loba/badges/gpa.svg)](https://codeclimate.com/github/rdnewman/loba)
+[![Test Coverage](https://codeclimate.com/github/rdnewman/loba/badges/coverage.svg)](https://codeclimate.com/github/rdnewman/loba/coverage) -->
 [![Inline docs](http://inch-ci.org/github/rdnewman/loba.svg?branch=master)](http://inch-ci.org/github/rdnewman/loba)
 [![security](https://hakiri.io/github/rdnewman/loba/master.svg)](https://hakiri.io/github/rdnewman/loba/master)
 
@@ -21,13 +20,13 @@ There are two kinds of questions I usually want to answer when trying to diagnos
 1.  Is this spot of code being reached (or is it reached in the order I think it is)?
 1.  What is the value of this variable?
 
-Loba statements are intended to be terse to minimize typing.  
+Loba statements are intended to be terse to minimize typing.
 
-Loba statements are intended to be minimally invasive and atomic.  They should not have any (much) more impact than a regular `puts` or `Rails.logger.debug` statement.
+Loba statements are intended to be minimally invasive and atomic. They should not have any (much) more impact than a regular `puts` or `Rails.logger.debug` statement.
 
-Loba statements are expected to be removed when you're done with them.  No point in cluttering up production code.
+Loba statements are expected to be removed when you're done with them. No point in cluttering up production code.
 
-Loba will check for presence of Rails.  If it's there, it'll write to `Rails.logger.debug`.  If not, it'll write to STDOUT (i.e., `puts`).  Loba will work equally well with or without Rails.
+Loba will check for presence of Rails. If it's there, it'll write to `Rails.logger.debug`.  If not, it'll write to STDOUT (i.e., `puts`).  Loba will work equally well with or without Rails.
 
 Loba uses the [colorize gem](https://rubygems.org/gems/colorize) to help make trace statements more visible.
 
@@ -93,7 +92,7 @@ HelloWorld.new.hello
 
 Output:
 
-```  
+```
 [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411   (in=/home/usracct/src/lobademo/hello_world.rb:4:in 'initialize'
 [HelloWorld#hello] @x: 42       (in /home/richard/src/loba/spec/hello_world.rb:9:in `hello')
 Hello, Charlie
