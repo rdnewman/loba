@@ -47,32 +47,31 @@ RSpec.describe Loba, '.val' do
   end
 
   describe 'with third argument' do
-    it 'as "true", will mark as deprecated' do
+    it 'for true argument, raises ArgumentError' do
+      # completes deprecation from v0.3.0
       test_class = Class.new(LobaClass) do
         def hello
           v = 'hello'
           Loba.val v, 'value', true
         end
       end
-      expected_text = 'DEPRECATION WARNING: use {:production => true} instead to ' \
-                      "indicate notice is enabled in production\n"
-      expect { test_class.new.hello }.to output(expected_text).to_stderr
+      expect { test_class.new.hello }.to raise_error ArgumentError
     end
 
-    it 'as "false", will mark as deprecated' do
+    it 'for false argument, raises ArgumentError' do
+      # completes deprecation from v0.3.0
+      # TODO: remove this spec in next version
       test_class = Class.new(LobaClass) do
         def hello
           v = 'hello'
           Loba.val v, 'value', false
         end
       end
-      expected_text = 'DEPRECATION WARNING: use {:production => false} instead to ' \
-                      "indicate notice is disabled in production\n"
-      expect { test_class.new.hello }.to output(expected_text).to_stderr
+      expect { test_class.new.hello }.to raise_error ArgumentError
     end
 
     describe 'as an options hash,' do
-      it 'will not mark as deprecated' do
+      it 'will not output any error' do
         test_class = Class.new(LobaClass) do
           def hello
             v = 'hello'
@@ -193,16 +192,14 @@ RSpec.describe Loba, '.val' do
       end
     end
 
-    it 'given but unrecognized object, treat as deprecated' do
+    it 'for unrecognized argument, will not output an error' do
       test_class = Class.new(LobaClass) do
         def hello
           v = 'hello'
           Loba.val v, 'value', []
         end
       end
-      expected_text = 'DEPRECATION WARNING: use {:production => false} instead to ' \
-                      "indicate notice is disabled in production\n"
-      expect { test_class.new.hello }.to output(expected_text).to_stderr
+      expect { test_class.new.hello }.not_to output.to_stderr
     end
   end
 end

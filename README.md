@@ -170,6 +170,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Changelog
 |version|notes|
 |-------|-----|
+|0.4.0|updated for more recent rubies; must now use a Hash for optional third argument|
 |0.3.1|updated dependences; added inspect to Loba.val; amended parameters*|
 |0.3.0|(yanked)|
 |0.2.0|release on RubyGems.org|
@@ -177,8 +178,11 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ### Deprecations
 
+#### 0.4.0
+`true` or `false` given for optional third argument now raises an ArgumentError (see deprecation notes below from v0.3.x)
+
 #### 0.3.0
-In prior versions, to allow Loba notes to write to the log while in :production, an optional third parameter could be supplied as merely a boolean value.  In 0.3.0 and later versions, this must now be specified as part of an options hash as `{:production => true}`
+In prior versions, to allow Loba notes to write to the log while in :production, an optional third argument could be supplied as merely a boolean value.  In 0.3.0 and later versions, this must now be specified as part of an options hash as `{:production => true}`
 
 ### Semantic versions
 

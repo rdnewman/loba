@@ -58,7 +58,7 @@ module Loba
         caller[depth]
       end
 
-      # Filters options argument for deprecated or unexpected use
+      # Filters options argument for supported values
       # @param options [various] options argument to filter
       # @param allowed_keys [array] array of expected keys in options
       def filter_options(options, allowed_keys = [])
@@ -70,33 +70,11 @@ module Loba
           allowed_keys.each do |key|
             result[key] = !!options[key] unless options[key].nil?
           end
-        when TrueClass
-          if allowed_keys.include? :production
-            Internal::Deprecated._0_3_0(true)
-            result[:production] = true
-          end
-        when FalseClass
-          Internal::Deprecated._0_3_0(false)
-        else
-          # just in case
-          Internal::Deprecated._0_3_0(false)
+        when TrueClass, FalseClass
+          raise ArgumentError, 'boolean values not supported as options argument; use a hash'
         end
 
         result
-      end
-    end
-
-    # Internal class for deprecation warnings.
-    class Deprecated
-      class << self
-        # Deprecations as of version 0.3.0
-        # @param value [boolean] deprecated value supplied in original call to use in deprecation message
-        def _0_3_0(value)
-          bool = value ? 'true' : 'false'
-          verb = value ? 'enabled' : 'disabled'
-          warn "DEPRECATION WARNING: use {:production => #{bool}} instead to " \
-               "indicate notice is #{verb} in production"
-        end
       end
     end
 
