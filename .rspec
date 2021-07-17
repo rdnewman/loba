@@ -1,2 +1,2 @@
---format documentation
 --color
+--require loba_helper
