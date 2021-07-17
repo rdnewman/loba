@@ -58,6 +58,30 @@ RSpec.describe Loba, '.ts' do
     expect { test_class.new.hello }.to output(/\[TIMESTAMP\]/).to_stdout
   end
 
+  context 'upon internal error' do
+    let(:error_message) { 'fake error' }
+
+    before do
+      allow(Loba::Internal::TimeKeeper.instance).to receive(:timenum).and_raise(error_message)
+    end
+
+    it 'does not raise an error' do
+      expect { LobaClass.new.base_ts }.not_to raise_error
+    end
+
+    it 'writes to STDOUT' do
+      expect { LobaClass.new.base_ts }.to output(/\[TIMESTAMP\]/).to_stdout
+    end
+
+    it 'shows the count to be "FAIL"' do
+      expect { LobaClass.new.base_ts }.to output(/\[TIMESTAMP\] #=FAIL/).to_stdout
+    end
+
+    it 'shows the error message' do
+      expect { LobaClass.new.base_ts }.to output(/, err=#{error_message}/).to_stdout
+    end
+  end
+
   it 'for true argument, raises ArgumentError' do
     # completes deprecation from v0.3.0
     test_class = Class.new(LobaClass) do
