@@ -1,5 +1,4 @@
 [![Gem Version](https://badge.fury.io/rb/loba.svg)](https://badge.fury.io/rb/loba)
-[![Dependency Status](https://gemnasium.com/rdnewman/loba.svg)](https://gemnasium.com/rdnewman/loba)
 [![Build Status](https://travis-ci.org/rdnewman/loba.svg?branch=master)](https://travis-ci.org/rdnewman/loba)
 [![Code Climate](https://codeclimate.com/github/rdnewman/loba/badges/gpa.svg)](https://codeclimate.com/github/rdnewman/loba)
 [![Test Coverage](https://codeclimate.com/github/rdnewman/loba/badges/coverage.svg)](https://codeclimate.com/github/rdnewman/loba/coverage)
@@ -21,13 +20,13 @@ There are two kinds of questions I usually want to answer when trying to diagnos
 1.  Is this spot of code being reached (or is it reached in the order I think it is)?
 1.  What is the value of this variable?
 
-Loba statements are intended to be terse to minimize typing.  
+Loba statements are intended to be terse to minimize typing.
 
-Loba statements are intended to be minimally invasive and atomic.  They should not have any (much) more impact than a regular `puts` or `Rails.logger.debug` statement.
+Loba statements are intended to be minimally invasive and atomic. They should not have any (much) more impact than a regular `puts` or `Rails.logger.debug` statement.
 
-Loba statements are expected to be removed when you're done with them.  No point in cluttering up production code.
+Loba statements are expected to be removed when you're done with them. No point in cluttering up production code.
 
-Loba will check for presence of Rails.  If it's there, it'll write to `Rails.logger.debug`.  If not, it'll write to STDOUT (i.e., `puts`).  Loba will work equally well with or without Rails.
+Loba will check for presence of Rails. If it's there, it'll write to `Rails.logger.debug`.  If not, it'll write to STDOUT (i.e., `puts`).  Loba will work equally well with or without Rails.
 
 Loba uses the [colorize gem](https://rubygems.org/gems/colorize) to help make trace statements more visible.
 
@@ -93,7 +92,7 @@ HelloWorld.new.hello
 
 Output:
 
-```  
+```
 [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411   (in=/home/usracct/src/lobademo/hello_world.rb:4:in 'initialize'
 [HelloWorld#hello] @x: 42       (in /home/richard/src/loba/spec/hello_world.rb:9:in `hello')
 Hello, Charlie
@@ -171,6 +170,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Changelog
 |version|notes|
 |-------|-----|
+|0.4.0|updated for more recent rubies; must now use a Hash for optional third argument|
 |0.3.1|updated dependences; added inspect to Loba.val; amended parameters*|
 |0.3.0|(yanked)|
 |0.2.0|release on RubyGems.org|
@@ -178,8 +178,11 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ### Deprecations
 
+#### 0.4.0
+`true` or `false` given for optional third argument now raises an ArgumentError (see deprecation notes below from v0.3.x)
+
 #### 0.3.0
-In prior versions, to allow Loba notes to write to the log while in :production, an optional third parameter could be supplied as merely a boolean value.  In 0.3.0 and later versions, this must now be specified as part of an options hash as `{:production => true}`
+In prior versions, to allow Loba notes to write to the log while in :production, an optional third argument could be supplied as merely a boolean value.  In 0.3.0 and later versions, this must now be specified as part of an options hash as `{:production => true}`
 
 ### Semantic versions
 

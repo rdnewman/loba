@@ -1,8 +1,8 @@
 class HelloWorld
   def initialize
     @x = 42
-Loba.ts        # see? it's easier to see what to remove later
-    @y = "Charlie"
+Loba.ts # see? it's easier to see what to remove later
+    @y = 'Charlie'
   end
 
   def hello

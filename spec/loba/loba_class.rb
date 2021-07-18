@@ -1,11 +1,10 @@
 class LobaClass
-
   def base_ts
     Loba.ts
   end
 
   def base_val
-    _bv = "BENJAMIN"
+    _bv = 'BENJAMIN'
     Loba.val :_bv
   end
 
@@ -14,7 +13,7 @@ class LobaClass
   end
 
   def self.classbase_val
-    _cw = "CLAUDIA"
+    _cw = 'CLAUDIA'
     Loba.val :_cw
   end
 end

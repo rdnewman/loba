@@ -1,0 +1,27 @@
+inherit_from: ../.rubocop.yml
+
+require:
+  - rubocop-rspec
+
+Metrics/BlockLength:
+  Max: 250
+
+RSpec/AlignLeftLetBrace:
+  Enabled: true
+
+RSpec/ContextWording:
+  Enabled: true
+  Prefixes: [when, with, without, if, where, for, as, after, upon]
+
+RSpec/ExampleLength:
+  Max: 10
+
+RSpec/MessageExpectation:
+  Enabled: true
+
+RSpec/MultipleMemoizedHelpers:
+  Enabled: false
+
+RSpec/NestedGroups:
+  Enabled: true
+  Max: 6
