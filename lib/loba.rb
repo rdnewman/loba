@@ -12,7 +12,8 @@ module Loba
   # Also does a simple elapsed time check since the previous timestamp notice to
   # help with quick, minimalist profiling.
   # @param options [Hash] options for use
-  # @option options [Boolean] :production (false) true if this timestamp notice is enabled when running in :production environment
+  # @option options [Boolean] :production (false) true if this timestamp notice is
+  #   enabled when running in :production environment
   # @return [NilClass] nil
   # @example Basic use
   #   def hello
@@ -52,11 +53,15 @@ module Loba
 
   # Outputs a value notice showing value of provided argument
   # including method and class identification
-  # @param argument [various] the value to be evaluated and shown; if given as a Symbol, a label based on the argument will proceed the value the argument refers to
-  # @param label [String] an optional, explicit label to be used instead of attempting to infer from the argument
+  # @param argument [various] the value to be evaluated and shown; if given as a Symbol,
+  #   a label based on the argument will proceed the value the argument refers to
+  # @param label [String] an optional, explicit label to be used instead of attempting
+  #   to infer from the argument
   # @param options [Hash] options for use
-  # @option options [Boolean] :inspect (true) true if this value notice is to use #inspect against the content being evaluated
-  # @option options [Boolean] :production (false) true if this value notice is enabled when running in :production environment
+  # @option options [Boolean] :inspect (true) true if this value notice is to use
+  #   #inspect against the content being evaluated
+  # @option options [Boolean] :production (false) true if this value notice is enabled
+  #   when running in :production environment
   # @return [NilClass] nil
   # @example Using Symbol as argument
   #   class HelloWorld
