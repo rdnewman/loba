@@ -103,29 +103,6 @@ RSpec.describe Loba, '.val' do
   end
 
   describe 'with third argument' do
-    it 'for true argument, raises ArgumentError' do
-      # completes deprecation from v0.3.0
-      test_class = Class.new(LobaClass) do
-        def hello
-          v = 'hello'
-          Loba.val v, 'value', true
-        end
-      end
-      expect { test_class.new.hello }.to raise_error ArgumentError
-    end
-
-    it 'for false argument, raises ArgumentError' do
-      # completes deprecation from v0.3.0
-      # TODO: remove this spec in next version
-      test_class = Class.new(LobaClass) do
-        def hello
-          v = 'hello'
-          Loba.val v, 'value', false
-        end
-      end
-      expect { test_class.new.hello }.to raise_error ArgumentError
-    end
-
     describe 'as an options hash,' do
       it 'will not output any error' do
         test_class = Class.new(LobaClass) do

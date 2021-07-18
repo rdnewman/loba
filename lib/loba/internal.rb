@@ -62,12 +62,6 @@ module Loba
     # @param options [various] options argument to filter
     # @param allowed_keys [array] array of expected keys in options
     def self.filter_options(options, allowed_keys = [])
-      # last check against old style now that it's fully obsolete
-      # FUTURE: drop this check after the next version
-      if options.is_a?(TrueClass) || options.is_a?(FalseClass)
-        raise ArgumentError, 'boolean values not supported as options argument; use a hash'
-      end
-
       # allowed keys are always there and default to false
       default = allowed_keys.each_with_object({}) { |key, hash| hash[key] = false }
 
@@ -76,7 +70,9 @@ module Loba
 
       # ensure given options have boolean values and return the result
       allowed_keys.each_with_object(default) do |key, result|
-        result[key] = !!options[key] unless options[key].nil?
+        next if options[key].nil?
+
+        result[key] = options[key] ? true : false
       end
     end
   end

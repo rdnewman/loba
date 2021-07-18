@@ -82,26 +82,6 @@ RSpec.describe Loba, '.ts' do
     end
   end
 
-  it 'for true argument, raises ArgumentError' do
-    # completes deprecation from v0.3.0
-    test_class = Class.new(LobaClass) do
-      def hello
-        Loba.ts(true)
-      end
-    end
-    expect { test_class.new.hello }.to raise_error ArgumentError
-  end
-
-  it 'for false argument, raises ArgumentError' do
-    # completes deprecation from v0.3.0
-    test_class = Class.new(LobaClass) do
-      def hello
-        Loba.ts(false)
-      end
-    end
-    expect { test_class.new.hello }.to raise_error ArgumentError
-  end
-
   it 'when argument given as Hash, will not output any error' do
     test_class = Class.new(LobaClass) do
       def hello
