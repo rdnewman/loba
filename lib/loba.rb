@@ -22,10 +22,7 @@ module Loba
   def ts(options = {})
     # evaluate options
     filtered_options = Internal.filter_options(options, [:production])
-    production_is_ok = filtered_options[:production]
-
-    # give up if logging not possible
-    return nil unless Internal::Platform.logging_ok?(production_is_ok)
+    return nil unless Internal::Platform.logging_ok?(filtered_options[:production])
 
     # produce timestamp notice
     @loba_logger ||= Internal::Platform.logger
@@ -94,14 +91,12 @@ module Loba
   def val(argument = :nil, label = nil, options = { inspect: true })
     # evaluate options
     filtered_options = Internal.filter_options(options, [:production, :inspect])
-    production_is_ok = filtered_options[:production]
+    return nil unless Internal::Platform.logging_ok?(filtered_options[:production])
 
-    # give up if logging not possible
-    return nil unless Internal::Platform.logging_ok?(production_is_ok)
-
-    depth = 0
+    # produce value notice
     @loba_logger ||= Internal::Platform.logger
 
+    depth = 0
     tag = Internal.calling_tag(depth + 1)
     name = argument.is_a?(Symbol) ? "#{argument}:" : nil
 
