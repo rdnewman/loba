@@ -62,7 +62,7 @@ RSpec.describe Loba, '.ts' do
     let(:error_message) { 'fake error' }
 
     before do
-      allow(Loba::Internal::TimeKeeper.instance).to receive(:timenum).and_raise(error_message)
+      allow(Loba::Internal::TimeKeeper.instance).to receive(:ping).and_raise(error_message)
     end
 
     it 'does not raise an error' do

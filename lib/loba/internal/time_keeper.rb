@@ -15,6 +15,15 @@ module Loba
         @timewas = Time.now
         @timenum = 0
       end
+
+      def ping
+        @timenum += 1
+        now = Time.now
+        change = now - @timewas
+        @timewas = now
+
+        { number: @timenum, now: now, change: change }
+      end
     end
   end
 end

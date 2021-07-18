@@ -27,27 +27,20 @@ module Loba
     # give up if logging not possible
     return nil unless Internal::Platform.logging_ok?(production_is_ok)
 
-    # log if possible
+    # produce timestamp notice
     @loba_logger ||= Internal::Platform.logger
     @loba_timer ||= Internal::TimeKeeper.instance
 
     begin
-      @loba_timer.timenum += 1
-
-      timenow    = Time.now
-      stamptag   = format('%04d', @loba_timer.timenum)
-      timemark   = format('%.6f', timenow.round(6).to_f)
-      timechg    = format('%.6f', (timenow - @loba_timer.timewas))
-
+      stats = @loba_timer.ping
       @loba_logger.call '[TIMESTAMP]'.black.on_light_black +
                         ' #='.yellow +
-                        stamptag.to_s +
+                        format('%04d', stats[:number]).to_s +
                         ', diff='.yellow +
-                        timechg.to_s +
+                        format('%.6f', stats[:change]).to_s +
                         ', at='.yellow +
-                        timemark.to_s +
+                        format('%.6f', stats[:now].round(6).to_f).to_s +
                         "    \t(in=#{caller(1..1).first})".light_black
-      @loba_timer.timewas = timenow
     rescue StandardError => e
       @loba_logger.call "[TIMESTAMP] #=FAIL, in=#{caller(1..1).first}, err=#{e}".colorize(:red)
     end
