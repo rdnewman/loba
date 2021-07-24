@@ -3,29 +3,31 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'loba/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = 'loba'
+  spec.name          = 'loba'.freeze
   spec.version       = Loba::VERSION
   spec.platform      = Gem::Platform::RUBY
-  spec.authors       = ['Richard Newman']
-  spec.email         = ['richard@newmanworks.com']
+  spec.authors       = ['Richard Newman'.freeze]
+  spec.email         = ['richard@newmanworks.com'.freeze]
 
-  spec.summary       = 'Loba: Easy tracing for debugging.'
-  spec.description   = 'Handy methods for adding trace lines to output or Rails logs.'
-  spec.homepage      = 'https://github.com/rdnewman/loba'
-  spec.license       = 'MIT'
+  spec.summary       = 'Loba: Easy tracing for debugging.'.freeze
+  spec.description   = 'Handy methods for adding trace lines to output or Rails logs.'.freeze
+  spec.homepage      = 'https://github.com/rdnewman/loba'.freeze
+  spec.licenses      = ['MIT'.freeze]
 
-  spec.files         = `git ls-files -z`.split("\x0").reject do |f|
-    f.match(/^(test|spec|features)\//)
-  end
-  spec.bindir        = 'exe'
+  spec.files         = Dir['lib/**/*.rb'.freeze] +
+                       [
+                         'LICENSE'.freeze,
+                         'README.md'.freeze,
+                         'CODE_OF_CONDUCT.md'.freeze
+                       ]
+
+  spec.bindir        = 'exe'.freeze
   spec.executables   = spec.files.grep(/^exe\//) { |f| File.basename(f) }
-  spec.require_paths = ['lib']
-  spec.required_ruby_version = '>= 2.1.0'
+  spec.require_paths = ['lib'.freeze]
+  spec.required_ruby_version = '>= 2.5'
 
-  spec.add_development_dependency 'bundler', '>= 1.14'
-  spec.add_development_dependency 'rake', '>= 12.0'
-  spec.add_development_dependency 'rspec', '>= 3.5'
+  spec.add_development_dependency 'bundler', '~> 2.2'
 
-  spec.add_dependency 'binding_of_caller', '>= 0.7'
-  spec.add_dependency 'colorize', '>= 0.8'
+  spec.add_dependency 'binding_of_caller', '~> 1.0'
+  spec.add_dependency 'colorize', '~> 0.8'
 end
