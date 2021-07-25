@@ -9,11 +9,10 @@ module Loba
     #   Count of timestamping occurances so far
     class TimeKeeper
       include Singleton
-      attr_accessor :timewas, :timenum
+      attr_reader :timewas, :timenum
 
       def initialize
-        @timewas = Time.now
-        @timenum = 0
+        reset!
       end
 
       def ping
@@ -23,6 +22,11 @@ module Loba
         @timewas = now
 
         { number: @timenum, now: now, change: change }
+      end
+
+      def reset!
+        @timewas = Time.now
+        @timenum = 0
       end
     end
   end
