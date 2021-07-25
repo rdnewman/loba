@@ -5,7 +5,7 @@ module Loba
       class << self
         # Returns true if Rails appears to be available
         def rails?
-          defined?(Rails)
+          defined?(Rails) ? true : false
         end
 
         # Returns true if logging is to be allowed
@@ -16,7 +16,7 @@ module Loba
           begin
             !Rails.env.production?
           rescue StandardError
-            true # not Rails production if Rails isn't recognized
+            true # let it attempt to log anyway
           end
         end
 
