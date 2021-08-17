@@ -4,7 +4,7 @@
 class HelloWorld
   def initialize
     @x = 42
-Loba.ts # see? it's easier to see what to remove later
+Loba.ts # left justifying will help to remember to remove (plus Rubocop will flag)
     @y = 'Charlie'
   end
 
