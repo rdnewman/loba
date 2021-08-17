@@ -1,3 +1,6 @@
+# rubocop:disable Layout/IndentationConsistency
+# rubocop:disable Layout/IndentationWidth
+
 class HelloWorld
   def initialize
     @x = 42
@@ -17,3 +20,6 @@ Loba.val @y, label: '@y'
 Loba.ts
   end
 end
+
+# rubocop:enable Layout/IndentationWidth
+# rubocop:enable Layout/IndentationConsistency
