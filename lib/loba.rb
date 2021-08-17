@@ -98,7 +98,12 @@ module Loba
 
     @loba_logger ||= Internal::Platform.logger
 
-    text = Internal::Value.phrases((argument.nil? ? :nil : argument), label, inspect, 1)
+    text = Internal::Value.phrases(
+      argument: (argument.nil? ? :nil : argument),
+      label: label,
+      inspect: inspect,
+      depth_offset: 1
+    )
     @loba_logger.call "#{text[:tag]} ".green +
                       "#{text[:label]} ".light_green +
                       text[:value] +

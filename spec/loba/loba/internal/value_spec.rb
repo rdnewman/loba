@@ -234,7 +234,7 @@ RSpec.describe Loba::Internal::Value do
 
   describe '.phrases' do
     context 'when calling directly from rspec' do
-      let(:phrases) { described_class.phrases(argument) }
+      let(:phrases) { described_class.phrases(argument: argument) }
       let!(:lineno) { __LINE__ } # must immediately follow `let(:phrases)`
 
       it 'returns hash with expected keys' do

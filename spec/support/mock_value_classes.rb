@@ -38,22 +38,22 @@ module LobaSpecSupport
 
       def symbol_without_label
         _v = self.class.content
-        Loba::Internal::Value.phrases(:_v)
+        Loba::Internal::Value.phrases(argument: :_v)
       end
 
       def symbol_with_label
         _v = self.class.content
-        Loba::Internal::Value.phrases(:_v, self.class.label)
+        Loba::Internal::Value.phrases(argument: :_v, label: self.class.label)
       end
 
       def direct_without_label
         v = self.class.content
-        Loba::Internal::Value.phrases(v)
+        Loba::Internal::Value.phrases(argument: v)
       end
 
       def direct_with_label
         v = self.class.content
-        Loba::Internal::Value.phrases(v, self.class.label)
+        Loba::Internal::Value.phrases(argument: v, label: self.class.label)
       end
     end
 
@@ -66,19 +66,19 @@ module LobaSpecSupport
       end
 
       def symbol_without_label
-        Loba::Internal::Value.phrases(:@v)
+        Loba::Internal::Value.phrases(argument: :@v)
       end
 
       def symbol_with_label
-        Loba::Internal::Value.phrases(:@v, self.class.label)
+        Loba::Internal::Value.phrases(argument: :@v, label: self.class.label)
       end
 
       def direct_without_label
-        Loba::Internal::Value.phrases(@v)
+        Loba::Internal::Value.phrases(argument: @v)
       end
 
       def direct_with_label
-        Loba::Internal::Value.phrases(@v, self.class.label)
+        Loba::Internal::Value.phrases(argument: @v, label: self.class.label)
       end
     end
 
@@ -88,22 +88,22 @@ module LobaSpecSupport
 
       def symbol_without_label
         _v = self.class.content
-        Loba::Internal::Value.phrases(:_v, nil, false)
+        Loba::Internal::Value.phrases(argument: :_v, inspect: false)
       end
 
       def symbol_with_label
         _v = self.class.content
-        Loba::Internal::Value.phrases(:_v, self.class.label, false)
+        Loba::Internal::Value.phrases(argument: :_v, label: self.class.label, inspect: false)
       end
 
       def direct_without_label
         v = self.class.content
-        Loba::Internal::Value.phrases(v, nil, false)
+        Loba::Internal::Value.phrases(argument: v, inspect: false)
       end
 
       def direct_with_label
         v = self.class.content
-        Loba::Internal::Value.phrases(v, self.class.label, false)
+        Loba::Internal::Value.phrases(argument: v, label: self.class.label, inspect: false)
       end
     end
 
@@ -116,19 +116,19 @@ module LobaSpecSupport
       end
 
       def symbol_without_label
-        Loba::Internal::Value.phrases(:@v, nil, false)
+        Loba::Internal::Value.phrases(argument: :@v, inspect: false)
       end
 
       def symbol_with_label
-        Loba::Internal::Value.phrases(:@v, self.class.label, false)
+        Loba::Internal::Value.phrases(argument: :@v, label: self.class.label, inspect: false)
       end
 
       def direct_without_label
-        Loba::Internal::Value.phrases(@v, nil, false)
+        Loba::Internal::Value.phrases(argument: @v, inspect: false)
       end
 
       def direct_with_label
-        Loba::Internal::Value.phrases(@v, self.class.label, false)
+        Loba::Internal::Value.phrases(argument: @v, label: self.class.label, inspect: false)
       end
     end
   end
