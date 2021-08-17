@@ -6,6 +6,8 @@ RSpec.describe Loba::Internal::TimeKeeper do
   end
 
   it 'to start at zero times called' do
+    timekeeper.reset! # ensure it's as if it hasn't been invoked before
+
     expect(timekeeper.timenum.zero?).to be true
   end
 
@@ -17,7 +19,7 @@ RSpec.describe Loba::Internal::TimeKeeper do
     end
 
     it 'updates the last time it was called' do
-      expect { timekeeper.reset! }.to change(timekeeper, :timewas)
+      expect { timekeeper.reset! }.to change(timekeeper, :timewas).to be_within(0.005).of Time.now
     end
   end
 
@@ -27,7 +29,7 @@ RSpec.describe Loba::Internal::TimeKeeper do
     end
 
     it 'updates the last time it was called' do
-      expect { timekeeper.ping }.to change(timekeeper, :timewas)
+      expect { timekeeper.ping }.to change(timekeeper, :timewas).to be_within(0.005).of Time.now
     end
 
     it 'reports the number of times it has been called' do

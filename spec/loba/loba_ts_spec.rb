@@ -81,22 +81,4 @@ RSpec.describe Loba, '.ts' do
       expect { LobaClass.new.base_ts }.to output(/, err=#{error_message}/).to_stdout
     end
   end
-
-  it 'when argument given as Hash, will not output any error' do
-    test_class = Class.new(LobaClass) do
-      def hello
-        Loba.ts({})
-      end
-    end
-    expect { test_class.new.hello }.not_to output.to_stderr
-  end
-
-  it 'for unrecognized argument, will not output an error' do
-    test_class = Class.new(LobaClass) do
-      def hello
-        Loba.ts []
-      end
-    end
-    expect { test_class.new.hello }.not_to output.to_stderr
-  end
 end

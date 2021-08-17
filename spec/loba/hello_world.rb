@@ -12,7 +12,7 @@ Loba.ts
   end
 
   def goodbye
-Loba.val @y, '@y'
+Loba.val @y, label: '@y'
     puts "Goodbye, #{@y}" if @x == 42
 Loba.ts
   end

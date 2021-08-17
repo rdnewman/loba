@@ -6,7 +6,7 @@ RSpec.describe Loba, '.val' do
   after { LobaSpecSupport::OutputControl.restore! }
 
   it 'can be called as Loba.val' do
-    test_class = Class.new(LobaClass) do
+    test_class = Class.new do
       def hello
         _v = 'hello'
         Loba.val :_v
@@ -16,7 +16,7 @@ RSpec.describe Loba, '.val' do
   end
 
   it 'cannot be called as val only' do
-    test_class = Class.new(LobaClass) do
+    test_class = Class.new do
       def hello
         _v = 'hello'
         val :_v
@@ -34,7 +34,7 @@ RSpec.describe Loba, '.val' do
   end
 
   it 'writes to STDOUT' do
-    test_class = Class.new(LobaClass) do
+    test_class = Class.new do
       def hello
         _v = 'hello'
         Loba.val :_v
@@ -54,14 +54,14 @@ RSpec.describe Loba, '.val' do
     let(:anonclassref)  { /#{methodcolor}#{anonclasstext}#{nocolor}/ }
 
     let(:varcolor)      { /\e\[0;92;49m/ } # dull green
-    let(:variablevalue) { /#{varcolor}\w+: #{nocolor}".*"/ } # var_name: value
+    let(:variablevalue) { /#{varcolor}\w+: #{nocolor}"?.*"?/ } # var_name: value
 
     let(:codecolor)  { /\e\[0;90;49m/ } # dim grey
     let(:codespacer) { /\s*\t/ } # spaces, then tab
     let(:coderef)    { /#{codecolor}#{codespacer}\(in .*\)#{nocolor}/ }
 
     it 'for standard classes' do
-      test_class = LobaClass.new
+      test_object = LobaClass.new
 
       # essentially the same as:
       #   "\e[0;32;49m[LobaClass#base_val] \e[0m" \
@@ -75,11 +75,11 @@ RSpec.describe Loba, '.val' do
       # (colors follow pattern of /\\e\[0(?:;\d\d)+m/; resetting color is "\e[0m")
       colored_output = /#{stdmethodref}#{variablevalue}#{coderef}\n/
 
-      expect { test_class.base_val }.to output(colored_output).to_stdout
+      expect { test_object.base_val }.to output(colored_output).to_stdout
     end
 
     it 'for anonymous classes' do
-      test_class = Class.new(LobaClass) do
+      test_class = Class.new do
         def hello
           _v = 'hello'
           Loba.val :_v
@@ -102,137 +102,125 @@ RSpec.describe Loba, '.val' do
     end
   end
 
-  describe 'with third argument' do
-    describe 'as an options hash,' do
-      it 'will not output any error' do
-        test_class = Class.new(LobaClass) do
-          def hello
-            v = 'hello'
-            Loba.val v, 'value', {}
-          end
-        end
-        expect { test_class.new.hello }.not_to output.to_stderr
-      end
-
-      describe 'and with an object as second value' do
-        context 'when supplied via symbol' do
-          let(:notice_prefix) do
-            /
-              ^
-              .*?
-              \[<anonymous class>\#hello\]
-              .*?
-              self:
-              .*?
-              \#<\#<Class:0[xX][0-9a-fA-F]{14,16}>:0[xX][0-9a-fA-F]{14,16}
-            /x
-          end
-
-          let(:notice_without_instance_variable) do
-            /#{notice_prefix}?>.*?\(in .*?:\d+:in `hello'\).*?$/
-          end
-
-          let(:notice_with_instance_variable) do
-            /#{notice_prefix}? @test_val=5>.*?\(in .*?:\d+:in `hello'\).*?$/
-          end
-
-          it 'will inspect by default' do
-            test_class = Class.new do
-              def hello
-                @test_val = 5
-                Loba.val :self
-              end
-            end
-            expect { test_class.new.hello }.to output(notice_with_instance_variable).to_stdout
-          end
-
-          it 'will inspect if option is true' do
-            test_class = Class.new do
-              def hello
-                @test_val = 5
-                Loba.val :self, nil, { inspect: true }
-              end
-            end
-            expect { test_class.new.hello }.to output(notice_with_instance_variable).to_stdout
-          end
-
-          it 'will not inspect if option is false' do
-            test_class = Class.new(LobaClass) do
-              def hello
-                @test_val = 5
-                Loba.val :self, nil, { inspect: false }
-              end
-            end
-            expect do
-              test_class.new.hello
-            end.to output(notice_without_instance_variable).to_stdout
-          end
-        end
-
-        context 'when supplied directly' do
-          let(:notice_prefix) do
-            /
-              ^
-              .*?
-              \[<anonymous class>\#hello\]
-              .*?
-              hello:
-              .*?
-              \#<\#<Class:0[xX][0-9a-fA-F]{14,16}>:0[xX][0-9a-fA-F]{14,16}
-            /x
-          end
-
-          let(:notice_with_instance_variable) do
-            /#{notice_prefix}? @test_val=5>.*?\(in .*?:\d+:in `hello'\).*?$/
-          end
-
-          let(:notice_without_instance_variable) do
-            /#{notice_prefix}?>.*?\(in .*?:\d+:in `hello'\).*?$/
-          end
-
-          it 'will inspect by default' do
-            test_class = Class.new do
-              def hello
-                @test_val = 5
-                Loba.val self, 'hello'
-              end
-            end
-            expect { test_class.new.hello }.to output(notice_with_instance_variable).to_stdout
-          end
-
-          it 'will inspect if option is true' do
-            test_class = Class.new do
-              def hello
-                @test_val = 5
-                Loba.val self, 'hello', { inspect: true }
-              end
-            end
-            expect { test_class.new.hello }.to output(notice_with_instance_variable).to_stdout
-          end
-
-          it 'will not inspect if option is false' do
-            test_class = Class.new(LobaClass) do
-              def hello
-                @test_val = 5
-                Loba.val self, 'hello', { inspect: false }
-              end
-            end
-            expect do
-              test_class.new.hello
-            end.to output(notice_without_instance_variable).to_stdout
-          end
-        end
-      end
-    end
-
-    it 'for unrecognized argument, will not output an error' do
-      test_class = Class.new(LobaClass) do
+  describe 'with keyword arguments' do
+    it 'will not output any error' do
+      test_class = Class.new do
         def hello
           v = 'hello'
-          Loba.val v, 'value', []
+          Loba.val v, label: 'value'
         end
       end
       expect { test_class.new.hello }.not_to output.to_stderr
+    end
+
+    describe 'and first argument' do
+      describe 'supplied via symbol' do
+        let(:notice_prefix) do
+          /
+            ^
+            .*?
+            \[<anonymous class>\#hello\]
+            .*?
+            self:
+            .*?
+            \#<\#<Class:0[xX][0-9a-fA-F]{14,16}>:0[xX][0-9a-fA-F]{14,16}
+          /x
+        end
+
+        let(:notice_without_instance_variable) do
+          /#{notice_prefix}?>.*?\(in .*?:\d+:in `hello'\).*?$/
+        end
+
+        let(:notice_with_instance_variable) do
+          /#{notice_prefix}? @test_val=5>.*?\(in .*?:\d+:in `hello'\).*?$/
+        end
+
+        it 'will inspect by default' do
+          test_class = Class.new do
+            def hello
+              @test_val = 5
+              Loba.val :self
+            end
+          end
+          expect { test_class.new.hello }.to output(notice_with_instance_variable).to_stdout
+        end
+
+        it 'will inspect if option is true' do
+          test_class = Class.new do
+            def hello
+              @test_val = 5
+              Loba.val :self, inspect: true
+            end
+          end
+          expect { test_class.new.hello }.to output(notice_with_instance_variable).to_stdout
+        end
+
+        it 'will not inspect if option is false' do
+          test_class = Class.new do
+            def hello
+              @test_val = 5
+              Loba.val :self, inspect: false
+            end
+          end
+          expect do
+            test_class.new.hello
+          end.to output(notice_without_instance_variable).to_stdout
+        end
+      end
+
+      describe 'supplied directly as an object' do
+        let(:notice_prefix) do
+          /
+            ^
+            .*?
+            \[<anonymous class>\#hello\]
+            .*?
+            hello:
+            .*?
+            \#<\#<Class:0[xX][0-9a-fA-F]{14,16}>:0[xX][0-9a-fA-F]{14,16}
+          /x
+        end
+
+        let(:notice_with_instance_variable) do
+          /#{notice_prefix}? @test_val=5>.*?\(in .*?:\d+:in `hello'\).*?$/
+        end
+
+        let(:notice_without_instance_variable) do
+          /#{notice_prefix}?>.*?\(in .*?:\d+:in `hello'\).*?$/
+        end
+
+        it 'will inspect by default' do
+          test_class = Class.new do
+            def hello
+              @test_val = 5
+              Loba.val self, label: 'hello'
+            end
+          end
+          expect { test_class.new.hello }.to output(notice_with_instance_variable).to_stdout
+        end
+
+        it 'will inspect if option is true' do
+          test_class = Class.new do
+            def hello
+              @test_val = 5
+              Loba.val self, label: 'hello', inspect: true
+            end
+          end
+          expect { test_class.new.hello }.to output(notice_with_instance_variable).to_stdout
+        end
+
+        it 'will not inspect if option is false' do
+          test_class = Class.new do
+            def hello
+              @test_val = 5
+              Loba.val self, label: 'hello', inspect: false
+            end
+          end
+          expect do
+            test_class.new.hello
+          end.to output(notice_without_instance_variable).to_stdout
+        end
+      end
     end
   end
 end
