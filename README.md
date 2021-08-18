@@ -185,7 +185,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ### Deprecations
 
 #### 1.0.0
-In v0.3.0, to allow Loba notes to write to the log while in :production, an options hash as `{:production => true}` was introduced; this is now specified directly via Ruby-2.x style keywords, e.g., `production: true`. THIS IS A BREAKING CHANGE FROM v0.3.0 and earlier versions.
+In v0.3.x, to allow Loba notes to write to the log while in :production, an options hash as `{:production => true}` was introduced; this is now specified directly via Ruby-2.x style keywords, e.g., `production: true`. THIS IS A BREAKING CHANGE FROM v0.3.1 and earlier versions.
 
 #### 0.3.0
 In prior versions, to allow Loba notes to write to the log while in :production, an optional third argument could be supplied as merely a boolean value.  In 0.3.0 and later versions, this must now be specified as part of an options hash as `{:production => true}`
