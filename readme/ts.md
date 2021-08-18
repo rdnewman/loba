@@ -28,18 +28,18 @@ where
 *   `tttttttttt.tttttt` ("at=") is Time.now (as seconds) (i.e., absolute time),
 *   `/path/to/code/somecode.rb` ("in=") is the source code file that invoked `Loba.ts`,
 *   `LL` ("in=...:") is the line number of the source code file that invoked `Loba.ts`, and
-*   `some_method`is the method in which `Loba.ts` was invoked.
+*   `some_method` is the method in which `Loba.ts` was invoked.
 
 
 ##### Options
 
-As the last argument, an options hash may be provided:
-*   `production`: true if this value notice is enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
+The following keyword argument may be specified when calling:
+*   `production`: `true` if this value notice is enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
 
-###### Example 5: Using options hash
+###### Examples
 ```ruby
 Loba.ts production: true
 ```
 ```ruby
-Loba.ts {production: true}
+Loba.ts(production: true)
 ```

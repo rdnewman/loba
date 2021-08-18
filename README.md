@@ -22,7 +22,7 @@ There are two kinds of questions I usually want to answer when trying to diagnos
 
 Loba statements are intended to be terse to minimize typing.
 
-Loba statements are intended to be minimally invasive and atomic. They should not have any (much) more impact than a regular `puts` or `Rails.logger.debug` statement.
+Loba statements are intended to be minimally invasive and atomic. They should not have any (much) more impact than regular `puts` or `Rails.logger.debug` statements.
 
 Loba statements are expected to be removed when you're done with them. No point in cluttering up production code.
 
@@ -47,7 +47,7 @@ For example,
 To invoke,
 
 ```ruby
-Loba.ts    # or with optional arguments
+Loba.ts    # or with optional keyword arguments
 ```
 
 `Loba.timestamp` is an alias for `Loba.ts`.
@@ -77,7 +77,7 @@ require 'loba'    # not generally necessary in Rails projects
 class HelloWorld
   def initialize
     @x = 42
-Loba.ts          # see? it's easier to see what to remove later
+Loba.ts          # Loba statement put to the far left as a reminder to remove when done
     @y = "Charlie"
   end
 
@@ -105,9 +105,14 @@ This section is only relevant in Rails environments.
 
 The expectation is that Loba statements are just for development or test trace statements.  Generally, it's a bad idea to leave diagnostic code in Rails production; still, it can happen. And, occasionally, it can be useful to have trace statements in production too if you have an issue that is difficult to reproduce.
 
-`Loba.ts` and `Loba.val` try to protect against timestamp or value notice requests being accidentally left in the code by checking for the Rails environment Loba is being invoked under. If in production, `Loba.ts` and `Loba.val` will normally just return immediately without rendering anything to help minimize any impact on production code. However, that behavior can be overridden by using the options hash with `:production => true` as an additional last argument to output a notice even when in the production environment.  In general, this should be done sparingly if at all.
+`Loba.ts` and `Loba.val` try to protect against timestamp or value notice requests being accidentally left in the code by checking for the Rails environment Loba is being invoked under. If in production, `Loba.ts` and `Loba.val` will normally just return immediately without attempting to render anything to help minimize any impact on production code.
 
-These considerations also have an impact on how you install the Loba gem when using `bundler`. If you only install the gem for :development and :test, then any Loba statements left in the code when it goes to production will cause an error because the statements wouldn't be recognized. That's perhaps a Good Thing, if you never want them left in.
+However, that behavior can be overridden by using the options hash with `:production => true` as an additional last argument to output a notice even when in the production environment.  In general, this should be avoided.
+
+WARNING: this gem depends on the [binding_of_caller](https://github.com/banister/binding_of_caller) gem. Use `:production => true` their warning in mind:
+> **Recommended for use only in debugging situations. Do not use this in production apps.**
+
+These considerations also have an impact on how you install the Loba gem when using `bundler`. If you only install the gem for :development and :test, then any Loba statements left in the code when it goes to production will cause an error because the statements wouldn't be recognized. That's usually a Good Thing, if you never want them left in.
 
 If you simply install the gem for all environments, then Loba will be available in production, but you may not notice as easily if some Loba calls are unintentionally left in. Of course, if you want those statements to work in production, then you should install the gem for all environments.
 
@@ -122,7 +127,7 @@ Loba.ts production: true
   end
 
   def hello
-Loba.val :@x, nil, production: true
+Loba.val :@x, production: true
     puts "Hello, #{@y}" if @x == 42
 Loba.ts true
   end
@@ -134,7 +139,14 @@ HelloWorld.new.hello
 
 See above Environment Notes if using with Rails.
 
-Add this line to your application's Gemfile:
+
+Install as below to be generally available (recommended to restrict to only local use):
+
+```bash
+$ gem install loba
+```
+
+To bundle, add this line to your application's Gemfile:
 
 ```ruby
 group :development, :test do
@@ -142,7 +154,7 @@ group :development, :test do
 end
 ```
 
-or for all environments:
+or for all environments (for example, if `production: true` used):
 
 ```ruby
 gem 'loba', require: false
@@ -155,12 +167,6 @@ And then execute:
 $ bundle
 ```
 
-Or install it yourself as:
-
-```bash
-$ gem install loba
-```
-
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
@@ -170,7 +176,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Changelog
 |version|notes|
 |-------|-----|
-|0.4.0|updated for more recent rubies; must now use a Hash for optional third argument|
+|1.0.0|updated for more recent rubies; uses Ruby 2.x-style keyword arguments for specifying options|
 |0.3.1|updated dependences; added inspect to Loba.val; amended parameters*|
 |0.3.0|(yanked)|
 |0.2.0|release on RubyGems.org|
@@ -178,8 +184,10 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ### Deprecations
 
-#### 0.4.0
-`true` or `false` given for optional third argument now raises an ArgumentError (see deprecation notes below from v0.3.x)
+#### 1.0.0
+In v0.3.x, to allow Loba notes to write to the log while in :production, an options hash as `{:production => true}` was used; this is now specified directly via Ruby-2.x style keywords, e.g., `production: true`.  THIS IS A BREAKING CHANGE from v0.3.0.
+
+`true` or `false` given as a argument (for instance, third argument to `Loba.val`) in 0.2.0 and earlier is completely removed.
 
 #### 0.3.0
 In prior versions, to allow Loba notes to write to the log while in :production, an optional third argument could be supplied as merely a boolean value.  In 0.3.0 and later versions, this must now be specified as part of an options hash as `{:production => true}`
