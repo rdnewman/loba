@@ -10,6 +10,20 @@ module LobaSpecSupport
       $stderr = File.open(File::NULL, 'w')
     end
 
+    def self.restore!
+      return unless defined?(@original_stdout)
+      return if @original_stdout.nil?
+
+      return unless defined?(@original_stderr)
+      return if @original_stderr.nil?
+
+      $stdout = @original_stdout
+      @original_stdout = nil
+
+      $stderr = @original_stderr
+      @original_stderr = nil
+    end
+
     def self.redirect!(path)
       # BEST USE in diagnosing specs:
       #   begin
@@ -40,20 +54,6 @@ module LobaSpecSupport
       $stdout.string
     ensure
       $stdout = stdout_before
-    end
-
-    def self.restore!
-      return unless defined?(@original_stdout)
-      return if @original_stdout.nil?
-
-      return unless defined?(@original_stderr)
-      return if @original_stderr.nil?
-
-      $stdout = @original_stdout
-      @original_stdout = nil
-
-      $stderr = @original_stderr
-      @original_stderr = nil
     end
   end
 end

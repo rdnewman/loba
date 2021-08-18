@@ -15,7 +15,7 @@ Loba.val some_identifier  # directly give a variable or method name instead of a
 or
 
 ```
-Loba.val some_identifier, "My label:"  # same as direct variable, but allows a custom label
+Loba.val some_identifier, label: "My label:"  # same as direct variable, but allows a custom label
 ```
 
 Will produce a notice similar to the following:
@@ -24,11 +24,13 @@ Will produce a notice similar to the following:
 [Target.some_calculation] my_var: 54       (in /home/usracct/src/myapp/app/models/target.rb:55:in `some_calculation')
 ```
 
+`Loba.value` is an alias for `Loba.val`.
+
 ###### Example 1: Using simple Symbol as argument
 ```ruby
 class HelloWorld
   def hello(name)
-Loba.val :name       # best to put Loba statement to far left for easy removal when done
+Loba.val :name       # put Loba statement to far left to remind you to remove when done
     puts "Hello, #{name}!"
   end
 end
@@ -69,7 +71,7 @@ HelloWorld.new.hello("Charlie")
 ```ruby
 class HelloWorld
   def hello(name)
-Loba.val name, "Name:"
+Loba.val name, label: "Name:"
     puts "Hello, #{name}!"
   end
 end
@@ -99,19 +101,20 @@ where
 Notes:
 *   `ccccc`:  Ruby supports anonymous classes (e.g., `= Class.new`).  If an anonymous class, "<anonymous class>" will be output here.
 *   `mmmmm`:  Ruby supports anonymous methods, procs, and lambdas.  If an anonymous method, et al, "<anonymous method>" will be output here.
-*   `vvvvv`:  This depends on the argument being provided:  if a symbol, then this field will use that symbol to determine the name and present it here.  If not, nothing will appear for this field.
-*   `rrrrr`:  The value of the variable given to `Loba.val`.  `inspect` may be used (see [options](#options) below).
+*   `vvvvv`:  This depends on the argument being provided:  if a symbol, then this field will use that symbol to determine the name and present it here.  If not, nothing will appear for this field (and so the `label` option will be useful).
+*   `rrrrr`:  The value of the variable given to `Loba.val`. `inspect` may be used to control its behavior (see [options](#options) below).
 
 ##### Options
 
-As the last argument, an options hash may be provided:
-*   `inspect`: true if this value notice is to use #inspect against the content being evaluated \[_default: `true`_\]
+The following options may be provided via keywords:
+*   `label`: give a string to explicitly provide a label to use in the notice (see sample above) \[_default: attempts to infer a label from the first argument]_\]
+*   `inspect`: true if this value notice is to use #inspect against the content being evaluated; occasionally, `inspect: false` can give a more useful result \[_default: `true`_\]
 *   `production`: true if this value notice is enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
 
-###### Example 5: Using options hash
+###### Example 5: Using special options
 ```ruby
-Loba.val name, "Name:", inspect: false, production: true
+Loba.val name, label: "Name:", inspect: false
 ```
 ```ruby
-Loba.val :name, nil, {production: true}
+Loba.val :name, production: true
 ```

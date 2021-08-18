@@ -3,19 +3,12 @@ AllCops:
 
 Layout/AccessModifierIndentation:
   Enabled: true
-  EnforcedStyle: outdent
 
 Layout/LineLength:
   Max: 100
 
 Metrics/BlockLength:
   Max: 25
-
-Style/Alias:
-  EnforcedStyle: prefer_alias_method
-
-Style/Documentation:
-  Enabled: false
 
 Style/FrozenStringLiteralComment:
   Enabled: true
