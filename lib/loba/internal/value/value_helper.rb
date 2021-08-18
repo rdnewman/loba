@@ -63,7 +63,7 @@ module Loba
         def label(argument:, explicit_label: nil)
           text = if explicit_label.nil?
                    argument.is_a?(Symbol) ? "#{argument}:" : nil
-                 else
+                 elsif explicit_label.respond_to?(:strip)
                    s = explicit_label.strip
                    s += ':' unless s[-1] == ':'
                    s
