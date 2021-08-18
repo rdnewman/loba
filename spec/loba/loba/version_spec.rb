@@ -10,12 +10,13 @@ RSpec.describe 'Loba::VERSION' do
     expect(version).to match(/\d+.\d+(?:.\d+)?/)
   end
 
-  it 'is not yet 1.0' do
-    expect(major).to be < 1
+  # ensure updates to VERSION are intentional
+  it 'is 1.x' do
+    expect(major).to eq 1
   end
 
-  it 'is at least 0.4' do
-    expect(minor).to be >= 4
+  it 'is 1.0.x' do
+    expect(minor).to eq 0
   end
 
   it 'has a patch value' do

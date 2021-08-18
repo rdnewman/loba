@@ -6,7 +6,7 @@ RSpec.describe Loba, '.ts' do
   after { LobaSpecSupport::OutputControl.restore! }
 
   it 'can be called as Loba.ts' do
-    test_class = Class.new(LobaClass) do
+    test_class = Class.new do
       def hello
         Loba.ts
       end
@@ -15,7 +15,7 @@ RSpec.describe Loba, '.ts' do
   end
 
   it 'can be called as Loba.timestamp' do
-    test_class = Class.new(LobaClass) do
+    test_class = Class.new do
       def hello
         Loba.timestamp
       end
@@ -24,7 +24,7 @@ RSpec.describe Loba, '.ts' do
   end
 
   it 'cannot be called as ts only' do
-    test_class = Class.new(LobaClass) do
+    test_class = Class.new do
       def hello
         ts
       end
@@ -41,7 +41,7 @@ RSpec.describe Loba, '.ts' do
   end
 
   it 'writes to STDOUT' do
-    test_class = Class.new(LobaClass) do
+    test_class = Class.new do
       def hello
         Loba.ts
       end
@@ -50,7 +50,7 @@ RSpec.describe Loba, '.ts' do
   end
 
   it 'write to STDOUT when invoked as Loba.timestamp' do
-    test_class = Class.new(LobaClass) do
+    test_class = Class.new do
       def hello
         Loba.timestamp
       end

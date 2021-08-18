@@ -7,7 +7,7 @@ RSpec.describe Loba do
 
   describe 'Platform module methods' do
     it 'cannot be called directly as part of Loba' do
-      test_class = Class.new(LobaClass) do
+      test_class = Class.new do
         def hello
           Loba.rails?
         end
@@ -16,7 +16,7 @@ RSpec.describe Loba do
     end
 
     it 'can be called if fully namespaced' do
-      test_class = Class.new(LobaClass) do
+      test_class = Class.new do
         def hello
           Loba::Internal::Platform.rails?
         end
