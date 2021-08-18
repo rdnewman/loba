@@ -36,7 +36,7 @@ where
 The following keyword argument may be specified when calling:
 *   `production`: `true` if this value notice is enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
 
-###### Examples
+###### Examples using options
 ```ruby
 Loba.ts production: true
 ```

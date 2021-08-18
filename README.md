@@ -94,7 +94,7 @@ Output:
 
 ```
 [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411   (in=/home/usracct/src/lobademo/hello_world.rb:4:in 'initialize'
-[HelloWorld#hello] @x: 42       (in /home/richard/src/loba/spec/hello_world.rb:9:in `hello')
+[HelloWorld#hello] @x: 42       (in /home/usracct/src/loba/spec/hello_world.rb:9:in `hello')
 Hello, Charlie
 [TIMESTAMP] #=0002, diff=0.000720, at=1451615389.506132   (in=/home/usracct/src/lobademo/hello_world.rb:11:in 'hello'
 ```
@@ -109,7 +109,7 @@ The expectation is that Loba statements are just for development or test trace s
 
 However, that behavior can be overridden by using the options hash with `:production => true` as an additional last argument to output a notice even when in the production environment.  In general, this should be avoided.
 
-WARNING: this gem depends on the [binding_of_caller](https://github.com/banister/binding_of_caller) gem. Use `:production => true` their warning in mind:
+WARNING: this gem depends on the [binding_of_caller gem](https://rubygems.org/gems/binding_of_caller) -- use `:production => true` with their warning in mind:
 > **Recommended for use only in debugging situations. Do not use this in production apps.**
 
 These considerations also have an impact on how you install the Loba gem when using `bundler`. If you only install the gem for :development and :test, then any Loba statements left in the code when it goes to production will cause an error because the statements wouldn't be recognized. That's usually a Good Thing, if you never want them left in.
@@ -185,9 +185,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ### Deprecations
 
 #### 1.0.0
-In v0.3.x, to allow Loba notes to write to the log while in :production, an options hash as `{:production => true}` was used; this is now specified directly via Ruby-2.x style keywords, e.g., `production: true`.  THIS IS A BREAKING CHANGE from v0.3.0.
-
-`true` or `false` given as a argument (for instance, third argument to `Loba.val`) in 0.2.0 and earlier is completely removed.
+In v0.3.0, to allow Loba notes to write to the log while in :production, an options hash as `{:production => true}` was introduced; this is now specified directly via Ruby-2.x style keywords, e.g., `production: true`. THIS IS A BREAKING CHANGE FROM v0.3.0 and earlier versions.
 
 #### 0.3.0
 In prior versions, to allow Loba notes to write to the log while in :production, an optional third argument could be supplied as merely a boolean value.  In 0.3.0 and later versions, this must now be specified as part of an options hash as `{:production => true}`
