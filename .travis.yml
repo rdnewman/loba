@@ -3,7 +3,8 @@ rvm:
   - 2.6.6
 before_install: gem install bundler -v 2.2.23
 addons:
-    code_climate:
-        repo_token: 8e4f3d6c483544a1479af37a53ca72b968cf77cdf7a050e3e163cf526444d832
+  code_climate:
+    repo_token:
+      secure: "LNTT3qOoBwLtdIQKJmwAJnxMHb0Jjf9o20RjIeRXkmyfa/W4CKz5TkEBE2orAQvRUxcSxWHVkGgOKEqm7Y5oiNxL5zOuuxIZcfXXgTHT9oc5DDwc/6sWNpEhWJaulWdd5Tocps4GX7ECmjFIUBJmArb9zAgRP3ImoYbk9RuMxjEpSLHljpHsJTZkjUjMBr7It1iPDluwffOo4Pb/mT6SPTkFlzfGlEucwK0exo5SEbiG2Kr/x85HqrogiOhBTfzDHdRUuKf7H63u/OppihuRoW7jQNlUFpTTXL8kViOMH8GaIXn+9PRIDJQ5O2iuDReP9go9SkBaWiozfJRc2mTLk7FanAzcWusHqe1Z096KQ2xowie6V4boYnyVfluX6hEq+Kj1fCpF2KiCcZzulIf+Fu3G7qrexkjBsZ4qBno4UmrliYFT0uRPVZQcdJ8gShkl3luy2wAOvlOkNLle5/8+N+08z8aU0SsWJYrUQtqwKqz0aIUr1+hgbJfFCiAHp7WaNnS6Z/XA0EzePcb6A32/LoTzRnBW8hSkZzife2kwQueonT/HYCah5i/7T6pEIunl8WRriXBnxEle6wlniXv1iDN3q4bTzH1l2wH0BAGxB8Mkdm8Wn4DsRx6NtLDUrnTsvwjRd/777DNSPCAVziBZFZk6lFmpSSOpFIOwCDFMp8w="
 after_success:
   - bundle exec codeclimate-test-reporter
