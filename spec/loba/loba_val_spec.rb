@@ -43,63 +43,65 @@ RSpec.describe Loba, '.val' do
     expect { test_class.new.hello }.to output.to_stdout
   end
 
-  describe 'displays the value' do
-    let(:nocolor) { /\e\[0m/ }
-    let(:nobg)    { /\e\[49m/ } # default background
+  unless ENV['LOBA_SPEC_IN_TRAVIS']
+    describe 'displays the value' do
+      let(:nocolor) { /\e\[0m/ }
+      let(:nobg)    { /\e\[49m/ } # default background
 
-    let(:methodcolor)   { /\e\[32m/ } # bright green
-    let(:stdmethodtext) { /\[\w+#\w+\]\s/ } # [ClassName#method_name], then a space
-    let(:stdmethodref)  { /#{methodcolor}#{nobg}#{stdmethodtext}#{nocolor}/ }
+      let(:methodcolor)   { /\e\[32m/ } # bright green
+      let(:stdmethodtext) { /\[\w+#\w+\]\s/ } # [ClassName#method_name], then a space
+      let(:stdmethodref)  { /#{methodcolor}#{nobg}#{stdmethodtext}#{nocolor}/ }
 
-    let(:anonclasstext) { /\[<anonymous class>#\w+\]\s/ } # similar to stdmethodtext
-    let(:anonclassref)  { /#{methodcolor}#{nobg}#{anonclasstext}#{nocolor}/ }
+      let(:anonclasstext) { /\[<anonymous class>#\w+\]\s/ } # similar to stdmethodtext
+      let(:anonclassref)  { /#{methodcolor}#{nobg}#{anonclasstext}#{nocolor}/ }
 
-    let(:varcolor)      { /\e\[92m/ } # dull green
-    let(:variablevalue) { /#{varcolor}\w+: #{nocolor}"?.*"?/ } # var_name: value
+      let(:varcolor)      { /\e\[92m/ } # dull green
+      let(:variablevalue) { /#{varcolor}\w+: #{nocolor}"?.*"?/ } # var_name: value
 
-    let(:codecolor)  { /\e\[90m/ } # dim grey
-    let(:codespacer) { /\s*\t/ } # spaces, then tab
-    let(:coderef)    { /#{codecolor}#{codespacer}\(in\s.*\)#{nocolor}/ }
+      let(:codecolor)  { /\e\[90m/ } # dim grey
+      let(:codespacer) { /\s*\t/ } # spaces, then tab
+      let(:coderef)    { /#{codecolor}#{codespacer}\(in\s.*\)#{nocolor}/ }
 
-    it 'for standard classes' do
-      test_object = LobaClass.new
+      it 'for standard classes' do
+        test_object = LobaClass.new
 
-      # essentially the same as:
-      #   "\e[32m\e[49m[LobaClass#base_val] \e[0m" \
-      #   "\e[92m_bv: \e[0m" \
-      #   '"BENJAMIN"' \
-      #   "\e[90m    \t" \
-      #   '(in /home/richard/src/loba/spec/loba/loba_class.rb:' \
-      #   '8' \
-      #   ":in `base_val')" \
-      #   "\e[0m\n"
-      colored_output = /#{stdmethodref}#{variablevalue}#{coderef}\n/
+        # essentially the same as:
+        #   "\e[32m\e[49m[LobaClass#base_val] \e[0m" \
+        #   "\e[92m_bv: \e[0m" \
+        #   '"BENJAMIN"' \
+        #   "\e[90m    \t" \
+        #   '(in /home/richard/src/loba/spec/loba/loba_class.rb:' \
+        #   '8' \
+        #   ":in `base_val')" \
+        #   "\e[0m\n"
+        colored_output = /#{stdmethodref}#{variablevalue}#{coderef}\n/
 
-      expect { test_object.base_val }.to output(colored_output).to_stdout
-    end
-
-    it 'for anonymous classes' do
-      test_class = Class.new do
-        def hello
-          _v = 'hello'
-          Loba.val :_v
-        end
+        expect { test_object.base_val }.to output(colored_output).to_stdout
       end
 
-      # essentially the same as:
-      #   "\e[32m\e49m[\<anonymous class\>#hello] \e[0m" \
-      #   "\e[92m_v: \e[0m" \
-      #   '"hello"' \
-      #   "\e[90m    \t" \
-      #   '(in /home/richard/src/loba/spec/loba/loba_val_spec.rb:' \
-      #   '108' \
-      #   ":in `hello')" \
-      #   "\e[0m\n"
-      colored_output = /#{anonclassref}#{variablevalue}#{coderef}\n/
+      it 'for anonymous classes' do
+        test_class = Class.new do
+          def hello
+            _v = 'hello'
+            Loba.val :_v
+          end
+        end
 
-      expect { test_class.new.hello }.to output(colored_output).to_stdout
+        # essentially the same as:
+        #   "\e[32m\e49m[\<anonymous class\>#hello] \e[0m" \
+        #   "\e[92m_v: \e[0m" \
+        #   '"hello"' \
+        #   "\e[90m    \t" \
+        #   '(in /home/richard/src/loba/spec/loba/loba_val_spec.rb:' \
+        #   '108' \
+        #   ":in `hello')" \
+        #   "\e[0m\n"
+        colored_output = /#{anonclassref}#{variablevalue}#{coderef}\n/
+
+        expect { test_class.new.hello }.to output(colored_output).to_stdout
+      end
     end
-  end unless ENV['LOBA_SPEC_IN_TRAVIS']
+  end
 
   describe 'with keyword arguments' do
     it 'will not output any error' do
