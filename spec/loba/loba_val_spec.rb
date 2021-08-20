@@ -44,8 +44,6 @@ RSpec.describe Loba, '.val' do
   end
 
   describe 'displays the value' do
-    pending('(colors may be filtered on Travis-CI)') if ENV['LOBA_SPEC_IN_TRAVIS']
-
     let(:nocolor) { /\e\[0m/ }
     let(:nobg)    { /\e\[49m/ } # default background
 
@@ -101,7 +99,7 @@ RSpec.describe Loba, '.val' do
 
       expect { test_class.new.hello }.to output(colored_output).to_stdout
     end
-  end
+  end unless ENV['LOBA_SPEC_IN_TRAVIS']
 
   describe 'with keyword arguments' do
     it 'will not output any error' do
