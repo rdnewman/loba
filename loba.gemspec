@@ -18,6 +18,7 @@ Gem::Specification.new do |spec|
                        [
                          'LICENSE'.freeze,
                          'README.md'.freeze,
+                         'CHANGELOG.md'.freeze,
                          'CODE_OF_CONDUCT.md'.freeze
                        ]
 
