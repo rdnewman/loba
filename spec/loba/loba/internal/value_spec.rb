@@ -165,7 +165,7 @@ RSpec.describe Loba::Internal::Value do
         expect(phrases.keys).to match_array([:label, :line, :tag, :value])
       end
 
-      it 'infers a default label' do
+      it 'infers a default label when no label supplied' do
         expect(phrases[:label]).to eq "#{subject_value_variable_name}:"
       end
 
@@ -191,6 +191,12 @@ RSpec.describe Loba::Internal::Value do
 
         expected_tag = "[#{expected_tag_content}]"
         expect(phrases[:tag]).to eq expected_tag
+      end
+
+      it 'label indicates when a supplied label is not usable' do
+        phrases_from_bad_label = described_class.phrases(argument: argument, label: {})
+
+        expect(phrases_from_bad_label[:label]).to eq '[unknown value]:'
       end
     end
 
