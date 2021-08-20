@@ -5,12 +5,14 @@ The format is based on [Keep a Changelog (1.0.0)](https://keepachangelog.com/en/
 and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning (2.0.0)](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.1.0] - 2021-08-20
 ### Added
 - CHANGELOG.md to follow "Keep a Changelog" convention
 - minor unit tests
 
 ### Changed
-- Replaced colorize gem with rainbow gem for license purity
+- Replaced colorize gem with rainbow gem for MIT license purity
 - "Changelog" section of README.md to refer to new CHANGELOG.md
 - `Loba.ts`: "(in ...)" of notice now has a space instead of a "=" (matches `Loba.val`)
 - `Loba.ts`: string continuation instead of concatenation for performance
@@ -65,7 +67,8 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 ### Added
 - Initial implementation
 
-[Unreleased]: https://github.com/rdnewman/loba/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/rdnewman/loba/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/rdnewman/loba/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/rdnewman/loba/compare/v0.3.1...v1.0.0
 [0.3.1]: https://github.com/rdnewman/loba/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/rdnewman/loba/compare/0.2.0...v0.3.0
