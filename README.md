@@ -174,25 +174,8 @@ After checking out the repo, run `bin/setup` to install dependencies. Then, run 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
 ## Changelog
-|version|notes|
-|-------|-----|
-|1.0.0|updated for more recent rubies; uses Ruby 2.x-style keyword arguments for specifying options|
-|0.3.1|updated dependences; added inspect to Loba.val; amended parameters*|
-|0.3.0|(yanked)|
-|0.2.0|release on RubyGems.org|
-|0.1.0|initial development|
 
-### Deprecations
-
-#### 1.0.0
-In v0.3.x, to allow Loba notes to write to the log while in :production, an options hash as `{:production => true}` was introduced; this is now specified directly via Ruby-2.x style keywords, e.g., `production: true`. THIS IS A BREAKING CHANGE FROM v0.3.1 and earlier versions.
-
-#### 0.3.0
-In prior versions, to allow Loba notes to write to the log while in :production, an optional third argument could be supplied as merely a boolean value.  In 0.3.0 and later versions, this must now be specified as part of an options hash as `{:production => true}`
-
-### Semantic versions
-
-As of version 0.3.0 and later, this gem follows semantic versioning [2.0.0](http://semver.org/spec/v2.0.0.html) conventions.
+See [CHANGELOG.md](CHANGELOG.md) for details. This gem follows semantic versioning.
 
 ## Contributing
 
