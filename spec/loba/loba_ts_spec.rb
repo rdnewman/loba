@@ -83,7 +83,7 @@ RSpec.describe Loba, '.ts' do
   end
 
   describe 'colors text' do
-    pending('colors may be filtered on Travis-CI') if ENV['LOBA_SPEC_IN_TRAVIS']
+    pending('(colors may be filtered on Travis-CI)') if ENV['LOBA_SPEC_IN_TRAVIS']
 
     let(:nocolor) { /\e\[0m/ }
 
