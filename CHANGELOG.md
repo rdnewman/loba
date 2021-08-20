@@ -12,13 +12,17 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 ### Changed
 - Replaced colorize gem with rainbow gem for license purity
 - "Changelog" section of README.md to refer to new CHANGELOG.md
+- `Loba.ts`: "(in ...)" of notice now has a space instead of a "=" (matches `Loba.val`)
+- `Loba.ts`: string continuation instead of concatenation for performance
+- `Loba.val`: string continuation instead of concatenation for performance
 
 ## [1.0.0] - 2021-08-18
 ### Added
 - `Loba.val`: added `Loba.value` as an alias
 
 ### Changed
-- Options now use Ruby 2.x-style keyword arguments instead of an options hash [BREAKING CHANGE]
+- `Loba.ts`: use Ruby 2.x-style keyword arguments instead of an options hash [BREAKING CHANGE]
+- `Loba.val`: use Ruby 2.x-style keyword arguments instead of an options hash [BREAKING CHANGE]
 - Updated for more recent Ruby versions (>= 2.5)
 - Updated gem dependencies
 - Expanded unit testing
