@@ -26,13 +26,14 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib'.freeze]
   spec.required_ruby_version = '>= 2.5'
 
-  spec.metadata    = {
+  spec.metadata = {
     'source_code_uri' => 'https://github.com/rdnewman/loba',
-    'bug_tracker_uri' => 'https://github.com/rdnewman/loba/issues'
+    'bug_tracker_uri' => 'https://github.com/rdnewman/loba/issues',
+    'documentation_uri' => 'https://www.rubydoc.info/gems/loba'
   }
 
   spec.add_development_dependency 'bundler', '~> 2.2'
 
   spec.add_dependency 'binding_of_caller', '~> 1.0'
-  spec.add_dependency 'colorize', '~> 0.8'
+  spec.add_dependency 'rainbow', '~> 3.0'
 end

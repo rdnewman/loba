@@ -15,8 +15,8 @@ RSpec.describe 'Loba::VERSION' do
     expect(major).to eq 1
   end
 
-  it 'is 1.0.x' do
-    expect(minor).to eq 0
+  it 'is 1.1.x' do
+    expect(minor).to eq 1
   end
 
   it 'has a patch value' do

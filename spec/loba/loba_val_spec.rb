@@ -45,34 +45,34 @@ RSpec.describe Loba, '.val' do
 
   describe 'displays the value' do
     let(:nocolor) { /\e\[0m/ }
+    let(:nobg)    { /\e\[49m/ } # default background
 
-    let(:methodcolor)   { /\e\[0;32;49m/ } # bright green
+    let(:methodcolor)   { /\e\[32m/ } # bright green
     let(:stdmethodtext) { /\[\w+#\w+\]\s/ } # [ClassName#method_name], then a space
-    let(:stdmethodref)  { /#{methodcolor}#{stdmethodtext}#{nocolor}/ }
+    let(:stdmethodref)  { /#{methodcolor}#{nobg}#{stdmethodtext}#{nocolor}/ }
 
     let(:anonclasstext) { /\[<anonymous class>#\w+\]\s/ } # similar to stdmethodtext
-    let(:anonclassref)  { /#{methodcolor}#{anonclasstext}#{nocolor}/ }
+    let(:anonclassref)  { /#{methodcolor}#{nobg}#{anonclasstext}#{nocolor}/ }
 
-    let(:varcolor)      { /\e\[0;92;49m/ } # dull green
+    let(:varcolor)      { /\e\[92m/ } # dull green
     let(:variablevalue) { /#{varcolor}\w+: #{nocolor}"?.*"?/ } # var_name: value
 
-    let(:codecolor)  { /\e\[0;90;49m/ } # dim grey
+    let(:codecolor)  { /\e\[90m/ } # dim grey
     let(:codespacer) { /\s*\t/ } # spaces, then tab
-    let(:coderef)    { /#{codecolor}#{codespacer}\(in .*\)#{nocolor}/ }
+    let(:coderef)    { /#{codecolor}#{codespacer}\(in\s.*\)#{nocolor}/ }
 
     it 'for standard classes' do
       test_object = LobaClass.new
 
       # essentially the same as:
-      #   "\e[0;32;49m[LobaClass#base_val] \e[0m" \
-      #   "\e[0;92;49m_bv: \e[0m" \
+      #   "\e[32m\e[49m[LobaClass#base_val] \e[0m" \
+      #   "\e[92m_bv: \e[0m" \
       #   '"BENJAMIN"' \
-      #   "\e[0;90;49m    \t" \
+      #   "\e[90m    \t" \
       #   '(in /home/richard/src/loba/spec/loba/loba_class.rb:' \
       #   '8' \
       #   ":in `base_val')" \
       #   "\e[0m\n"
-      # (colors follow pattern of /\\e\[0(?:;\d\d)+m/; resetting color is "\e[0m")
       colored_output = /#{stdmethodref}#{variablevalue}#{coderef}\n/
 
       expect { test_object.base_val }.to output(colored_output).to_stdout
@@ -87,15 +87,14 @@ RSpec.describe Loba, '.val' do
       end
 
       # essentially the same as:
-      #   "\e[0;32;49m[\<anonymous class\>#hello] \e[0m" \
-      #   "\e[0;92;49m_v: \e[0m" \
+      #   "\e[32m\e49m[\<anonymous class\>#hello] \e[0m" \
+      #   "\e[92m_v: \e[0m" \
       #   '"hello"' \
-      #   "\e[0;90;49m    \t" \
+      #   "\e[90m    \t" \
       #   '(in /home/richard/src/loba/spec/loba/loba_val_spec.rb:' \
       #   '108' \
       #   ":in `hello')" \
       #   "\e[0m\n"
-      # (colors follow pattern of /\\e\[0(?:;\d\d)+m/; resetting color is "\e[0m")
       colored_output = /#{anonclassref}#{variablevalue}#{coderef}\n/
 
       expect { test_class.new.hello }.to output(colored_output).to_stdout
