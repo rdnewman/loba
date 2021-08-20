@@ -32,25 +32,19 @@ module Loba
 
     begin
       stats = Internal::TimeKeeper.instance.ping
-      @loba_logger.call Rainbow('[TIMESTAMP]').black.bg(60) + # 60: light_black
-                        Rainbow(' #=').yellow.bg(:default) +
-                        format('%04d', stats[:number]).to_s +
-                        Rainbow(', diff=').yellow +
-                        format('%.6f', stats[:change]).to_s +
-                        Rainbow(', at=').yellow +
-                        format('%.6f', stats[:now].round(6).to_f).to_s +
-                        Rainbow("    \t(in #{caller(1..1).first})").color(60)
-      # @loba_logger.call '[TIMESTAMP]'.black.on_light_black +
-      #                   ' #='.yellow +
-      #                   format('%04d', stats[:number]).to_s +
-      #                   ', diff='.yellow +
-      #                   format('%.6f', stats[:change]).to_s +
-      #                   ', at='.yellow +
-      #                   format('%.6f', stats[:now].round(6).to_f).to_s +
-      #                   "    \t(in=#{caller(1..1).first})".light_black
+      @loba_logger.call(
+        # 60: light_black / grey
+        "#{Rainbow('[TIMESTAMP]').black.bg(60)}" \
+        "#{Rainbow(' #=').yellow.bg(:default)}" \
+        "#{format('%04d', stats[:number])}" \
+        "#{Rainbow(', diff=').yellow}" \
+        "#{format('%.6f', stats[:change])}" \
+        "#{Rainbow(', at=').yellow}" \
+        "#{format('%.6f', stats[:now].round(6).to_f)}" \
+        "#{Rainbow("    \t(in #{caller(1..1).first})").color(60)}" # warning: nested interpolation
+      )
     rescue StandardError => e
       @loba_logger.call Rainbow("[TIMESTAMP] #=FAIL, in=#{caller(1..1).first}, err=#{e}").red
-      # @loba_logger.call "[TIMESTAMP] #=FAIL, in=#{caller(1..1).first}, err=#{e}".colorize(:red)
     end
 
     nil
@@ -113,14 +107,15 @@ module Loba
       inspect: inspect,
       depth_offset: 1
     )
-    @loba_logger.call Rainbow("#{text[:tag]} ").green.bg(:default) +
-                      Rainbow("#{text[:label]} ").color(62) + # 62: light_green
-                      text[:value] +
-                      Rainbow("    \t(in #{text[:line]})").color(60) # 60: light_black
-    # @loba_logger.call "#{text[:tag]} ".green +
-    #                   "#{text[:label]} ".light_green +
-    #                   text[:value] +
-    #                   "    \t(in #{text[:line]})".light_black
+    @loba_logger.call(
+      # warning: nested interpolation below (slight help to performance)
+      # 60: light_black
+      # 62: light_green
+      "#{Rainbow("#{text[:tag]} ").green.bg(:default)}" \
+      "#{Rainbow("#{text[:label]} ").color(62)}" \
+      "#{text[:value]}" \
+      "#{Rainbow("    \t(in #{text[:line]})").color(60)}"
+    )
 
     nil
   end
