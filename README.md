@@ -3,11 +3,11 @@
 [![Code Climate](https://codeclimate.com/github/rdnewman/loba/badges/gpa.svg)](https://codeclimate.com/github/rdnewman/loba)
 [![Test Coverage](https://codeclimate.com/github/rdnewman/loba/badges/coverage.svg)](https://codeclimate.com/github/rdnewman/loba/coverage)
 [![Inline docs](http://inch-ci.org/github/rdnewman/loba.svg?branch=master)](http://inch-ci.org/github/rdnewman/loba)
-[![security](https://hakiri.io/github/rdnewman/loba/master.svg)](https://hakiri.io/github/rdnewman/loba/master)
+[![security](https://hakiri.io/github/rdnewman/loba/main.svg)](https://hakiri.io/github/rdnewman/loba/main)
 
 # Loba
 
-![Loba is "write" in zulu](readme/zulu.png)
+![Loba is "write" in Zulu](readme/zulu.png)
 
 Easy tracing for debugging: handy methods for adding trace lines to output or Rails logs.
 
