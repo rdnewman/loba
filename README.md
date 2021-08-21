@@ -28,7 +28,7 @@ Loba statements are expected to be removed when you're done with them. No point 
 
 Loba will check for presence of Rails. If it's there, it'll write to `Rails.logger.debug`.  If not, it'll write to STDOUT (i.e., `puts`).  Loba will work equally well with or without Rails.
 
-Loba uses the [colorize gem](https://rubygems.org/gems/colorize) to help make trace statements more visible.
+Loba uses the [rainbow gem](https://rubygems.org/gems/rainbow) to help make trace statements more visible.
 
 ## Usage
 
