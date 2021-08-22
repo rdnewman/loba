@@ -27,7 +27,7 @@ module Loba
       #   * :label => [String] label, ending with ":"
       #     (if not possible to infer, '[unknown value]' is returned)
       def phrases(argument:, label: nil, inspect: true, depth_offset: 0)
-        depth = depth_offset&.to_i || 0
+        depth = depth_offset.nil? ? 0 : depth_offset.to_i
         {
           tag: ValueHelper.tag(depth: depth + 1),
           line: ValueHelper.line(depth: depth + 1),

@@ -38,9 +38,7 @@ module Loba
 
           # #inspect adds explicit quotes to strings, so strip back off since #inspect
           # always returns a String
-          if inspect && val.respond_to?(:delete_prefix)
-            val = val.delete_prefix('"').delete_suffix('"')
-          end
+          val = Loba::Internal.strip_quotes(val) if inspect
 
           # make nils obvious
           val.nil? ? '-nil-' : val.to_s
