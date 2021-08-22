@@ -7,6 +7,8 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 ## [Unreleased]
 ### Changed
 - Updated README reference links
+- Updated to support Ruby 2.1 as minimum (instead of 2.5)
+- Refreshed development gems
 
 ## [1.1.0] - 2021-08-20
 ### Added
