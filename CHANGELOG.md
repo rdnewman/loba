@@ -5,12 +5,15 @@ The format is based on [Keep a Changelog (1.0.0)](https://keepachangelog.com/en/
 and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning (2.0.0)](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+
+## [1.2.0] - 2021-09-05
 ### Added
 - Optional specs for developers to check Loba performance (no surprising issues found)
 
 ### Changed
 - Updated README reference links
-- Updated to support Ruby 2.2.2 as minimum (retreated from 2.5)
+- Updated to support Ruby 2.2.2 as minimum (retreated from 2.5 for broader support)
 - Refactored to seperate stripping quotes from .inspect-generated strings
 
 ## [1.1.0] - 2021-08-20
@@ -74,7 +77,8 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 ### Added
 - Initial implementation
 
-[Unreleased]: https://github.com/rdnewman/loba/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/rdnewman/loba/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/rdnewman/loba/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/rdnewman/loba/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/rdnewman/loba/compare/v0.3.1...v1.0.0
 [0.3.1]: https://github.com/rdnewman/loba/compare/v0.3.0...v0.3.1
