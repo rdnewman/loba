@@ -6,6 +6,10 @@ RSpec.describe 'Loba::VERSION' do
   let(:minor) { parts[2].to_i }
   let(:patch) { parts[3].nil? ? nil : parts[3].to_i }
 
+  it 'has a version number' do
+    expect(version).not_to be nil
+  end
+
   it 'is formatted as major.minor[.patch]' do
     expect(version).to match(/\d+.\d+(?:.\d+)?/)
   end

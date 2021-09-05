@@ -9,6 +9,24 @@ RSpec.describe Loba::Internal::Platform do
     expect(platform.logger).to be_a(Proc)
   end
 
+  it 'cannot be called directly as part of Loba' do
+    test_class = Class.new do
+      def hello
+        Loba.rails?
+      end
+    end
+    expect { test_class.new.hello }.to raise_error NameError
+  end
+
+  it 'can be called if fully namespaced' do
+    test_class = Class.new do
+      def hello
+        Loba::Internal::Platform.rails?
+      end
+    end
+    expect { test_class.new.hello }.not_to raise_error
+  end
+
   context 'when not in Rails,' do
     before { hide_const('Rails') } # just to be sure
 
