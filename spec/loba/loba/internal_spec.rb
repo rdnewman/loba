@@ -1,54 +1,96 @@
 RSpec.describe Loba::Internal do
-  describe '.strip_quotes' do
-    describe 'strips quotes from' do
-      it 'simple quoted strings' do
-        input = '"some string"'.freeze
-        expected_output = 'some string'.freeze
-        expect(described_class.strip_quotes(input)).to eq expected_output
+  describe '.unquote' do
+    ##################
+    # custom matcher
+    ##################
+    matcher :be_changed_by_unquote do
+      # rubocop:disable RSpec/InstanceVariable
+
+      match do |actual|
+        @original = actual.freeze
+        @unquoted = described_class.unquote(actual)
+
+        result   = @unquoted != @original
+        result &&= (@unquoted == @target) if target?
+
+        result
       end
 
-      it 'quoted strings that have a new line embedded' do
-        input = '"some\nstring"'.freeze
-        expected_output = 'some\nstring'.freeze
-        expect(described_class.strip_quotes(input)).to eq expected_output
+      match_when_negated do |actual|
+        raise 'do not use .into when negating be_changed_by_unquote' if target?
+
+        described_class.unquote(actual) == actual.freeze
+      end
+
+      chain :into do |target|
+        @target = target
+      end
+
+      description do
+        "be changed #{"into \"#{@target}\"" if target?}" # nested interpolation
+      end
+
+      def target?
+        defined?(@target)
+      end
+
+      # rubocop:enable RSpec/InstanceVariable
+    end
+
+    ##################
+    # test specs
+    ##################
+    describe 'removes quotes from' do
+      it 'simple quoted string' do
+        content = '"some string"'
+        expect(content).to be_changed_by_unquote.into 'some string'
+      end
+
+      it 'quoted strings with embedded new line' do
+        content = '"some\nstring"'
+        expect(content).to be_changed_by_unquote.into 'some\nstring'
       end
     end
 
     describe 'does not change' do
-      it 'unquoted strings' do
-        input = 'some string'.freeze
-        expected_output = input.freeze
-        expect(described_class.strip_quotes(input)).to eq expected_output
+      it 'unquoted string' do
+        content = 'some string'
+        expect(content).not_to be_changed_by_unquote
       end
 
       it 'strings with only a leading quote' do
-        input = '"some string'.freeze
-        expected_output = input.freeze
-        expect(described_class.strip_quotes(input)).to eq expected_output
+        content = '"some string'
+        expect(content).not_to be_changed_by_unquote
       end
 
       it 'strings with only a trailing quote' do
-        input = 'some string"'.freeze
-        expected_output = input.freeze
-        expect(described_class.strip_quotes(input)).to eq expected_output
+        content = 'some string"'
+        expect(content).not_to be_changed_by_unquote
       end
 
       it 'quoted strings ending in a new line' do
-        input = '"some string"\n'.freeze
-        expected_output = input.freeze
-        expect(described_class.strip_quotes(input)).to eq expected_output
+        content = '"some string"\n'
+        expect(content).not_to be_changed_by_unquote
+      end
+
+      it 'quoted strings with leading space' do
+        content = ' "some string"'
+        expect(content).not_to be_changed_by_unquote
+      end
+
+      it 'quoted strings with trailing space' do
+        content = '"some string" '
+        expect(content).not_to be_changed_by_unquote
       end
 
       it 'numbers' do
-        input = 5
-        expected_output = input
-        expect(described_class.strip_quotes(input)).to eq expected_output
+        content = 5
+        expect(content).not_to be_changed_by_unquote
       end
 
       it 'internal values in hashes' do
-        input = { somekey: '"some string"' }
-        expected_output = input
-        expect(described_class.strip_quotes(input)).to eq expected_output
+        content = { somekey: '"some string"' }
+        expect(content).not_to be_changed_by_unquote
       end
     end
   end

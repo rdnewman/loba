@@ -38,7 +38,7 @@ RSpec.describe Loba::Internal::Value do
     let(:value_used_in_mocked_class) do
       # since Valuation, by default, uses .inspect, need to account for either possibility
       if inspection
-        Loba::Internal.strip_quotes(object.class.content.inspect.to_s)
+        Loba::Internal.unquote(object.class.content.inspect.to_s)
       else
         object.class.content.to_s
       end

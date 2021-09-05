@@ -5,18 +5,23 @@ require_relative 'internal/value'
 module Loba
   # @api private
   module Internal
-    def strip_quotes(content)
+    # Remove wrapping quotes on a string (produced by .inspect)
+    #
+    # @param argument [String] the string (assumed to be produced from calling .inspect)
+    #   to remove quotes (") that wrap a string
+    #
+    # @return [String, Object]
+    #   * If not a string, the original argument will be returned without modification
+    #   * If string does not have quotes as first and last character, the original
+    #     argument will be returned without modification
+    #   * If string does have quotes as first and last character, the original content
+    #     will be returned with the original first and last character removed
+    def unquote(content)
       return content unless content.is_a?(String)
       return content unless content[0] == '"' && content[-1] == '"'
 
-      if content.respond_to?(:delete_prefix)
-        content.delete_prefix('"').delete_suffix('"')
-      elsif content.respond_to?(:gsub)
-        content.gsub(/\A"+|"+\z/, '')
-      else
-        content
-      end
+      content[1...-1]
     end
-    module_function :strip_quotes
+    module_function :unquote
   end
 end
