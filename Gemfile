@@ -13,6 +13,7 @@ end
 group :test do
   gem 'codeclimate-test-reporter', require: nil
   gem 'rspec'
+  gem 'ruby-prof'
   gem 'simplecov', require: false
 end
 
