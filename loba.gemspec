@@ -30,11 +30,11 @@ Gem::Specification.new do |spec|
   spec.metadata = {
     'source_code_uri' => 'https://github.com/rdnewman/loba',
     'bug_tracker_uri' => 'https://github.com/rdnewman/loba/issues',
-    'changelog_uri' => 'https://github.com/rdnewman/loba/CHANGELOG.md',
+    'changelog_uri' => 'https://github.com/rdnewman/loba/blob/main/CHANGELOG.md',
     'documentation_uri' => 'https://www.rubydoc.info/gems/loba'
   }
 
-  spec.add_development_dependency 'bundler'
+  spec.add_development_dependency 'bundler', '~> 1.17.3'
 
   spec.add_dependency 'binding_of_caller', '~> 1.0'
   spec.add_dependency 'rainbow', '~> 3.0'
