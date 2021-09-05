@@ -25,11 +25,12 @@ Gem::Specification.new do |spec|
   spec.bindir        = 'exe'.freeze
   spec.executables   = spec.files.grep(/^exe\//) { |f| File.basename(f) }
   spec.require_paths = ['lib'.freeze]
-  spec.required_ruby_version = '>= 2.1.1'
+  spec.required_ruby_version = '>= 2.2.2'
 
   spec.metadata = {
     'source_code_uri' => 'https://github.com/rdnewman/loba',
     'bug_tracker_uri' => 'https://github.com/rdnewman/loba/issues',
+    'changelog_uri' => 'https://github.com/rdnewman/loba/CHANGELOG.md',
     'documentation_uri' => 'https://www.rubydoc.info/gems/loba'
   }
 
