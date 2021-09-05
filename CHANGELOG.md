@@ -6,6 +6,7 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 
 ## [Unreleased]
 ### Changed
+- Fixed loba.gemspec (CHANGELOG link)
 
 ## [1.2.0] - 2021-09-05
 ### Added
