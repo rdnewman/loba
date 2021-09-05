@@ -1,27 +1,45 @@
-require_relative 'loba_class'
+# require 'profile'
+require 'ruby-prof'
 
 RSpec.describe Loba do
-  it 'has a version number' do
-    expect(Loba::VERSION).not_to be nil
-  end
+  # describe 'profiling', focus: true do
+  ### Use the above line (and comment out one below) to run performance checks
+  describe 'profiling', skip: 'Ignore performance analysis during normal testing' do
+    # rubocop:disable RSpec/InstanceVariable
 
-  describe 'Platform module methods' do
-    it 'cannot be called directly as part of Loba' do
-      test_class = Class.new do
-        def hello
-          Loba.rails?
-        end
-      end
-      expect { test_class.new.hello }.to raise_error NameError
+    before do
+      @profile = RubyProf::Profile.new
+      @profile.exclude_methods!(Integer, :times)
+      @profile.start
+      @profile.pause
+      LobaSpecSupport::OutputControl.suppress!
     end
 
-    it 'can be called if fully namespaced' do
-      test_class = Class.new do
-        def hello
-          Loba::Internal::Platform.rails?
-        end
+    after do
+      LobaSpecSupport::OutputControl.restore!
+      RubyProf::FlatPrinter.new(@profile).print($stdout, min_percent: 0.8)
+    end
+
+    def run_profile(number_of_times = 5000)
+      return unless block_given?
+
+      number_of_times.times do
+        @profile.resume
+        yield
+        @profile.pause
       end
-      expect { test_class.new.hello }.not_to raise_error
+      @profile.stop
+    end
+
+    # rubocop:enable RSpec/InstanceVariable
+
+    it 'Loba.ts' do
+      run_profile { described_class.ts }
+    end
+
+    it 'Loba.val' do
+      _x = 5
+      run_profile { described_class.val :_x }
     end
   end
 end

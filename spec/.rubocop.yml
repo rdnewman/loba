@@ -19,8 +19,8 @@ RSpec/ExampleLength:
 RSpec/MessageExpectation:
   Enabled: true
 
-RSpec/MultipleMemoizedHelpers:
-  Enabled: false
+# RSpec/MultipleMemoizedHelpers:
+#   Enabled: false
 
 RSpec/NestedGroups:
   Enabled: true
