@@ -1,5 +1,5 @@
 [![Gem Version](https://badge.fury.io/rb/loba.svg)](https://badge.fury.io/rb/loba)
-[![Build Status](https://travis-ci.org/rdnewman/loba.svg?branch=master)](https://travis-ci.org/rdnewman/loba)
+[![Build Status](https://app.travis-ci.com/rdnewman/loba.svg?branch=main)](https://app.travis-ci.com/rdnewman/loba)
 [![Code Climate](https://codeclimate.com/github/rdnewman/loba/badges/gpa.svg)](https://codeclimate.com/github/rdnewman/loba)
 [![Test Coverage](https://codeclimate.com/github/rdnewman/loba/badges/coverage.svg)](https://codeclimate.com/github/rdnewman/loba/coverage)
 [![Inline docs](http://inch-ci.org/github/rdnewman/loba.svg?branch=master)](http://inch-ci.org/github/rdnewman/loba)
