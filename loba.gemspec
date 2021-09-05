@@ -34,7 +34,7 @@ Gem::Specification.new do |spec|
     'documentation_uri' => 'https://www.rubydoc.info/gems/loba'
   }
 
-  spec.add_development_dependency 'bundler' #, '~> 1.17.3' # can't specify due to older ruby
+  spec.add_development_dependency 'bundler', '~> 2.2' # use 1.17.3 for testing pre-2.5 rubies
 
   spec.add_dependency 'binding_of_caller', '~> 1.0'
   spec.add_dependency 'rainbow', '~> 3.0'
