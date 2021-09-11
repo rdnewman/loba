@@ -13,7 +13,7 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 ### Changed
 - Updated README reference links
 - Updated to support Ruby 2.2.2 as minimum (retreated from 2.5 for broader support)
-- Refactored to seperate stripping quotes from .inspect-generated strings
+- Refactored to separate stripping quotes from .inspect-generated strings
 
 ## [1.2.0] - 2021-09-05 [YANKED]
 
