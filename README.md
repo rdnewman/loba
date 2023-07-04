@@ -1,11 +1,9 @@
+# Loba
+
 [![Gem Version](https://badge.fury.io/rb/loba.svg)](https://badge.fury.io/rb/loba)
-[![Build Status](https://app.travis-ci.com/rdnewman/loba.svg?branch=main)](https://app.travis-ci.com/rdnewman/loba)
+[![Build Status](https://github.com/rdnewman/loba/actions/workflows/ruby.yml/badge.svg?branch=main)](https://github.com/rdnewman/loba/actions?query=branch%3Amain++)
 [![Code Climate](https://codeclimate.com/github/rdnewman/loba/badges/gpa.svg)](https://codeclimate.com/github/rdnewman/loba)
 [![Test Coverage](https://codeclimate.com/github/rdnewman/loba/badges/coverage.svg)](https://codeclimate.com/github/rdnewman/loba/coverage)
-[![Inline docs](http://inch-ci.org/github/rdnewman/loba.svg?branch=master)](http://inch-ci.org/github/rdnewman/loba)
-[![security](https://hakiri.io/github/rdnewman/loba/main.svg)](https://hakiri.io/github/rdnewman/loba/main)
-
-# Loba
 
 ![Loba is "write" in Zulu](readme/zulu.png)
 
