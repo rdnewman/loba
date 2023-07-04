@@ -1,3 +1,4 @@
 module Loba
-  VERSION = '1.2.1'.freeze
+  # Semantic version number
+  VERSION = '2.0.0'.freeze
 end

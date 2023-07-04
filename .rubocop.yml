@@ -2,31 +2,24 @@ require:
   - rubocop-performance
 
 AllCops:
-  # NewCops: enable
-  # SuggestExtensions: false
-  TargetRubyVersion: 2.2.2
+  NewCops: enable
+  TargetRubyVersion: 3.0.6
 
 Layout/AccessModifierIndentation:
   Enabled: true
 
-# Layout/LineLength:
-#   Max: 100
+Layout/LineLength:
+  Max: 100
 
 Metrics/BlockLength:
   Max: 25
-
-Metrics/LineLength:
-  Max: 100
-
-Style/AccessModifierDeclarations:
-  Enabled: false # bug in Rubocop v0.68.1 (required for Ruby 2.2.2)
 
 Style/FrozenStringLiteralComment:
   Enabled: true
   EnforcedStyle: never
 
-# Style/OptionalBooleanParameter:
-#   Enabled: false
+Style/OptionalBooleanParameter:
+  Enabled: false
 
 Style/PreferredHashMethods:
   Enabled: true

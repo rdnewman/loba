@@ -3,11 +3,12 @@ require_relative 'internal/time_keeper'
 require_relative 'internal/value'
 
 module Loba
+  # Internal functionality support
   # @api private
   module Internal
     # Remove wrapping quotes on a string (produced by .inspect)
     #
-    # @param argument [String] the string (assumed to be produced from calling .inspect)
+    # @param content [String] the string (assumed to be produced from calling .inspect)
     #   to remove quotes (") that wrap a string
     #
     # @return [String, Object]

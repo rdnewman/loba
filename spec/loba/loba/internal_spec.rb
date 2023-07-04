@@ -4,8 +4,6 @@ RSpec.describe Loba::Internal do
     # custom matcher
     ##################
     matcher :be_changed_by_unquote do
-      # rubocop:disable RSpec/InstanceVariable
-
       match do |actual|
         @original = actual.freeze
         @unquoted = described_class.unquote(actual)
@@ -33,8 +31,6 @@ RSpec.describe Loba::Internal do
       def target?
         defined?(@target)
       end
-
-      # rubocop:enable RSpec/InstanceVariable
     end
 
     ##################

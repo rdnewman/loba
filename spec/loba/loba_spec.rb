@@ -6,7 +6,6 @@ RSpec.describe Loba do
   ### Use the above line (and comment out one below) to run performance checks
   describe 'profiling', skip: 'Ignore performance analysis during normal testing' do
     # rubocop:disable RSpec/InstanceVariable
-
     before do
       @profile = RubyProf::Profile.new
       @profile.exclude_methods!(Integer, :times)
@@ -30,14 +29,13 @@ RSpec.describe Loba do
       end
       @profile.stop
     end
-
     # rubocop:enable RSpec/InstanceVariable
 
-    it 'Loba.ts' do
+    it 'Loba.ts' do # rubocop:disable RSpec/NoExpectationExample
       run_profile { described_class.ts }
     end
 
-    it 'Loba.val' do
+    it 'Loba.val' do # rubocop:disable RSpec/NoExpectationExample
       _x = 5
       run_profile { described_class.val :_x }
     end

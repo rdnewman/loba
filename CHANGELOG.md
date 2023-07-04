@@ -1,10 +1,20 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog (1.0.0)](https://keepachangelog.com/en/1.0.0/),
 and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning (2.0.0)](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0] - 2023-07-04
+### Added
+- SECURITY.md to specify security policy
+
+### Changed
+- Dropped support for Ruby prior to 3.0.6
+- Changed output to always write to STDOUT even if Rails is present (in which case it will also log)
+- Updated YARD documentation for improved completeness
 
 ## [1.2.1] - 2021-09-05
 ### Added
@@ -78,7 +88,8 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 ### Added
 - Initial implementation
 
-[Unreleased]: https://github.com/rdnewman/loba/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/rdnewman/loba/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/rdnewman/loba/compare/v1.2.1...v2.0.0
 [1.2.1]: https://github.com/rdnewman/loba/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/rdnewman/loba/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/rdnewman/loba/compare/v1.0.0...v1.1.0

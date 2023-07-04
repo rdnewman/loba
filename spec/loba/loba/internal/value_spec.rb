@@ -54,7 +54,7 @@ RSpec.describe Loba::Internal::Value do
         let(:phrases) { object.symbol_without_label }
 
         it 'returns hash with expected keys' do
-          expect(phrases.keys).to match_array([:label, :line, :tag, :value])
+          expect(phrases.keys).to contain_exactly(:label, :line, :tag, :value)
         end
 
         it 'infers a default label' do
@@ -80,7 +80,7 @@ RSpec.describe Loba::Internal::Value do
         let(:phrases) { object.symbol_with_label }
 
         it 'returns hash with expected keys' do
-          expect(phrases.keys).to match_array([:label, :line, :tag, :value])
+          expect(phrases.keys).to contain_exactly(:label, :line, :tag, :value)
         end
 
         it 'uses supplied label' do
@@ -107,7 +107,7 @@ RSpec.describe Loba::Internal::Value do
         let(:phrases) { object.direct_without_label }
 
         it 'returns hash with expected keys' do
-          expect(phrases.keys).to match_array([:label, :line, :tag, :value])
+          expect(phrases.keys).to contain_exactly(:label, :line, :tag, :value)
         end
 
         it 'cannot infer a default label' do
@@ -132,7 +132,7 @@ RSpec.describe Loba::Internal::Value do
         let(:phrases) { object.direct_with_label }
 
         it 'returns hash with expected keys' do
-          expect(phrases.keys).to match_array([:label, :line, :tag, :value])
+          expect(phrases.keys).to contain_exactly(:label, :line, :tag, :value)
         end
 
         it 'uses supplied label' do
@@ -161,7 +161,7 @@ RSpec.describe Loba::Internal::Value do
       let!(:lineno) { __LINE__ } # must immediately follow `let(:phrases)`
 
       it 'returns hash with expected keys' do
-        expect(phrases.keys).to match_array([:label, :line, :tag, :value])
+        expect(phrases.keys).to contain_exactly(:label, :line, :tag, :value)
       end
 
       it 'infers a default label when no label supplied' do

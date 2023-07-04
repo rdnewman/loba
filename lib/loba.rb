@@ -52,6 +52,7 @@ module Loba
   module_function :timestamp
 
   # Shorthand alias for Loba.timestamp.
+  # @!method ts(production: false)
   alias ts timestamp
   module_function :ts
 
@@ -122,6 +123,7 @@ module Loba
   module_function :value
 
   # Shorthand alias for Loba.value.
+  # @!method val(argument, label: nil, inspect: true, production: false)
   alias val value
   module_function :val
 end
