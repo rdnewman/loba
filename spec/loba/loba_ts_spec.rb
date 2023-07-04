@@ -82,7 +82,7 @@ RSpec.describe Loba, '.ts' do
     end
   end
 
-  unless ENV['LOBA_SPEC_IN_TRAVIS']
+  unless ENV['LOBA_SPEC_IN_CI']
     describe 'colors text' do
       let(:nocolor) { /\e\[0m/ }
 

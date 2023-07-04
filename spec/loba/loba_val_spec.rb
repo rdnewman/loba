@@ -43,7 +43,7 @@ RSpec.describe Loba, '.val' do
     expect { test_class.new.hello }.to output.to_stdout
   end
 
-  unless ENV['LOBA_SPEC_IN_TRAVIS']
+  unless ENV['LOBA_SPEC_IN_CI']
     describe 'displays the value' do
       let(:nocolor) { /\e\[0m/ }
       let(:nobg)    { /\e\[49m/ } # default background
