@@ -5,18 +5,12 @@ engines:
     config:
       languages:
       - ruby
-      - javascript
   fixme:
     enabled: true
   rubocop:
     enabled: true
-    channel: rubocop-0-68
 ratings:
   paths:
-  - "**.inc"
-  - "**.js"
-  - "**.jsx"
-  - "**.module"
   - "**.rb"
 exclude_paths:
 - spec/**/*
