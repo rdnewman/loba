@@ -36,5 +36,4 @@ jobs:
         bundle exec rspec
     - name: Publish code coverage
       run: |
-        export GIT_BRANCH="${GITHUB_REF/refs\/heads\//}"
         ./cc-test-reporter after-build -r ${{secrets.CODE_CLIMATE_TEST_REPORTER_ID}}
