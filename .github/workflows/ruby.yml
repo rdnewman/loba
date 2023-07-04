@@ -29,7 +29,9 @@ jobs:
         curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
         chmod +x ./cc-test-reporter
         ./cc-test-reporter before-build
-    - name: Build and test with RSpec
+    - name: Test using RSpec
+      env:
+        LOBA_SPEC_IN_CI: true
       run: |
         bundle exec rspec
     # - name: Publish code coverage
