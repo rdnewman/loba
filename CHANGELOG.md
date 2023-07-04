@@ -14,6 +14,7 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 ### Changed
 - Dropped support for Ruby prior to 3.0.6
 - Changed output to always write to STDOUT even if Rails is present (in which case it will also log)
+- Updated YARD documentation for improved completeness
 
 ## [1.2.1] - 2021-09-05
 ### Added
@@ -87,7 +88,8 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 ### Added
 - Initial implementation
 
-[Unreleased]: https://github.com/rdnewman/loba/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/rdnewman/loba/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/rdnewman/loba/compare/v1.2.1...v2.0.0
 [1.2.1]: https://github.com/rdnewman/loba/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/rdnewman/loba/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/rdnewman/loba/compare/v1.0.0...v1.1.0
