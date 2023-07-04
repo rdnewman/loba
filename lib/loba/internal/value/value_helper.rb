@@ -54,8 +54,8 @@ module Loba
         #     and a label can be inferred.
         #   * If any other type, it is assumed to be a literal value to
         #     and a label should be supplied when instantiated.
-        # @param label [String] when provided, an explicit label to use; will override any
-        #   possible inferred label
+        # @param explicit_label [String] when provided, an explicit label to use; will
+        #   override any possible inferred label
         #
         # @return [String] label
         def label(argument:, explicit_label: nil)

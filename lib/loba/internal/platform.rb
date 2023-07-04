@@ -3,12 +3,14 @@ module Loba
     # Internal class for managing logging across Rails and non-Rails applications
     class Platform
       class << self
-        # Returns true if Rails appears to be available
+        # Checks if Rails is present
+        # @return [Boolean] true if Rails appears to be available; otherwise, false
         def rails?
           defined?(Rails) ? true : false
         end
 
-        # Returns true if logging is to be allowed
+        # Checks if logging output is permitted.
+        # @return [Boolean] true if logging is to be allowed; otherwise, false
         def logging_ok?(force_true = false)
           return true if force_true
           return true unless rails?
@@ -20,7 +22,8 @@ module Loba
           end
         end
 
-        # Returns a logging mechanism appropriate for the application
+        # Provides logging mechanism appropriate in the application
+        # @return [Lambda] procedure for logging output
         def logger
           if rails? && Rails.logger.present?
             ->(arg) { puts arg; Rails.logger.debug arg }

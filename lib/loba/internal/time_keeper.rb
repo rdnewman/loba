@@ -15,6 +15,11 @@ module Loba
         reset!
       end
 
+      # Increments timestamping, including attributes `timenum` and `timewas`
+      # @return [Hash] timestamp details
+      #   * :number => [Integer] incremented count of pings so far (attribute `timenum`)
+      #   * :now => [Time] current date and time
+      #   * :change => [Float] difference in seconds from any previous ping or reset
       def ping
         @timenum += 1
         now = Time.now
@@ -24,9 +29,13 @@ module Loba
         { number: @timenum, now: now, change: change }
       end
 
+      # Resets timestamping
+      # @return [NilClass] nil
       def reset!
         @timewas = Time.now
         @timenum = 0
+
+        nil
       end
     end
   end
