@@ -23,7 +23,7 @@ module Loba
         # Returns a logging mechanism appropriate for the application
         def logger
           if rails? && Rails.logger.present?
-            ->(arg) { Rails.logger.debug arg }
+            ->(arg) { puts arg; Rails.logger.debug arg }
           else
             ->(arg) { puts arg }
           end

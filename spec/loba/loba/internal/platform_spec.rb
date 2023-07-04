@@ -80,11 +80,11 @@ RSpec.describe Loba::Internal::Platform do
           .to receive(:env).and_return(LobaSpecSupport::MockRails::MockEnvNonproduction.new)
       end
 
-      it 'the Proc from .logger does not write to STDOUT' do
-        expect { platform.logger.call('test') }.not_to output.to_stdout
+      it 'the Proc from .logger writes intended output to STDOUT' do
+        expect { platform.logger.call('test') }.to output.to_stdout
       end
 
-      it 'the Proc from .logger writes to Rails.logger.debug' do
+      it 'the Proc from .logger writes intended output to Rails.logger.debug' do
         logging = object_double(mock_rails.logger)
         allow(mock_rails).to receive(:logger).and_return(logging)
         allow(logging).to receive(:debug)

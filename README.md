@@ -17,8 +17,8 @@ Easy tracing for debugging: handy methods for adding trace lines to output or Ra
 
 There are two kinds of questions I usually want to answer when trying to diagnose code behavior:
 
-1.  Is this spot of code being reached (or is it reached in the order I think it is)?
-1.  What is the value of this variable?
+1. Is this spot of code being reached (or is it reached in the order I think it is)?
+1. What is the value of this variable?
 
 Loba statements are intended to be terse to minimize typing.
 
@@ -26,7 +26,9 @@ Loba statements are intended to be minimally invasive and atomic. They should no
 
 Loba statements are expected to be removed when you're done with them. No point in cluttering up production code.
 
-Loba will check for presence of Rails. If it's there, it'll write to `Rails.logger.debug`.  If not, it'll write to STDOUT (i.e., `puts`).  Loba will work equally well with or without Rails.
+Loba will always write to STDOUT (i.e., `puts`).
+
+Loba will work equally well with or without Rails. If Rails is present, in addition to STDOUT, Loba will also always write to `Rails.logger.debug`.
 
 Loba uses the [rainbow gem](https://rubygems.org/gems/rainbow) to help make trace statements more visible.
 
@@ -40,7 +42,7 @@ Outputs a timestamped notice, useful for quick traces to see the code path and e
 
 For example,
 
-```
+```text
 [TIMESTAMP] #=0002, diff=93.478016, at=1451444972.970602     (in=/home/usracct/src/myapp/app/models/target.rb:55:in `some_calculation')
 ```
 
@@ -64,7 +66,7 @@ Loba.val :var_sym   # the :var_sym argument is the variable or method name given
 
 For example,
 
-```
+```text
 [Target.some_calculation] my_var: 54       (in /home/usracct/src/myapp/app/models/target.rb:55:in `some_calculation')
 ```
 
@@ -92,7 +94,7 @@ HelloWorld.new.hello
 
 Output:
 
-```
+```text
 [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411   (in=/home/usracct/src/lobademo/hello_world.rb:4:in 'initialize'
 [HelloWorld#hello] @x: 42       (in /home/usracct/src/loba/spec/hello_world.rb:9:in `hello')
 Hello, Charlie
@@ -139,11 +141,10 @@ HelloWorld.new.hello
 
 See above Environment Notes if using with Rails.
 
-
 Install as below to be generally available (recommended to restrict to only local use):
 
 ```bash
-$ gem install loba
+gem install loba
 ```
 
 To bundle, add this line to your application's Gemfile:
@@ -160,11 +161,10 @@ or for all environments (for example, if `production: true` used):
 gem 'loba', require: false
 ```
 
-
 And then execute:
 
 ```bash
-$ bundle
+bundle
 ```
 
 ## Development

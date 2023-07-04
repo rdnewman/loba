@@ -15,12 +15,12 @@ RSpec.describe 'Loba::VERSION' do
   end
 
   # ensure updates to VERSION are intentional
-  it 'is 1.x' do
-    expect(major).to eq 1
+  it 'is 2.x' do
+    expect(major).to eq 2
   end
 
-  it 'is 1.2.x or later' do
-    expect(minor).to be > 1
+  it 'is 2.0.x or later' do
+    expect(minor).to be >= 0
   end
 
   it 'has a patch value' do
