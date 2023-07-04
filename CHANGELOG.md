@@ -8,6 +8,9 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 ## [Unreleased]
 
 ## [2.0.0] - 2023-07-04
+### Added
+- SECURITY.md to specify security policy
+
 ### Changed
 - Dropped support for Ruby prior to 3.0.6
 - Changed output to always write to STDOUT even if Rails is present (in which case it will also log)
