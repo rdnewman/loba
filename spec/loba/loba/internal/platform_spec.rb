@@ -81,7 +81,7 @@ RSpec.describe Loba::Internal::Platform do
       end
 
       it 'the Proc from .logger writes intended output to STDOUT' do
-        expect { platform.logger.call('test') }.to output.to_stdout
+        expect { platform.logger.call('test') }.to output(/test/).to_stdout
       end
 
       it 'the Proc from .logger writes intended output to Rails.logger.debug' do
@@ -90,13 +90,17 @@ RSpec.describe Loba::Internal::Platform do
         allow(logging).to receive(:debug)
         allow(logging).to receive(:present?).and_return(true)
 
+        LobaSpecSupport::OutputControl.suppress!
         platform.logger.call('test')
         expect(logging).to have_received(:debug)
+        LobaSpecSupport::OutputControl.restore!
       end
 
       it 'Rails.logger.debug shows the intended output' do
+        LobaSpecSupport::OutputControl.suppress!
         platform.logger.call('test')
         expect(mock_rails.mocked_output.string).to end_with("test\n")
+        LobaSpecSupport::OutputControl.restore!
       end
 
       describe 'when not in production,' do
