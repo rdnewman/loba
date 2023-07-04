@@ -2,7 +2,7 @@ RSpec.describe Loba::Internal::Platform do
   subject(:platform) { described_class }
 
   it '.logger_ok? is true when force_true is true' do
-    expect(platform.logging_ok?(true)).to eq true
+    expect(platform.logging_ok?(true)).to be true
   end
 
   it '.logger provides a Proc' do
@@ -31,11 +31,11 @@ RSpec.describe Loba::Internal::Platform do
     before { hide_const('Rails') } # just to be sure
 
     it '.rails? is false' do
-      expect(platform.rails?).to eq false
+      expect(platform.rails?).to be false
     end
 
     it '.logging_ok? is true' do
-      expect(platform.logging_ok?).to eq true
+      expect(platform.logging_ok?).to be true
     end
 
     it 'the Proc from .logger writes intended output to STDOUT' do
@@ -61,7 +61,7 @@ RSpec.describe Loba::Internal::Platform do
     end
 
     it '.rails? is true' do
-      expect(platform.rails?).to eq true
+      expect(platform.rails?).to be true
     end
 
     it 'if checking for production environment throws an error, .logging_ok? is true' do
@@ -69,7 +69,7 @@ RSpec.describe Loba::Internal::Platform do
         .to receive(:env).and_return(LobaSpecSupport::MockRails::MockEnvProduction.new)
       allow(mock_rails.env).to receive(:production?).and_raise('mock failure')
 
-      expect(platform.logging_ok?).to eq true
+      expect(platform.logging_ok?).to be true
     end
 
     context 'with logging defined,' do
@@ -101,7 +101,7 @@ RSpec.describe Loba::Internal::Platform do
 
       describe 'when not in production,' do
         it '.logging_ok? is true' do
-          expect(platform.logging_ok?).to eq true
+          expect(platform.logging_ok?).to be true
         end
       end
 
@@ -112,7 +112,7 @@ RSpec.describe Loba::Internal::Platform do
         end
 
         it '.logging_ok? is false' do
-          expect(platform.logging_ok?).to eq false
+          expect(platform.logging_ok?).to be false
         end
       end
     end
@@ -143,7 +143,7 @@ RSpec.describe Loba::Internal::Platform do
 
       describe 'when not in production,' do
         it '.logging_ok? is true' do
-          expect(platform.logging_ok?).to eq true
+          expect(platform.logging_ok?).to be true
         end
       end
 
@@ -154,7 +154,7 @@ RSpec.describe Loba::Internal::Platform do
         end
 
         it '.logging_ok? is false' do
-          expect(platform.logging_ok?).to eq false
+          expect(platform.logging_ok?).to be false
         end
       end
     end

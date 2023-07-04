@@ -25,17 +25,16 @@ Gem::Specification.new do |spec|
   spec.bindir        = 'exe'.freeze
   spec.executables   = spec.files.grep(/^exe\//) { |f| File.basename(f) }
   spec.require_paths = ['lib'.freeze]
-  spec.required_ruby_version = '>= 2.2.2'
+  spec.required_ruby_version = '>= 3.0.6'
 
   spec.metadata = {
     'source_code_uri' => 'https://github.com/rdnewman/loba',
     'bug_tracker_uri' => 'https://github.com/rdnewman/loba/issues',
     'changelog_uri' => 'https://github.com/rdnewman/loba/blob/main/CHANGELOG.md',
-    'documentation_uri' => 'https://www.rubydoc.info/gems/loba'
+    'documentation_uri' => 'https://www.rubydoc.info/gems/loba',
+    'rubygems_mfa_required' => 'true'
   }
 
-  spec.add_development_dependency 'bundler', '~> 2.2' # use 1.17.3 for testing pre-2.5 rubies
-
   spec.add_dependency 'binding_of_caller', '~> 1.0'
-  spec.add_dependency 'rainbow', '~> 3.0'
+  spec.add_dependency 'rainbow', '~> 3.1'
 end

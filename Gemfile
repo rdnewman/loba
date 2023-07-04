@@ -18,5 +18,6 @@ group :test do
 end
 
 group :development, :test do
+  gem 'bundler', '~> 2.4'
   gem 'rake' # for travis-ci
 end
