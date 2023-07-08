@@ -1,4 +1,5 @@
 require_relative 'loba_class'
+require 'logger'
 
 RSpec.describe Loba, '.ts' do
   before { LobaSpecSupport::OutputControl.suppress! }
@@ -40,22 +41,88 @@ RSpec.describe Loba, '.ts' do
     expect { LobaClass.classbase_ts }.not_to raise_error
   end
 
-  it 'writes to STDOUT' do
-    test_class = Class.new do
-      def hello
-        Loba.ts
-      end
-    end
-    expect { test_class.new.hello }.to output(/\[TIMESTAMP\]/).to_stdout
-  end
+  describe 'when logging' do
+    describe 'is not forced' do
+      it 'writes to STDOUT' do
+        test_class = Class.new do
+          def hello
+            Loba.ts
+          end
+        end
 
-  it 'write to STDOUT when invoked as Loba.timestamp' do
-    test_class = Class.new do
-      def hello
-        Loba.timestamp
+        expect { test_class.new.hello }.to output(/\[TIMESTAMP\]/).to_stdout
+      end
+
+      it 'and Rails is present, does not write to Rails.logger' do
+        stub_const('Rails', mocked_rails_with_logging)
+
+        test_class = Class.new do
+          def hello
+            Loba.ts
+          end
+        end
+        test_class.new.hello
+
+        expect(Rails.logger).not_to have_received(:debug)
       end
     end
-    expect { test_class.new.hello }.to output(/\[TIMESTAMP\]/).to_stdout
+
+    describe 'is forced' do
+      it 'and Rails is present, writes to STDOUT' do
+        stub_const('Rails', mocked_rails_with_logging)
+
+        test_class = Class.new do
+          def hello
+            Loba.ts log: true
+          end
+        end
+
+        expect { test_class.new.hello }.to output(/\[TIMESTAMP\]/).to_stdout
+      end
+
+      it 'and Rails is not present, writes to STDOUT' do
+        hide_const('Rails')
+
+        test_class = Class.new do
+          def hello
+            Loba.ts log: true
+          end
+        end
+
+        expect { test_class.new.hello }.to output(/\[TIMESTAMP\]/).to_stdout
+      end
+
+      it 'and Rails is present, writes to Rails.logger' do
+        stub_const('Rails', mocked_rails_with_logging)
+
+        test_class = Class.new do
+          def hello
+            Loba.ts log: true
+          end
+        end
+        test_class.new.hello
+
+        expect(Rails.logger).to have_received(:debug)
+      end
+    end
+
+    def mocked_rails_with_logging
+      mock_rails = double # verifying double impossible w/o Rails defined
+      allow(mock_rails).to receive(:env).and_return(double)
+      allow(mock_rails.env).to receive(:production?).and_return(false)
+      allow(mock_rails).to receive(:logger).and_return(mocked_rails_logger)
+
+      mock_rails
+    end
+
+    def mocked_rails_logger
+      mock_class = Class.new(Logger) { def present?; end }
+      mock_logger = mock_class.new(StringIO.new)
+      allow(mock_logger).to receive(:present?).and_return(true)
+      allow(mock_logger).to receive(:debug).and_call_original
+
+      mock_logger
+    end
   end
 
   context 'upon internal error' do
