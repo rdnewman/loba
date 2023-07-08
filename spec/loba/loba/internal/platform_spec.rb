@@ -295,7 +295,7 @@ RSpec.describe Loba::Internal::Platform do
     def mock_rails_logger(present:, output:)
       mock_rails_logger_class = Class.new(Logger) { def present?; end }
       mock_logger = mock_rails_logger_class.new(output)
-      allow(mock_logger).to receive(:present?).and_return(!!present) # rubocop:disable Style/DoubleNegation
+      allow(mock_logger).to receive(:present?).and_return(!!present)
       allow(mock_logger).to receive(:debug).and_call_original
 
       mock_logger

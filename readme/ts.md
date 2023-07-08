@@ -34,7 +34,8 @@ where
 ##### Options
 
 The following keyword argument may be specified when calling:
-*   `production`: `true` if this value notice is enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
+*   `production`: true if this timestamp notice is to be enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
+*   `log`: `true` true if output is to be sent to both $STDOUT and to the Rails.logger (when availabe)
 
 ###### Examples using options
 ```ruby
@@ -42,4 +43,16 @@ Loba.ts production: true
 ```
 ```ruby
 Loba.ts(production: true)
+```
+```ruby
+Loba.ts log: true
+```
+```ruby
+Loba.ts(log: true)
+```
+```ruby
+Loba.ts production: true, log: true # may result in double logging
+```
+```ruby
+Loba.ts(production: true, log: true # may result in double logging)
 ```
