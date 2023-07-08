@@ -22,13 +22,23 @@ module Loba
           end
         end
 
-        # Provides logging mechanism appropriate in the application
+        # Provides logging mechanism appropriate in the application.
+        #
+        # Returned lambda takes 2 arguments:
+        #   * arg [String] value to be output (and potentially logged)
+        #   * force_log [Boolean] when false (default), never logs to Rails.logger;
+        #       when true, logs to Rails.logger if present
         # @return [Lambda] procedure for logging output
         def logger
           if rails? && Rails.logger.present?
-            ->(arg) { puts arg; Rails.logger.debug arg }
+            lambda do |arg, force_log = false|
+              puts arg
+              return unless force_log
+
+              Rails.logger.debug arg
+            end
           else
-            ->(arg) { puts arg }
+            ->(arg, _force_log = false) { puts arg }
           end
         end
       end
