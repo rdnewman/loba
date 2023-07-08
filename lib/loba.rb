@@ -34,7 +34,8 @@ module Loba
   def timestamp(production: false, log: false) # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
     return unless Internal::Platform.logging_ok?(production)
 
-    # NOTE: while tempting, memoizing loba_logger can lead to surprises if Rails presence isn't constant
+    # NOTE: while tempting, memoizing loba_logger can lead to surprises if
+    #   Rails presence isn't constant
     loba_logger = Internal::Platform.logger
 
     begin
