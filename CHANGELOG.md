@@ -7,13 +7,16 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 
 ## [Unreleased]
 
-## [2.0.0] - 2023-07-04
+## [2.0.0] - 2023-07-07
 ### Added
+- `Loba.ts`: `log` option to allow logging to Rails.logger (ignored if unavailable)
+- `Loba.val`: `log` option to allow logging to Rails.logger (ignored if unavailable)
 - SECURITY.md to specify security policy
 
 ### Changed
 - Dropped support for Ruby prior to 3.0.6
-- Changed output to always write to STDOUT even if Rails is present (in which case it will also log)
+- Changed output to always write to STDOUT (regardless whether Rails is present)
+- Changed to only write to Rails.logger (when present) when `log` option is set to `true`
 - Updated YARD documentation for improved completeness
 
 ## [1.2.1] - 2021-09-05
