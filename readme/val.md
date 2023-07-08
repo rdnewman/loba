@@ -109,7 +109,8 @@ Notes:
 The following options may be provided via keywords:
 *   `label`: give a string to explicitly provide a label to use in the notice (see sample above) \[_default: attempts to infer a label from the first argument]_\]
 *   `inspect`: true if this value notice is to use #inspect against the content being evaluated; occasionally, `inspect: false` can give a more useful result \[_default: `true`_\]
-*   `production`: true if this value notice is enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
+*   `production`: true if this value notice is to be enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
+*   `log`: `true` true if output is to be sent to both $STDOUT and to the Rails.logger (when availabe)
 
 ###### Example 5: Using special options
 ```ruby
@@ -117,4 +118,7 @@ Loba.val name, label: "Name:", inspect: false
 ```
 ```ruby
 Loba.val :name, production: true
+```
+```ruby
+Loba.val :name, label: "Name:", log: true
 ```

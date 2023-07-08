@@ -14,6 +14,9 @@ Layout/LineLength:
 Metrics/BlockLength:
   Max: 25
 
+Style/DoubleNegation:
+  Enabled: false
+
 Style/FrozenStringLiteralComment:
   Enabled: true
   EnforcedStyle: never
