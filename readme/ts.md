@@ -30,12 +30,11 @@ where
 *   `LL` ("in=...:") is the line number of the source code file that invoked `Loba.ts`, and
 *   `some_method` is the method in which `Loba.ts` was invoked.
 
-
 ##### Options
 
 The following keyword argument may be specified when calling:
 *   `production`: true if this timestamp notice is to be enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
-*   `log`: `true` true if output is to be sent to both $STDOUT and to the Rails.logger (when availabe)
+*   `log`: `true` true if output is to be sent to both $STDOUT and to the Rails.logger (when available)
 
 ###### Examples using options
 ```ruby
