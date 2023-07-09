@@ -18,6 +18,7 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 - Changed output to always write to STDOUT (regardless whether Rails is present)
 - Changed to only write to Rails.logger (when present) when `log` option is set to `true`
 - Updated YARD documentation for improved completeness
+- Refreshed gems and dependencies
 
 ## [1.2.1] - 2021-09-05
 ### Added
