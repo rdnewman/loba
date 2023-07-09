@@ -3,7 +3,7 @@ source 'https://rubygems.org'
 gemspec
 
 group :development do
-  gem 'rubocop', require: false
+  gem 'rubocop', '=1.50.2', require: false
   gem 'rubocop-performance', require: false
   gem 'rubocop-rspec', require: false
 
