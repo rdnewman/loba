@@ -26,7 +26,7 @@ Loba statements are expected to be removed when you're done with them. No point 
 
 Loba will always write to STDOUT (i.e., `puts`).
 
-Loba will work equally well with or without Rails. If Rails is present, in addition to STDOUT, Loba will also always write to `Rails.logger.debug`.
+Loba will work equally well with or without Rails. If Rails is present, in addition to STDOUT, Loba can also be made to write to `Rails.logger.debug`.
 
 Loba uses the [rainbow gem](https://rubygems.org/gems/rainbow) to help make trace statements more visible.
 
