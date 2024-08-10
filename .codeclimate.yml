@@ -1,5 +1,5 @@
 ---
-engines:
+plugins:
   duplication:
     enabled: true
     config:
@@ -9,9 +9,6 @@ engines:
     enabled: true
   rubocop:
     enabled: true
-    channel: rubocop-1-50-2
-ratings:
-  paths:
-  - "**.rb"
-exclude_paths:
+    channel: beta
+exclude_patterns:
 - spec/**/*
