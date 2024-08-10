@@ -303,9 +303,8 @@ RSpec.describe Loba::Internal::Platform do
 
     def mock_rails(production:, logger: nil)
       mock_rails = double # verifying double impossible w/o Rails defined
-      allow(mock_rails).to receive(:env).and_return(double)
+      allow(mock_rails).to receive_messages(env: double, logger: logger)
       allow(mock_rails.env).to receive(:production?).and_return(production)
-      allow(mock_rails).to receive(:logger).and_return(logger)
 
       mock_rails
     end

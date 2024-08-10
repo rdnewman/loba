@@ -108,9 +108,8 @@ RSpec.describe Loba, '.ts' do
 
     def mocked_rails_with_logging
       mock_rails = double # verifying double impossible w/o Rails defined
-      allow(mock_rails).to receive(:env).and_return(double)
+      allow(mock_rails).to receive_messages(env: double, logger: mocked_rails_logger)
       allow(mock_rails.env).to receive(:production?).and_return(false)
-      allow(mock_rails).to receive(:logger).and_return(mocked_rails_logger)
 
       mock_rails
     end

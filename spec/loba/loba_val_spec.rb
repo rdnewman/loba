@@ -105,9 +105,8 @@ RSpec.describe Loba, '.val' do
 
     def mocked_rails_with_logging
       mock_rails = double # verifying double impossible w/o Rails defined
-      allow(mock_rails).to receive(:env).and_return(double)
+      allow(mock_rails).to receive_messages(env: double, logger: mocked_rails_logger)
       allow(mock_rails.env).to receive(:production?).and_return(false)
-      allow(mock_rails).to receive(:logger).and_return(mocked_rails_logger)
 
       mock_rails
     end
@@ -183,7 +182,7 @@ RSpec.describe Loba, '.val' do
   end
 
   describe 'with keyword arguments' do
-    it 'will not output any error' do
+    it 'does not output any error' do
       test_class = Class.new do
         def hello
           v = 'hello'
@@ -215,7 +214,7 @@ RSpec.describe Loba, '.val' do
           /#{notice_prefix}? @test_val=5>.*?\(in .*?:\d+:in `hello'\).*?$/
         end
 
-        it 'will inspect by default' do
+        it 'inspects by default' do
           test_class = Class.new do
             def hello
               @test_val = 5
@@ -225,7 +224,7 @@ RSpec.describe Loba, '.val' do
           expect { test_class.new.hello }.to output(notice_with_instance_variable).to_stdout
         end
 
-        it 'will inspect if option is true' do
+        it 'inspects if option is true' do
           test_class = Class.new do
             def hello
               @test_val = 5
@@ -235,7 +234,7 @@ RSpec.describe Loba, '.val' do
           expect { test_class.new.hello }.to output(notice_with_instance_variable).to_stdout
         end
 
-        it 'will not inspect if option is false' do
+        it 'does not inspect if option is false' do
           test_class = Class.new do
             def hello
               @test_val = 5
@@ -269,7 +268,7 @@ RSpec.describe Loba, '.val' do
           /#{notice_prefix}?>.*?\(in .*?:\d+:in `hello'\).*?$/
         end
 
-        it 'will inspect by default' do
+        it 'inspects by default' do
           test_class = Class.new do
             def hello
               @test_val = 5
@@ -279,7 +278,7 @@ RSpec.describe Loba, '.val' do
           expect { test_class.new.hello }.to output(notice_with_instance_variable).to_stdout
         end
 
-        it 'will inspect if option is true' do
+        it 'inspects if option is true' do
           test_class = Class.new do
             def hello
               @test_val = 5
@@ -289,7 +288,7 @@ RSpec.describe Loba, '.val' do
           expect { test_class.new.hello }.to output(notice_with_instance_variable).to_stdout
         end
 
-        it 'will not inspect if option is false' do
+        it 'does not inspect if option is false' do
           test_class = Class.new do
             def hello
               @test_val = 5
