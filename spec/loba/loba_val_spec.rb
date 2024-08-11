@@ -46,7 +46,7 @@ RSpec.describe Loba, '.val' do
         expect { test_class.new.hello }.to output.to_stdout
       end
 
-      it 'and Rails is present, does not write to Rails.logger' do
+      it 'and Rails is present, does not write to Rails.logger', focus: true do
         stub_const('Rails', mocked_rails_with_logging)
 
         test_class = Class.new do
