@@ -17,7 +17,7 @@ module Loba
       # @param label [String] when provided, an explicit label to use; will override any
       #   possible inferred label
       # @param inspect [Boolean] when true, force #inspect to be called against
-      #   `argument` when evaluating
+      #   +argument+ when evaluating
       # @param depth_offset [Integer] depth in call stack to start evaluation from
       #
       # @return [Hash] various detail about the value being analyzed

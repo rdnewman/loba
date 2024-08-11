@@ -5,16 +5,14 @@ require 'binding_of_caller'
 require 'rainbow'
 
 # Loba module for quick tracing of Ruby and Rails.
-# If a Rails application, will use Rails.logger.debug.
-# If not a Rails application, will use STDOUT.
+# Will write to $stdout (generally) and, optionally, a log.
 module Loba
   # Outputs a timestamped notice, useful for quick traces to see the code path.
   # Also does a simple elapsed time check since the previous timestamp notice to
   # help with quick, minimalist profiling.
   # @param production [Boolean] set to true if this timestamp notice is
   #   to be recorded when running in :production environment
-  # @param log [Boolean] when false, will not write to Rails.logger if present;
-  #   when true, will write to Rails.logger if present
+  # @param log [Boolean] when false, will not write to any logger; when true, will write to a log
   # @return [NilClass] nil
   # @example Basic use
   #   def hello
@@ -26,17 +24,17 @@ module Loba
   #     Loba.ts production: true # Loba.ts is a shorthand alias for Loba.timestamp
   #   end
   #   #=> [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411, in=/path/to/file.rb:2:in 'hello'
-  # @example Forced to output to log (if Rails.logger present) in addition to $STDOUT
+  # @example Forced to output to log in addition to $stdout
   #   def hello
   #     Loba.timestamp log: true
   #   end
   #   #=> [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411, in=/path/to/file.rb:2:in 'hello'
   def timestamp(production: false, log: false) # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
-    return unless Internal::Platform.logging_ok?(production)
+    return unless Internal::Platform.logging_allowed?(production)
 
     # NOTE: while tempting, memoizing loba_logger can lead to surprises if
     #   Rails presence isn't constant
-    loba_logger = Internal::Platform.logger
+    loba_logger = Internal::Platform.logger(logdev: $stdout)
 
     begin
       stats = Internal::TimeKeeper.instance.ping
@@ -75,8 +73,7 @@ module Loba
   #   content being evaluated; otherwise, false
   # @param production [Boolean] set to true if this timestamp notice is
   #   to be recorded when running in :production environment
-  # @param log [Boolean] when false, will not write to Rails.logger if present;
-  #   when true, will write to Rails.logger if present
+  # @param log [Boolean] when false, will not write to any logger; when true, will write to a log
   # @return [NilClass] nil
   # @example Using Symbol as argument
   #   class HelloWorld
@@ -86,7 +83,7 @@ module Loba
   #     end
   #   end
   #   HelloWorld.new.hello("Charlie")
-  #   #=> [HelloWorld#hello] name: Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
+  #   #=> [HelloWorld#hello] name: Charlie        (at /path/to/file/hello_world.rb:3:in 'hello')
   #   #=> Hello, Charlie!
   # @example Using non-Symbol as argument
   #   class HelloWorld
@@ -96,7 +93,7 @@ module Loba
   #     end
   #   end
   #   HelloWorld.new.hello("Charlie")
-  #   #=> [HelloWorld#hello] Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
+  #   #=> [HelloWorld#hello] Charlie        (at /path/to/file/hello_world.rb:3:in 'hello')
   #   #=> Hello, Charlie!
   # @example Using non-Symbol as argument with a label
   #   class HelloWorld
@@ -106,10 +103,10 @@ module Loba
   #     end
   #   end
   #   HelloWorld.new.hello("Charlie")
-  #   #=> [HelloWorld#hello] Name: Charlie        (at /path/to/file/hello_world.rb:3:in `hello')
+  #   #=> [HelloWorld#hello] Name: Charlie        (at /path/to/file/hello_world.rb:3:in 'hello')
   #   #=> Hello, Charlie!
   def value(argument, label: nil, inspect: true, production: false, log: false) # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
-    return nil unless Internal::Platform.logging_ok?(production)
+    return nil unless Internal::Platform.logging_allowed?(production)
 
     text = Internal::Value.phrases(
       argument: (argument.nil? ? :nil : argument),

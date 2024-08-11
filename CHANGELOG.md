@@ -7,6 +7,11 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 
 ## [Unreleased]
 - Refreshed gems and dependencies
+- Updated documentation for new options
+- Changed so `log` option will allow logging in non-Rails environments
+- Added `logger` option for accepting a logger to write to instead of default behavior
+- Added `logdev` option to direct logging in non-Rails environments
+- Added `out` option to direct console output away from `$stdout`
 
 ## [2.0.0] - 2023-07-07
 ### Added
@@ -16,7 +21,7 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 
 ### Changed
 - Dropped support for Ruby prior to 3.0.6
-- Changed output to always write to STDOUT (regardless whether Rails is present)
+- Changed output to always write to `$stdout` (regardless whether Rails is present)
 - Changed to only write to Rails.logger (when present) when `log` option is set to `true`
 - Updated YARD documentation for improved completeness
 - Refreshed gems and dependencies

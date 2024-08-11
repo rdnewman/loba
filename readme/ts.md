@@ -37,7 +37,8 @@ where
 The following keyword argument may be specified when calling:
 
 * `production`: true if this timestamp notice is to be enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
-* `log`: `true` true if output is to be sent to both STDOUT and to the Rails.logger (when available) \[_default: `false`_\]
+* `log`: `true` true if output is to be sent to both $stdout and to a log [_default: `false`_\]
+* `logger`: accepts a (non-default) logger to write to (also assumes `log` to be true, unless explicitly set to `false`) \[_default: nil_\]
 
 ###### Examples using options
 
@@ -50,7 +51,7 @@ Loba.ts(production: true)
 ```
 
 ```ruby
-Loba.ts log: true
+Loba.ts log: true # if Rails uses Rails.logger by default; if not in Rails
 ```
 
 ```ruby
@@ -58,9 +59,20 @@ Loba.ts(log: true)
 ```
 
 ```ruby
-Loba.ts production: true, log: true # may result in double logging
+logger = Logger.new
+Loba.ts log: true, logger: logger # logs to logger instead of default log
 ```
 
 ```ruby
-Loba.ts(production: true, log: true # may result in double logging)
+logger = Logger.new
+Loba.ts(logger: logger) # same as log: true, logger: logger
+```
+
+```ruby
+logger = Logger.new
+Loba.ts(log: false, logger: logger) # no logging, ignores logger
+```
+
+```ruby
+Loba.ts(production: true, log: true)
 ```

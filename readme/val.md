@@ -1,6 +1,6 @@
 #### Value notices:  `Loba.val`
 
-Writes line to STDOUT (or optionally to Rails.logger.debug if available) showing value with method and class identification.
+Writes line to $stdout (or optionally to Rails.logger.debug if available) showing value with method and class identification.
 
 ```ruby
 Loba.val :var_sym         # the :var_sym argument is the variable or method name given as a symbol (see below)
@@ -116,7 +116,7 @@ The following options may be provided via keywords:
 * `label`: give a string to explicitly provide a label to use in the notice (see sample above) \[_default: attempts to infer a label from the first argument]_\]
 * `inspect`: true if this value notice is to use #inspect against the content being evaluated; occasionally, `inspect: false` can give a more useful result \[_default: `true`_\]
 * `production`: true if this value notice is to be enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
-* `log`: `true` true if output is to be sent to both STDOUT and to the Rails.logger (when available) \[_default: `false`_\]
+* `log`: `true` true if output is to be sent to both $stdout and to the Rails.logger (when available) \[_default: `false`_\]
 
 ###### Example 5: Using special options
 
