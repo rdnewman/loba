@@ -48,7 +48,7 @@ module Loba
 
           lambda do |arg, force_log = false|
             puts arg
-            return unless logging_is_apt || force_log
+            return unless force_log && logging_is_apt
 
             logger.debug arg
           end

@@ -78,7 +78,7 @@ RSpec.describe Loba::Internal::Platform do
 
     describe 'when in Rails, with logging defined, and not in production,' do
       describe 'when not forcing logging, the Proc from .logger' do
-        it 'does not write to Rails.logger.debug', focus: true do
+        it 'does not write to Rails.logger.debug' do
           mocked_logger_output = StringIO.new
           mocked_logger = mock_rails_logger(present: true, output: mocked_logger_output)
           stub_const('Rails', mock_rails(production: false, logger: mocked_logger))
@@ -124,7 +124,7 @@ RSpec.describe Loba::Internal::Platform do
 
     describe 'when in Rails, with logging defined, and in production,' do
       describe 'when not forcing logging, the Proc from .logger' do
-        it 'does not write to Rails.logger.debug', focus: true do
+        it 'does not write to Rails.logger.debug' do
           mocked_logger_output = StringIO.new
           mocked_logger = mock_rails_logger(present: true, output: mocked_logger_output)
           stub_const('Rails', mock_rails(production: true, logger: mocked_logger))
