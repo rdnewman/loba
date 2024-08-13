@@ -1,7 +1,7 @@
 require_relative '../loba_class'
 require 'logger'
 
-RSpec.describe Loba, '.val' do
+RSpec.describe Loba, '.value' do
   before { LobaSpecSupport::OutputControl.suppress! }
   after { LobaSpecSupport::OutputControl.restore! }
 

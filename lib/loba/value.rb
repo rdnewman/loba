@@ -1,4 +1,4 @@
-module Loba
+module Loba # rubocop:disable Style/Documentation
   # Outputs a value notice showing value of provided argument including method and
   # class identification.
   # @param argument [various] (required) the value to be evaluated and shown; if given as
@@ -41,7 +41,13 @@ module Loba
   #   HelloWorld.new.hello("Charlie")
   #   #=> [HelloWorld#hello] Name: Charlie        (at /path/to/file/hello_world.rb:3:in 'hello')
   #   #=> Hello, Charlie!
-  def value(argument, label: nil, inspect: true, production: false, log: false) # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+  def value( # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+    argument,
+    label: nil,
+    inspect: true,
+    production: false,
+    log: false
+  )
     return nil unless Internal::Platform.logging_allowed?(production)
 
     text = Internal::Value.phrases(

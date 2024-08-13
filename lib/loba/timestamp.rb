@@ -1,4 +1,4 @@
-module Loba
+module Loba # rubocop:disable Style/Documentation
   # Outputs a timestamped notice, useful for quick traces to see the code path.
   # Also does a simple elapsed time check since the previous timestamp notice to
   # help with quick, minimalist profiling.
