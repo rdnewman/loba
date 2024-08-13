@@ -1,4 +1,4 @@
-require_relative 'loba_class'
+require_relative '../loba_class'
 require 'logger'
 
 RSpec.describe Loba, '.val' do

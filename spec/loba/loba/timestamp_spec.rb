@@ -1,4 +1,4 @@
-require_relative 'loba_class'
+require_relative '../loba_class'
 require 'logger'
 
 RSpec.describe Loba, '.ts' do
@@ -198,7 +198,7 @@ RSpec.describe Loba, '.ts' do
         let(:banner)     { /\[TIMESTAMP\]/ }
 
         let(:countlabel) { /#=FAIL/ }
-        let(:inlabel)    { /in=\/[\w\/]*\/lib\/loba\.rb:\d+:in\s`timestamp'/ }
+        let(:inlabel)    { /in=\/[\w\/]*\/lib\/loba\/timestamp\.rb:\d+:in\s`timestamp'/ }
         let(:errlabel)   { /err=fake\serror/ }
         let(:body)       { /#{countlabel},\s#{inlabel},\s#{errlabel}/ }
 
@@ -213,7 +213,7 @@ RSpec.describe Loba, '.ts' do
           #   "\e[31m" \
           #   '[TIMESTAMP] ' \
           #   '#=FAIL, ' \
-          #   "in=/path/to/code/lib/loba.rb:33:in `timestamp'," \
+          #   "in=/path/to/code/lib/loba/timestamp.rb:33:in `timestamp'," \
           #   'err=fake error' \
           #   "\e[0m\n"
           colored_output = /#{errorcolor}#{banner}\s#{body}#{nocolor}\n/
