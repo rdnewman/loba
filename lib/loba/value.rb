@@ -41,14 +41,19 @@ module Loba # rubocop:disable Style/Documentation
   #   HelloWorld.new.hello("Charlie")
   #   #=> [HelloWorld#hello] Name: Charlie        (at /path/to/file/hello_world.rb:3:in 'hello')
   #   #=> Hello, Charlie!
-  def value( # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+  def value( # rubocop:disable Metrics/AbcSize, Metrics/MethodLength, Metrics/ParameterLists
     argument,
     label: nil,
     inspect: true,
     production: false,
-    log: false
+    log: false,
+    logger: nil,
+    logdev: nil,
+    out: nil
   )
     return nil unless Internal::Platform.logging_allowed?(production)
+
+    output_options = Internal::Options.new(log: log, logger: logger, logdev: logdev, out: out)
 
     text = Internal::Value.phrases(
       argument: (argument.nil? ? :nil : argument),
@@ -57,7 +62,7 @@ module Loba # rubocop:disable Style/Documentation
       depth_offset: 1
     )
 
-    Internal::Platform.logger.call(
+    Internal::Platform.writer(options: output_options).call(
       # NOTE: while tempting, memoizing Internal::Platform.logger can lead to surprises
       #   if Rails presence isn't constant
       #
@@ -67,8 +72,7 @@ module Loba # rubocop:disable Style/Documentation
       "#{Rainbow("#{text[:tag]} ").green.bg(:default)}" \
       "#{Rainbow("#{text[:label]} ").color(62)}" \
       "#{text[:value]}" \
-      "#{Rainbow("    \t(in #{text[:line]})").color(60)}",
-      !!log
+      "#{Rainbow("    \t(in #{text[:line]})").color(60)}"
     )
 
     nil

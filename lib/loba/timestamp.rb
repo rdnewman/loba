@@ -21,16 +21,24 @@ module Loba # rubocop:disable Style/Documentation
   #     Loba.timestamp log: true
   #   end
   #   #=> [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411, in=/path/to/file.rb:2:in 'hello'
-  def timestamp(production: false, log: false) # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+  def timestamp( # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+    production: false,
+    log: false,
+    logger: nil,
+    logdev: nil,
+    out: nil
+  )
     return unless Internal::Platform.logging_allowed?(production)
+
+    output_options = Internal::Options.new(log: log, logger: logger, logdev: logdev, out: out)
 
     # NOTE: while tempting, memoizing loba_logger can lead to surprises if
     #   Rails presence isn't constant
-    loba_logger = Internal::Platform.logger(logdev: $stdout)
+    writer = Internal::Platform.writer(options: output_options)
 
     begin
       stats = Internal::TimeKeeper.instance.ping
-      loba_logger.call(
+      writer.call(
         # 60: light_black / grey
         "#{Rainbow('[TIMESTAMP]').black.bg(60)}" \
         "#{Rainbow(' #=').yellow.bg(:default)}" \
@@ -39,11 +47,10 @@ module Loba # rubocop:disable Style/Documentation
         "#{format('%.6f', stats[:change])}" \
         "#{Rainbow(', at=').yellow}" \
         "#{format('%.6f', stats[:now].round(6).to_f)}" \
-        "#{Rainbow("    \t(in #{caller(1..1).first})").color(60)}", # warning: nested interpolation
-        !!log
+        "#{Rainbow("    \t(in #{caller(1..1).first})").color(60)}" # warning: nested interpolation
       )
     rescue StandardError => e
-      loba_logger.call Rainbow("[TIMESTAMP] #=FAIL, in=#{caller(1..1).first}, err=#{e}").red
+      writer.call Rainbow("[TIMESTAMP] #=FAIL, in=#{caller(1..1).first}, err=#{e}").red
     end
 
     nil

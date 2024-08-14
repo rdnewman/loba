@@ -36,28 +36,31 @@ RSpec.describe Loba::Internal::Platform do
     end
   end
 
-  describe '.logger' do
+  describe '.writer' do
     context 'when not in Rails' do
       before { hide_const('Rails') }
 
-      it '.logger provides a Proc' do
-        expect(described_class.logger).to be_a(Proc)
+      it '.writer provides a Proc' do
+        options = Loba::Internal::Options.new(log: false)
+        expect(described_class.writer(options: options)).to be_a(Proc)
       end
 
-      describe 'the Proc from .logger' do
+      describe 'the Proc from .writer' do
         it 'writes intended output to STDOUT' do
-          logger = described_class.logger
-          expect { logger.call('test') }.to output(/test/).to_stdout
+          options = Loba::Internal::Options.new(log: false)
+          writer = described_class.writer(options: options)
+
+          expect { writer.call('test') }.to output(/test/).to_stdout
         end
 
         it 'does not raise an error when logging is not forced' do
           # indirect test: assumption is that if it attempted to call Rails.logger it
           # would raise an error because Rails is not available
-          logger = described_class.logger
-
+          options = Loba::Internal::Options.new(log: false)
+          writer = described_class.writer(options: options)
           expect do
             LobaSpecSupport::OutputControl.suppress!
-            logger.call('test')
+            writer.call('test')
             LobaSpecSupport::OutputControl.restore!
           end.not_to raise_error
         end
@@ -65,11 +68,12 @@ RSpec.describe Loba::Internal::Platform do
         it 'does not raise an error when logging is forced' do
           # indirect test: assumption is that if it attempted to call Rails.logger it
           # would raise an error because Rails is not available
-          logger = described_class.logger
+          options = Loba::Internal::Options.new(log: true)
+          writer = described_class.writer(options: options)
 
           expect do
             LobaSpecSupport::OutputControl.suppress!
-            logger.call('test', true)
+            writer.call('test')
             LobaSpecSupport::OutputControl.restore!
           end.not_to raise_error
         end
@@ -84,7 +88,8 @@ RSpec.describe Loba::Internal::Platform do
           stub_const('Rails', mock_rails(production: false, logger: mocked_logger))
 
           LobaSpecSupport::OutputControl.suppress!
-          described_class.logger.call('test')
+          options = Loba::Internal::Options.new(log: false)
+          described_class.writer(options: options).call('test')
           LobaSpecSupport::OutputControl.restore!
 
           expect(mocked_logger_output.string).to be_empty
@@ -95,18 +100,22 @@ RSpec.describe Loba::Internal::Platform do
           mocked_logger = mock_rails_logger(present: true, output: mocked_logger_output)
           stub_const('Rails', mock_rails(production: false, logger: mocked_logger))
 
-          expect { described_class.logger.call('test') }.to output(/test/).to_stdout
+          options = Loba::Internal::Options.new(log: false)
+          expect do
+            described_class.writer(options: options).call('test')
+          end.to output(/test/).to_stdout
         end
       end
 
-      describe 'when forcing logging, the Proc from .logger' do
+      describe 'when forcing logging, the Proc from .writer' do
         it 'writes to Rails.logger.debug' do
           mocked_logger_output = StringIO.new
           mocked_logger = mock_rails_logger(present: true, output: mocked_logger_output)
           stub_const('Rails', mock_rails(production: false, logger: mocked_logger))
 
           LobaSpecSupport::OutputControl.suppress!
-          described_class.logger.call('test', true)
+          options = Loba::Internal::Options.new(log: true)
+          described_class.writer(options: options).call('test')
           LobaSpecSupport::OutputControl.restore!
 
           expect(mocked_logger_output.string).to end_with("test\n")
@@ -117,20 +126,24 @@ RSpec.describe Loba::Internal::Platform do
           mocked_logger = mock_rails_logger(present: true, output: mocked_logger_output)
           stub_const('Rails', mock_rails(production: false, logger: mocked_logger))
 
-          expect { described_class.logger.call('test', true) }.to output(/test/).to_stdout
+          options = Loba::Internal::Options.new(log: true)
+          expect do
+            described_class.writer(options: options).call('test')
+          end.to output(/test/).to_stdout
         end
       end
     end
 
     describe 'when in Rails, with logging defined, and in production,' do
-      describe 'when not forcing logging, the Proc from .logger' do
+      describe 'when not forcing logging, the Proc from .writer' do
         it 'does not write to Rails.logger.debug' do
           mocked_logger_output = StringIO.new
           mocked_logger = mock_rails_logger(present: true, output: mocked_logger_output)
           stub_const('Rails', mock_rails(production: true, logger: mocked_logger))
 
           LobaSpecSupport::OutputControl.suppress!
-          described_class.logger.call('test')
+          options = Loba::Internal::Options.new(log: false)
+          described_class.writer(options: options).call('test')
           LobaSpecSupport::OutputControl.restore!
 
           expect(mocked_logger_output.string).to be_empty
@@ -141,18 +154,22 @@ RSpec.describe Loba::Internal::Platform do
           mocked_logger = mock_rails_logger(present: true, output: mocked_logger_output)
           stub_const('Rails', mock_rails(production: true, logger: mocked_logger))
 
-          expect { described_class.logger.call('test') }.to output(/test/).to_stdout
+          options = Loba::Internal::Options.new(log: false)
+          expect do
+            described_class.writer(options: options).call('test')
+          end.to output(/test/).to_stdout
         end
       end
 
-      describe 'when forcing logging, the Proc from .logger' do
+      describe 'when forcing logging, the Proc from .writer' do
         it 'writes to Rails.logger.debug' do
           mocked_logger_output = StringIO.new
           mocked_logger = mock_rails_logger(present: true, output: mocked_logger_output)
           stub_const('Rails', mock_rails(production: true, logger: mocked_logger))
 
           LobaSpecSupport::OutputControl.suppress!
-          described_class.logger.call('test', true)
+          options = Loba::Internal::Options.new(log: true)
+          described_class.writer(options: options).call('test')
           LobaSpecSupport::OutputControl.restore!
 
           expect(mocked_logger_output.string).to end_with("test\n")
@@ -163,20 +180,24 @@ RSpec.describe Loba::Internal::Platform do
           mocked_logger = mock_rails_logger(present: true, output: mocked_logger_output)
           stub_const('Rails', mock_rails(production: true, logger: mocked_logger))
 
-          expect { described_class.logger.call('test', true) }.to output(/test/).to_stdout
+          options = Loba::Internal::Options.new(log: true)
+          expect do
+            described_class.writer(options: options).call('test')
+          end.to output(/test/).to_stdout
         end
       end
     end
 
     describe 'when in Rails, without logging defined, and not in production,' do
-      describe 'when not forcing logging, the Proc from .logger' do
+      describe 'when not forcing logging, the Proc from .writer' do
         it 'does not write to Rails.logger.debug' do
           mocked_logger = mock_rails_logger(present: false, output: nil)
           mocked_rails = mock_rails(production: false, logger: mocked_logger)
           stub_const('Rails', mocked_rails)
 
           LobaSpecSupport::OutputControl.suppress!
-          described_class.logger.call('test')
+          options = Loba::Internal::Options.new(log: false)
+          described_class.writer(options: options).call('test')
           LobaSpecSupport::OutputControl.restore!
 
           expect(mocked_rails.logger).not_to have_received(:debug)
@@ -186,18 +207,22 @@ RSpec.describe Loba::Internal::Platform do
           mocked_logger = mock_rails_logger(present: false, output: nil)
           stub_const('Rails', mock_rails(production: false, logger: mocked_logger))
 
-          expect { described_class.logger.call('test') }.to output(/test/).to_stdout
+          options = Loba::Internal::Options.new(log: false)
+          expect do
+            described_class.writer(options: options).call('test')
+          end.to output(/test/).to_stdout
         end
       end
 
-      describe 'when forcing logging, the Proc from .logger' do
+      describe 'when forcing logging, the Proc from .writer' do
         it 'does not write to Rails.logger.debug' do
           mocked_logger = mock_rails_logger(present: false, output: nil)
           mocked_rails = mock_rails(production: false, logger: mocked_logger)
           stub_const('Rails', mocked_rails)
 
           LobaSpecSupport::OutputControl.suppress!
-          described_class.logger.call('test', true)
+          options = Loba::Internal::Options.new(log: true)
+          described_class.writer(options: options).call('test')
           LobaSpecSupport::OutputControl.restore!
 
           expect(mocked_rails.logger).not_to have_received(:debug)
@@ -207,20 +232,24 @@ RSpec.describe Loba::Internal::Platform do
           mocked_logger = mock_rails_logger(present: false, output: nil)
           stub_const('Rails', mock_rails(production: false, logger: mocked_logger))
 
-          expect { described_class.logger.call('test', true) }.to output(/test/).to_stdout
+          options = Loba::Internal::Options.new(log: true)
+          expect do
+            described_class.writer(options: options).call('test')
+          end.to output(/test/).to_stdout
         end
       end
     end
 
     describe 'when in Rails, without logging defined, and in production,' do
-      describe 'when not forcing logging, the Proc from .logger' do
+      describe 'when not forcing logging, the Proc from .writer' do
         it 'does not write to Rails.logger.debug' do
           mocked_logger = mock_rails_logger(present: false, output: nil)
           mocked_rails = mock_rails(production: true, logger: mocked_logger)
           stub_const('Rails', mocked_rails)
 
           LobaSpecSupport::OutputControl.suppress!
-          described_class.logger.call('test')
+          options = Loba::Internal::Options.new(log: false)
+          described_class.writer(options: options).call('test')
           LobaSpecSupport::OutputControl.restore!
 
           expect(mocked_rails.logger).not_to have_received(:debug)
@@ -230,18 +259,22 @@ RSpec.describe Loba::Internal::Platform do
           mocked_logger = mock_rails_logger(present: false, output: nil)
           stub_const('Rails', mock_rails(production: true, logger: mocked_logger))
 
-          expect { described_class.logger.call('test') }.to output(/test/).to_stdout
+          options = Loba::Internal::Options.new(log: false)
+          expect do
+            described_class.writer(options: options).call('test')
+          end.to output(/test/).to_stdout
         end
       end
 
-      describe 'when forcing logging, the Proc from .logger' do
+      describe 'when forcing logging, the Proc from .writer' do
         it 'does not write to Rails.logger.debug' do
           mocked_logger = mock_rails_logger(present: false, output: nil)
           mocked_rails = mock_rails(production: true, logger: mocked_logger)
           stub_const('Rails', mocked_rails)
 
           LobaSpecSupport::OutputControl.suppress!
-          described_class.logger.call('test', true)
+          options = Loba::Internal::Options.new(log: false)
+          described_class.writer(options: options).call('test')
           LobaSpecSupport::OutputControl.restore!
 
           expect(mocked_rails.logger).not_to have_received(:debug)
@@ -251,7 +284,10 @@ RSpec.describe Loba::Internal::Platform do
           mocked_logger = mock_rails_logger(present: false, output: nil)
           stub_const('Rails', mock_rails(production: true, logger: mocked_logger))
 
-          expect { described_class.logger.call('test', true) }.to output(/test/).to_stdout
+          options = Loba::Internal::Options.new(log: false)
+          expect do
+            described_class.writer(options: options).call('test')
+          end.to output(/test/).to_stdout
         end
       end
     end
