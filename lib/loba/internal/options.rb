@@ -65,7 +65,7 @@ module Loba
       # @raise [InvalidLogdevOptionError] if invalid logdev is specified
       def validated_logdev(candidate_logdev)
         case candidate_logdev
-        when nil, String, IO, File::NULL
+        when nil, String, IO, StringIO, File::NULL
           candidate_logdev
         else
           raise InvalidLogdevOptionError

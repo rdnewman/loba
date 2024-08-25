@@ -66,6 +66,8 @@ RSpec.describe Loba::Internal::Platform do
         end
 
         it 'does not raise an error when logging is forced' do
+          suppress_stdout_logging_display
+
           # indirect test: assumption is that if it attempted to call Rails.logger it
           # would raise an error because Rails is not available
           options = Loba::Internal::Options.new(log: true)
@@ -311,6 +313,8 @@ RSpec.describe Loba::Internal::Platform do
 
     it 'is set to `false`, does not output anything to $stdout' do
       hide_const('Rails')
+      suppress_stdout_logging_display
+
       options = Loba::Internal::Options.new(out: false)
       writer = described_class.writer(options: options)
 
@@ -319,6 +323,8 @@ RSpec.describe Loba::Internal::Platform do
 
     it 'is interpreted as false, outputs nothing' do
       hide_const('Rails')
+      suppress_stdout_logging_display
+
       options = Loba::Internal::Options.new(out: File::NULL)
       writer = described_class.writer(options: options)
 
@@ -345,10 +351,46 @@ RSpec.describe Loba::Internal::Platform do
 
     it 'is set to true, but logging to $stdout, will not use puts to output to $stdout' do
       hide_const('Rails')
-      options = Loba::Internal::Options.new(log: true, logdev: $stdout, out: true)
-      writer = described_class.writer(options: options)
+      suppress_stdout_logging_display
 
-      expect { writer.call('test') }.not_to output.to_stdout
+      options = Loba::Internal::Options.new(log: true, logdev: $stdout, out: true)
+      expect { described_class.writer(options: options).call('test') }.not_to output.to_stdout
+    end
+  end
+
+  describe 'internal logger' do
+    context 'when in Rails' do
+      it 'is not used' do
+        mocked_logger = mock_rails_logger(present: true, output: StringIO.new)
+        mocked_rails = mock_rails(production: false, logger: mocked_logger)
+        stub_const('Rails', mocked_rails)
+
+        allow(Loba::Internal::Platform::Formatter).to receive(:new).and_call_original
+
+        options = Loba::Internal::Options.new(log: true)
+
+        LobaSpecSupport::OutputControl.suppress!
+        described_class.writer(options: options).call('test')
+        LobaSpecSupport::OutputControl.restore!
+
+        expect(Loba::Internal::Platform::Formatter).not_to have_received(:new)
+      end
+    end
+
+    context 'when not in Rails' do
+      it 'is used' do
+        hide_const('Rails')
+
+        allow(Loba::Internal::Platform::Formatter).to receive(:new).and_call_original
+
+        options = Loba::Internal::Options.new(log: true) #, logdev: logdev)
+
+        LobaSpecSupport::OutputControl.suppress!
+        described_class.writer(options: options).call('test')
+        LobaSpecSupport::OutputControl.restore!
+
+        expect(Loba::Internal::Platform::Formatter).to have_received(:new)
+      end
     end
   end
 
@@ -369,5 +411,13 @@ RSpec.describe Loba::Internal::Platform do
     allow(mock_rails.env).to receive(:production?).and_return(production)
 
     mock_rails
+  end
+
+  def suppress_stdout_logging_display
+    mock_logger = instance_double(Logger)
+    allow(mock_logger).to receive(:debug).and_return(nil)
+    allow(Logger).to receive(:new).and_return(mock_logger)
+
+    nil
   end
 end

@@ -6,8 +6,6 @@ module Loba
     module Platform
       # Custom logging formatter (for when Rails is not involved)
       class Formatter
-        def initialize(*); end
-
         # Formats supplied message to write to logger.
         #
         # This formatter ignores +severity+, +time+, and +progname+ because it enforces

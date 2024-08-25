@@ -42,14 +42,14 @@ module Loba
         def writer(options:)
           will_log = false
           if options.log
-            will_log = rails_logger? && logging_allowed?(options.log)
+            will_log = rails_logger? || logging_allowed?(options.log)
             logger = options.logger || default_logger(options.logdev)
           end
 
           lambda do |arg|
             puts(arg) if options.out?
 
-            logger.debug arg if will_log
+            logger.debug { arg } if will_log
           end
         end
 
@@ -63,7 +63,7 @@ module Loba
           if rails_logger?
             Rails.logger
           else
-            ::Logger.new(logdev, formatter: Loba::Internal::Platform::Formatter.new)
+            ::Logger.new((logdev || $stdout), formatter: Loba::Internal::Platform::Formatter.new)
           end
         end
 
