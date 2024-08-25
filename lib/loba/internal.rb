@@ -27,9 +27,9 @@ module Loba
     module_function :unquote
 
     # Canonical set of values interpreted to be false.
-    # From Rails's ActiveModule::Type::Boolean (2024)
+    # Adapted from Rails's ActiveModule::Type::Boolean (2024)
     FALSE_VALUES = [
-      false, 0,
+      false, 0, nil, '',
       '0', :'0',
       'f', :f,
       'F', :F,
@@ -46,7 +46,7 @@ module Loba
     #
     # @return [true, false]
     def boolean_cast(value)
-      return nil if value.nil? || value == ''
+      return false if value.respond_to?(:empty) && value.empty?
 
       !FALSE_VALUES.include?(value)
     end

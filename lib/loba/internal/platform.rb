@@ -40,17 +40,16 @@ module Loba
         # @param logdev [NilClass|String|IO] When not in Rails, the logging device to write to
         # @return [Lambda] procedure for logging output
         def writer(options:)
+          will_log = false
           if options.log
-            is_apt = logging_is_apt?(options.logdev)
+            will_log = rails_logger? && logging_allowed?(options.log)
             logger = options.logger || default_logger(options.logdev)
           end
 
           lambda do |arg|
-            options.out&.puts(arg) || puts(arg)
+            puts(arg) if options.out?
 
-            return unless options.log && is_apt
-
-            logger.debug arg
+            logger.debug arg if will_log
           end
         end
 
@@ -66,15 +65,6 @@ module Loba
           else
             ::Logger.new(logdev, formatter: Loba::Internal::Platform::Formatter.new)
           end
-        end
-
-        # Check if appropriate to log if in Rails and it's allowed, or if the log isn't
-        # already going to write to $stdout (in which case, the message would be shown twice)
-        #
-        # @param logdev [NilClass|String|IO] When not in Rails, the logging device to write to
-        # @return [Boolean] true if logging would be appropriate
-        def logging_is_apt?(logdev)
-          (rails_logger? && logging_allowed?(false)) || (logdev != $stdout)
         end
 
         # Checks if Rails is present

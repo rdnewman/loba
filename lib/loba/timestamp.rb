@@ -26,7 +26,7 @@ module Loba # rubocop:disable Style/Documentation
     log: false,
     logger: nil,
     logdev: nil,
-    out: nil
+    out: true
   )
     return unless Internal::Platform.logging_allowed?(production)
 

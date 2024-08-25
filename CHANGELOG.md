@@ -11,7 +11,7 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 - Changed so `log` option will allow logging in non-Rails environments
 - Added `logger` option for accepting a logger to write to instead of default behavior
 - Added `logdev` option to direct logging in non-Rails environments
-- Added `out` option to direct console output away from `$stdout`
+- Added `out` option to allow turning off console (`puts`) output
 
 ## [2.0.0] - 2023-07-07
 ### Added

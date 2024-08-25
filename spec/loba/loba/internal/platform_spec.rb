@@ -283,30 +283,91 @@ RSpec.describe Loba::Internal::Platform do
         it 'writes intended output to STDOUT' do
           mocked_logger = mock_rails_logger(present: false, output: nil)
           stub_const('Rails', mock_rails(production: true, logger: mocked_logger))
-
           options = Loba::Internal::Options.new(log: false)
-          expect do
-            described_class.writer(options: options).call('test')
-          end.to output(/test/).to_stdout
+          writer = described_class.writer(options: options)
+
+          expect { writer.call('test') }.to output(/test/).to_stdout
         end
       end
     end
+  end
 
-    def mock_rails_logger(present:, output:)
-      mock_rails_logger_class = Class.new(Logger) { def present?; end }
-      mock_logger = mock_rails_logger_class.new(output)
-      allow(mock_logger).to receive(:present?).and_return(!!present)
-      allow(mock_logger).to receive(:debug).and_call_original
+  describe 'when :out' do
+    it 'is not specified, defaults to output to $stdout' do
+      hide_const('Rails')
+      options = Loba::Internal::Options.new
+      writer = described_class.writer(options: options)
 
-      mock_logger
+      expect { writer.call('test') }.to output(/test/).to_stdout
     end
 
-    def mock_rails(production:, logger: nil)
-      mock_rails = double # verifying double impossible w/o Rails defined
-      allow(mock_rails).to receive_messages(env: double, logger: logger)
-      allow(mock_rails.env).to receive(:production?).and_return(production)
+    it 'is set to `true`, outputs to $stdout' do
+      hide_const('Rails')
+      options = Loba::Internal::Options.new(out: true)
+      writer = described_class.writer(options: options)
 
-      mock_rails
+      expect { writer.call('test') }.to output(/test/).to_stdout
     end
+
+    it 'is set to `false`, does not output anything to $stdout' do
+      hide_const('Rails')
+      options = Loba::Internal::Options.new(out: false)
+      writer = described_class.writer(options: options)
+
+      expect { writer.call('test') }.not_to output.to_stdout
+    end
+
+    it 'is interpreted as false, outputs nothing' do
+      hide_const('Rails')
+      options = Loba::Internal::Options.new(out: File::NULL)
+      writer = described_class.writer(options: options)
+
+      expect { writer.call('test') }.not_to output.to_stdout
+    end
+
+    it 'is set to $stderr, outputs to $stdout' do
+      hide_const('Rails')
+      options = Loba::Internal::Options.new(out: $stderr)
+      writer = described_class.writer(options: options)
+
+      expect { writer.call('test') }.to output(/test/).to_stdout
+    end
+
+    it 'is set to $stderr, does not output to $stderr' do
+      hide_const('Rails')
+      options = Loba::Internal::Options.new(out: $stderr)
+      writer = described_class.writer(options: options)
+
+      # To avoid displaying any output when the test is run, we to capture
+      # stdout when confirming that stderr does not receive any output (using the negated matcher).
+      expect { writer.call('test') }.to not_output.to_stderr.and output(/test/).to_stdout
+    end
+
+    it 'is set to true, but logging to $stdout, will not use puts to output to $stdout' do
+      hide_const('Rails')
+      options = Loba::Internal::Options.new(log: true, logdev: $stdout, out: true)
+      writer = described_class.writer(options: options)
+
+      expect { writer.call('test') }.not_to output.to_stdout
+    end
+  end
+
+  RSpec::Matchers.define_negated_matcher :not_output, :output
+
+  def mock_rails_logger(present:, output:)
+    mock_rails_logger_class = Class.new(Logger) { def present?; end }
+    mock_logger = mock_rails_logger_class.new(output)
+    allow(mock_logger).to receive(:present?).and_return(!!present)
+    allow(mock_logger).to receive(:debug).and_call_original
+
+    mock_logger
+  end
+
+  def mock_rails(production:, logger: nil)
+    mock_rails = double # verifying double impossible w/o Rails defined
+    allow(mock_rails).to receive_messages(env: double, logger: logger)
+    allow(mock_rails.env).to receive(:production?).and_return(production)
+
+    mock_rails
   end
 end

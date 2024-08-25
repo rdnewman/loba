@@ -1,45 +1,8 @@
-#### Output
-
-Generally Loba always writes to $stdout regardless of what logging behavior may be specified.
-
-This can be overridden with the `out:` option which can take any IO stream or `nil`. This option behaves the same whether in Rails or non-Rails environments.
-
-Since Loba uses `puts` internally, this content will be newline (`$\`) separated (usually `\n`).
-
-##### No output
-
-```ruby
-..., out: nil # no output, no logging; basically disables the Loba command
-```
-
-##### IO stream
-
-```ruby
-..., out: $stdout # same as default Loba
-```
-
-```ruby
-..., out: $stderr # writes to $stderr instead of $stdout.
-```
-
-```ruby
-text = StringIO.new
-..., out: text # writes to a string
-text.close
-puts text.string # displays content from Loba
-```
-
-```ruby
-file = File.new(`somefile.txt`)
-..., out: file # writes to somefile.txt
-file.close
-```
-
 #### Logging
 
 Default logging behavior can differ depending on the environment but can be overridden.
 
-$stdout generally will always be written to, but this can be overridden.
+`$stdout` generally will always be written to, but this can be overridden.
 
 When logging, :debug level is always used (e.g., `logger.debug`) and cannot be overridden.
 
@@ -55,11 +18,12 @@ When logging, :debug level is always used (e.g., `logger.debug`) and cannot be o
 
 In non-Rails environments, `logdev: somefile.log` will cause the logger to write to the given target. Behaves exactly as Ruby `Logger.new(somefile.log, ...)` given that it merely passes the value given here to `Logger.new`.
 
-In Rails environment, this value is ignored and logging behavior can only be overridden by `logger` option.
+Under the following cases, `logdev` will be ignored:
+* when `log` is not specified or is set to `false`
+* when `logger` is specified (since that defines its target)
+* when in Rails environments, logging behavior can only be overridden by `logger` option
 
-This option is ignored when `log` is not specified or is set to `false`.
-
-This option is also ignored when `logger` is specified (since that already defines a target).
+> NOTE: `out` will always be treated as `false` when `log` is true and `logdev` is set to `$stdout`. This is to avoid doubling console output.
 
 ##### Default behavior
 
@@ -71,7 +35,7 @@ For default logging behavior, specify `log: true`, without specifying `logger` o
 
 In a Rails environment, Loba will by default write to `Rails.logger.debug`. Rails's logger formatter is used.
 
-In a non-Rails environment, Loba will write to a new Logger at the :debug level. In this case, Loba's default formatter does not write any content beyond the message content that show up typically to $stdout (i.e., no default surrounding content).
+In a non-Rails environment, Loba will write to a new Logger at the :debug level. In this case, Loba's default formatter does not write any content beyond the message content that show up typically to `$stdout` (i.e., no default surrounding content).
 
 ##### Custom logger
 
@@ -99,7 +63,7 @@ In non-Rails environment, logging behavior can also be customized by specifying 
 ..., log: true, logdev: somefile.log
 ```
 
-In the above case, `somefile.log` will be written to using Loba's formatter at the :debug level. Loba's formatter does not write any content beyond the messages that show up typically to $stdout (i.e., no surrounding content).
+In the above case, `somefile.log` will be written to using Loba's formatter at the :debug level. Loba's formatter does not write any content beyond the messages that show up typically to `$stdout` (i.e., no surrounding content).
 
 If `log: true` is not specified, `logdev` will be ignored.
 
@@ -128,3 +92,44 @@ In non-Rails environments, another way that logging can be turned of is by speci
 ```
 
 This is because Ruby's Logger supports `nil` as a target and causes no logging to occur.
+
+#### Controlling output with `out`
+
+Generally Loba always writes to `$stdout` (via `puts`) regardless of what logging behavior may be specified.
+
+This can be overridden with the `out:` option. If set to `false` (or is falsey), no output will be sent to `$stdout`. By default, this will then imply that `log` is true unless that is overridden to `false` as well.
+
+Note in the examples below that there are special cases where `out` is forced to be false.
+
+This option behaves the same whether in Rails or non-Rails environments.
+
+##### Will use `puts` to output to console
+
+```ruby
+..., out: true # same as default Loba
+```
+
+```ruby
+..., out: $stderr # non-falsey value treated as true, continues to write to $stdout (as with any other non-falsey value)
+```
+##### Will not use `puts` to output to console
+
+```ruby
+..., out: false # no output; implies `log: true` by default unless `log` specified (see below)
+```
+
+```ruby
+..., out: nil # as a falsey value, treated as false
+```
+
+```ruby
+..., out: File::NULL # special case: treated as `out: false`
+```
+
+```ruby
+...log: false, out: false # no output at all; Loba command is essentially disabled
+```
+
+```ruby
+...log: true, logdev: $stdout, out: true #special case: treated as `out: false`; see `logdev` below.
+```

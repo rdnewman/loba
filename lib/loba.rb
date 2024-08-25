@@ -1,4 +1,5 @@
 require 'loba/version'
+require 'loba/error'
 require 'loba/internal'
 
 require 'binding_of_caller'
