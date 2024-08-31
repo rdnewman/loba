@@ -383,7 +383,7 @@ RSpec.describe Loba::Internal::Platform do
 
         allow(Loba::Internal::Platform::Formatter).to receive(:new).and_call_original
 
-        options = Loba::Internal::Options.new(log: true) #, logdev: logdev)
+        options = Loba::Internal::Options.new(log: true)
 
         LobaSpecSupport::OutputControl.suppress!
         described_class.writer(options: options).call('test')
