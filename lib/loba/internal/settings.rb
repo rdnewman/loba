@@ -1,12 +1,12 @@
 module Loba
   module Internal
-    # Internal class for tracking output and logging options
+    # Internal class for tracking output and logging settings based on supplied options
     class Settings
       # @return [boolean] whether logging is performed
       attr_reader :log
       alias log? log
 
-      # @return [Logger] +::Logger+ used for logging
+      # @return [Logger] +::Logger+ used for logging; may be +nil+ if not logging
       attr_reader :logger
 
       # @return [nil, String, IO, File::NULL]
@@ -37,7 +37,7 @@ module Loba
       #   set to +true+ if Loba is to work even within a Rails production environment
       # @note To avoid doubled output, if a non-Rails logger is to be logged to and +logdev+ is
       #   set to +$stdout+, then output will be suppressed (i.e., +settings.out+ is +false+).
-      #   Doubled output can still occur; in that case, explicit use +out: false+.
+      #   Doubled output can still occur; in that case, explicitly use +out: false+.
       # @raise [InvalidLoggerOptionError] when an invalid logger is specified
       # @raise [InvalidLogdevOptionError] when an invalid logdev is specified
       def initialize(log: nil, logger: nil, logdev: nil, out: true, production: false)

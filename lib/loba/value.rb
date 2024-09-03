@@ -2,14 +2,25 @@ module Loba # rubocop:disable Style/Documentation
   # Outputs a value notice showing value of provided argument including method and
   # class identification.
   # @param argument [various] (required) the value to be evaluated and shown; if given as
-  #   a Symbol, a label based on the argument will proceed the value the argument refers to
+  #   a +Symbol+, a label based on the argument will proceed the value the argument refers to
   # @param label [String] explicit label to be used instead of attempting
   #   to infer from the argument; default is to attempt to infer a label from the argument
-  # @param inspect [Boolean] true if this value notice is to use #inspect against the
-  #   content being evaluated; otherwise, false
-  # @param production [Boolean] set to true if this timestamp notice is
-  #   to be recorded when running in :production environment
-  # @param log [Boolean] when false, will not write to any logger; when true, will write to a log
+  # @param inspect [boolean] +true+ if this value notice is to use +#inspect+ against the
+  #   content being evaluated; otherwise, +false+
+  # @param production [boolean]
+  #   set to +true+ if the value notice is to be recorded
+  #   when running in a Rails production environment
+  # @param log [boolean]
+  #   set to +false+ if no logging is ever wanted
+  #   (default when not in Rails and +logger+ is nil);
+  #   set to +true+ if logging is always wanted (default when in Rails or
+  #   when +logger+ is set or +out+ is false);
+  # @param logger [Logger] override logging with specified Ruby Logger
+  # @param logdev [nil, String, IO, File::NULL]
+  #   custom log device to use (when not in Rails); ignored if +logger+ is set;
+  #   must be filename or IO object
+  # @param out [boolean]
+  #   set to +false+ if console output is to be suppressed
   # @return [NilClass] nil
   # @example Using Symbol as argument
   #   class HelloWorld
@@ -41,6 +52,9 @@ module Loba # rubocop:disable Style/Documentation
   #   HelloWorld.new.hello("Charlie")
   #   #=> [HelloWorld#hello] Name: Charlie        (at /path/to/file/hello_world.rb:3:in 'hello')
   #   #=> Hello, Charlie!
+  # @note To avoid doubled output, if a non-Rails logger is to be logged to and +logdev+ is
+  #   set to +$stdout+, then output will be suppressed (i.e., +settings.out+ is +false+).
+  #   Doubled output can still occur; in that case, explicitly use +out: false+.
   def value( # rubocop:disable Metrics/AbcSize, Metrics/MethodLength, Metrics/ParameterLists
     argument,
     label: nil,
@@ -82,7 +96,7 @@ module Loba # rubocop:disable Style/Documentation
   module_function :value
 
   # Shorthand alias for Loba.value.
-  # @!method val(argument, label: nil, inspect: true, production: false, log: false)
+  # @!method val(argument, label: nil, inspect: true, production: false, log: false, logger: nil, logdev:nil, out: true)
   alias val value
   module_function :val
 end

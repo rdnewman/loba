@@ -10,7 +10,7 @@ module Loba
         #
         # @note To avoid doubled output, if a non-Rails logger is to be logged to and +logdev+ is
         #   set to +$stdout+, then output will be suppressed (i.e., +settings.out+ is +false+).
-        #   Doubled output can still occur; in that case, explicit use +out: false+.
+        #   Doubled output can still occur; in that case, explicitly use +out: false+.
         #
         # @param settings [::Loba::Internal::Settings] settings for output control
         # @return [lambda {|message| ...}] procedure for presenting output. Takes one argument,
