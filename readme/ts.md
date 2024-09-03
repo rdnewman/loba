@@ -37,8 +37,10 @@ where
 The following keyword argument may be specified when calling:
 
 * `production`: true if this timestamp notice is to be enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
-* `log`: `true` true if output is to be sent to both $stdout and to a log [_default: `false`_\]
-* `logger`: accepts a (non-default) logger to write to (also assumes `log` to be true, unless explicitly set to `false`) \[_default: nil_\]
+* `log`: true if output is to be sent to both `$stdout` and to a log [_default: `false`_\]
+* `logger`: accepts a (non-default) `Logger` to write to (also assumes `log` to be true, unless explicitly set to `false`) \[_default: nil_\]
+* `logdev`: for non-Rails environments -- accepts a `logdev` for Loba's fallback Logger to write to; ignored when `logger` is specified or when in Rails [_default: nil_\]
+* `out`: `true` [_default: `true`_\]
 
 ###### Examples using options
 

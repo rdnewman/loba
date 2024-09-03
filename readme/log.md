@@ -4,7 +4,10 @@ Default logging behavior can differ depending on the environment but can be over
 
 `$stdout` generally will always be written to, but this can be overridden.
 
-When logging, :debug level is always used (e.g., `logger.debug`) and cannot be overridden.
+When logging, `:debug` level is always used (e.g., `logger.debug`) and cannot be overridden.
+
+> NOTE: to reduce the chance of doubled output, when not in Rails, `out` will always be treated as `false` when `log` is true and `logdev` is set to `$stdout`. If output is still seen to be doubled to `$stdout` (which
+can occur in other ways), explicitly set `out: false`.
 
 ##### `log`
 
@@ -12,7 +15,7 @@ When logging, :debug level is always used (e.g., `logger.debug`) and cannot be o
 
 ##### `logger`
 
-`logger: some_log` will cause logging to occur and will specify a logger to write to instead of following default logging behavior.
+`logger: some_log` will cause logging to occur and specifies a specific Logger to write to instead of following default logging behavior.
 
 ##### `logdev`
 
@@ -20,11 +23,8 @@ In non-Rails environments, `logdev: somefile.log` will cause the logger to write
 
 Under the following cases, `logdev` will be ignored:
 * when `log` is not specified or is set to `false`
-* when `logger` is specified (since that defines its target)
+* when `logger` is specified (since that defines its own `logdev` target)
 * when in Rails environments, logging behavior can only be overridden by `logger` option
-
-> NOTE: to reduce the chance of doubled output, when not in Rails, `out` will always be treated as `false` when `log` is true and `logdev` is set to `$stdout`. If output is still seen to be doubled to `$stdout` (which
-can occur in other ways), explicitly set `out: false`.
 
 ##### Default behavior
 
@@ -58,7 +58,7 @@ some_log = Logger.new
 
 ##### Custom logging device
 
-In non-Rails environment, logging behavior can also be customized by specifying a specific target using Loba's default logger.
+In non-Rails environments, logging behavior can also be customized by specifying a specific target for Loba's default logger (default: `$stdout`).
 
 ```ruby
 ..., log: true, logdev: somefile.log
@@ -86,13 +86,13 @@ some_log = Logger.new
 Loba.ts # no logging occurs
 ```
 
-In non-Rails environments, another way that logging can be turned of is by specifying `nil` to `logdev`:
+In non-Rails environments, another way that logging can be turned off is by specifying `nil` or `File::NULL` to `logdev`:
 
 ```ruby
 ..., log: true, logdev: nil
 ```
 
-This is because Ruby's Logger supports `nil` as a target and causes no logging to occur.
+This is because Ruby's Logger supports `nil` (or `File::NULL`) as a target and causes no logging to occur.
 
 #### Controlling output with `out`
 
@@ -132,5 +132,5 @@ This option behaves the same whether in Rails or non-Rails environments.
 ```
 
 ```ruby
-...log: true, logdev: $stdout, out: true #special case: treated as `out: false`; see `logdev` below.
+...log: true, logdev: $stdout, out: true # special case: treated as `out: false` to avoid doubling output.
 ```
