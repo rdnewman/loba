@@ -9,3 +9,7 @@ require 'loba'
 Dir.glob(
   File.expand_path(File.join(File.dirname(__FILE__), 'support', '**', '*.rb'))
 ).each { |f| require f }
+
+RSpec.configure do |config|
+  config.include LobaSpecSupport::MockedRails
+end

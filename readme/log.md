@@ -23,7 +23,8 @@ Under the following cases, `logdev` will be ignored:
 * when `logger` is specified (since that defines its target)
 * when in Rails environments, logging behavior can only be overridden by `logger` option
 
-> NOTE: `out` will always be treated as `false` when `log` is true and `logdev` is set to `$stdout`. This is to avoid doubling console output.
+> NOTE: to reduce the chance of doubled output, when not in Rails, `out` will always be treated as `false` when `log` is true and `logdev` is set to `$stdout`. If output is still seen to be doubled to `$stdout` (which
+can occur in other ways), explicitly set `out: false`.
 
 ##### Default behavior
 

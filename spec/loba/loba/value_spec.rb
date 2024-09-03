@@ -104,20 +104,10 @@ RSpec.describe Loba, '.value' do
     end
 
     def mocked_rails_with_logging
-      mock_rails = double # verifying double impossible w/o Rails defined
-      allow(mock_rails).to receive_messages(env: double, logger: mocked_rails_logger)
-      allow(mock_rails.env).to receive(:production?).and_return(false)
-
-      mock_rails
-    end
-
-    def mocked_rails_logger
-      mock_class = Class.new(Logger) { def present?; end }
-      mock_logger = mock_class.new(StringIO.new)
-      allow(mock_logger).to receive(:present?).and_return(true)
-      allow(mock_logger).to receive(:debug).and_call_original
-
-      mock_logger
+      mock_rails(
+        production: false,
+        logger: mock_rails_logger(present: true, output: StringIO.new)
+      )
     end
   end
 

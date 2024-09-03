@@ -1,5 +1,5 @@
-require_relative 'internal/options'
 require_relative 'internal/platform'
+require_relative 'internal/settings'
 require_relative 'internal/time_keeper'
 require_relative 'internal/value'
 

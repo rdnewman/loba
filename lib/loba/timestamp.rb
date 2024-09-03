@@ -28,13 +28,15 @@ module Loba # rubocop:disable Style/Documentation
     logdev: nil,
     out: true
   )
-    return unless Internal::Platform.logging_allowed?(production)
+    settings = Internal::Settings.new(
+      log: log, logger: logger, logdev: logdev, out: out, production: production
+    )
 
-    output_options = Internal::Options.new(log: log, logger: logger, logdev: logdev, out: out)
+    return unless settings.enabled?
 
     # NOTE: while tempting, memoizing loba_logger can lead to surprises if
     #   Rails presence isn't constant
-    writer = Internal::Platform.writer(options: output_options)
+    writer = Internal::Platform.writer(settings: settings)
 
     begin
       stats = Internal::TimeKeeper.instance.ping

@@ -51,9 +51,11 @@ module Loba # rubocop:disable Style/Documentation
     logdev: nil,
     out: true
   )
-    return nil unless Internal::Platform.logging_allowed?(production)
+    settings = Internal::Settings.new(
+      log: log, logger: logger, logdev: logdev, out: out, production: production
+    )
 
-    output_options = Internal::Options.new(log: log, logger: logger, logdev: logdev, out: out)
+    return unless settings.enabled?
 
     text = Internal::Value.phrases(
       argument: (argument.nil? ? :nil : argument),
@@ -62,7 +64,7 @@ module Loba # rubocop:disable Style/Documentation
       depth_offset: 1
     )
 
-    Internal::Platform.writer(options: output_options).call(
+    Internal::Platform.writer(settings: settings).call(
       # NOTE: while tempting, memoizing Internal::Platform.logger can lead to surprises
       #   if Rails presence isn't constant
       #
