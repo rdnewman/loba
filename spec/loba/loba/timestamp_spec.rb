@@ -1,7 +1,7 @@
-require_relative 'loba_class'
+require_relative '../loba_class'
 require 'logger'
 
-RSpec.describe Loba, '.ts' do
+RSpec.describe Loba, '.timestamp' do
   before { LobaSpecSupport::OutputControl.suppress! }
 
   after { LobaSpecSupport::OutputControl.restore! }
@@ -107,20 +107,10 @@ RSpec.describe Loba, '.ts' do
     end
 
     def mocked_rails_with_logging
-      mock_rails = double # verifying double impossible w/o Rails defined
-      allow(mock_rails).to receive_messages(env: double, logger: mocked_rails_logger)
-      allow(mock_rails.env).to receive(:production?).and_return(false)
-
-      mock_rails
-    end
-
-    def mocked_rails_logger
-      mock_class = Class.new(Logger) { def present?; end }
-      mock_logger = mock_class.new(StringIO.new)
-      allow(mock_logger).to receive(:present?).and_return(true)
-      allow(mock_logger).to receive(:debug).and_call_original
-
-      mock_logger
+      mock_rails(
+        production: false,
+        logger: mock_rails_logger(present: true, output: StringIO.new)
+      )
     end
   end
 
@@ -198,7 +188,7 @@ RSpec.describe Loba, '.ts' do
         let(:banner)     { /\[TIMESTAMP\]/ }
 
         let(:countlabel) { /#=FAIL/ }
-        let(:inlabel)    { /in=\/[\w\/]*\/lib\/loba\.rb:\d+:in\s`timestamp'/ }
+        let(:inlabel)    { /in=\/[\w\/]*\/lib\/loba\/timestamp\.rb:\d+:in\s`timestamp'/ }
         let(:errlabel)   { /err=fake\serror/ }
         let(:body)       { /#{countlabel},\s#{inlabel},\s#{errlabel}/ }
 
@@ -213,7 +203,7 @@ RSpec.describe Loba, '.ts' do
           #   "\e[31m" \
           #   '[TIMESTAMP] ' \
           #   '#=FAIL, ' \
-          #   "in=/path/to/code/lib/loba.rb:33:in `timestamp'," \
+          #   "in=/path/to/code/lib/loba/timestamp.rb:33:in `timestamp'," \
           #   'err=fake error' \
           #   "\e[0m\n"
           colored_output = /#{errorcolor}#{banner}\s#{body}#{nocolor}\n/

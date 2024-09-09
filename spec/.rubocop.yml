@@ -11,7 +11,7 @@ RSpec/AlignLeftLetBrace:
 
 RSpec/ContextWording:
   Enabled: true
-  Prefixes: [when, with, without, if, where, for, as, after, upon]
+  Prefixes: [when, with, within, without, if, where, for, as, after, upon, and, or]
 
 RSpec/ExampleLength:
   Max: 10

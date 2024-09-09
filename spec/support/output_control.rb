@@ -5,23 +5,14 @@ module LobaSpecSupport
 
       @original_stdout = $stdout
       $stdout = File.open(File::NULL, 'w')
-
-      @original_stderr = $stderr
-      $stderr = File.open(File::NULL, 'w')
     end
 
     def self.restore!
       return unless defined?(@original_stdout)
       return if @original_stdout.nil?
 
-      return unless defined?(@original_stderr)
-      return if @original_stderr.nil?
-
       $stdout = @original_stdout
       @original_stdout = nil
-
-      $stderr = @original_stderr
-      @original_stderr = nil
     end
 
     def self.redirect!(path)
@@ -37,9 +28,6 @@ module LobaSpecSupport
 
       @original_stdout = $stdout
       $stdout = File.open(path, 'w')
-
-      @original_stderr = $stderr
-      $stderr = File.open(path, 'w')
     end
 
     def self.capture!

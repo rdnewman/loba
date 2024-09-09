@@ -30,7 +30,7 @@ module Loba
         # @param argument [Symbol, Object] the value or variable for which information is
         #   to be retrieved
         # @param inspect [Boolean] when true, force #inspect to be called against
-        #   `argument` when evaluating
+        #   +argument+ when evaluating
         # @param depth [Integer] depth in call stack to start evaluation from
         # @return [String] value representation of argument for display
         def value(argument:, inspect: true, depth: 0)
@@ -46,7 +46,7 @@ module Loba
 
         # Builds a label for display based on the argument when instantiated.
         # If the argument (when instantiated) is not a symbol, it may not be possible
-        # to infer a label; in that case, '[unknown value]' is returned.
+        # to infer a label; in that case, "[unknown value]"" is returned.
         #
         # @param argument [Symbol, Object] the value or variable for which information is
         #   to be retrieved
@@ -73,8 +73,8 @@ module Loba
         # Evaluate an arguments value from where it's bound.
         # @param argument [Symbol, Object] the value or variable for which information is
         #   to be retrieved
-        # @param inspect [Boolean] when true, force #inspect to be called against
-        #   `argument` when evaluating
+        # @param inspect [Boolean] when true, force +#inspect+ to be called against
+        #   +argument+ when evaluating
         # @param depth [Integer] depth in call stack to start evaluation from
         # @return [Object] value of the argument when Loba was invoked
         def evaluate(argument:, inspect: true, depth: 0)

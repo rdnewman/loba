@@ -16,8 +16,8 @@ module Loba
       #     and a label should be supplied when instantiated.
       # @param label [String] when provided, an explicit label to use; will override any
       #   possible inferred label
-      # @param inspect [Boolean] when true, force #inspect to be called against
-      #   `argument` when evaluating
+      # @param inspect [Boolean] when true, force +#inspect+ to be called against
+      #   +argument+ when evaluating
       # @param depth_offset [Integer] depth in call stack to start evaluation from
       #
       # @return [Hash] various detail about the value being analyzed
@@ -25,7 +25,7 @@ module Loba
       #   * :line => [String] code line reference
       #   * :value => [String] value of argument (if nil, '-nil-' is returned)
       #   * :label => [String] label, ending with ":"
-      #     (if not possible to infer, '[unknown value]' is returned)
+      #     (if not possible to infer, "[unknown value]" is returned)
       def phrases(argument:, label: nil, inspect: true, depth_offset: 0)
         depth = depth_offset.nil? ? 0 : depth_offset.to_i
         {

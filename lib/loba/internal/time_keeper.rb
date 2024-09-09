@@ -15,9 +15,9 @@ module Loba
         reset!
       end
 
-      # Increments timestamping, including attributes `timenum` and `timewas`
+      # Increments timestamping, including attributes +timenum+ and +timewas+
       # @return [Hash] timestamp details
-      #   * :number => [Integer] incremented count of pings so far (attribute `timenum`)
+      #   * :number => [Integer] incremented count of pings so far (attribute +timenum+)
       #   * :now => [Time] current date and time
       #   * :change => [Float] difference in seconds from any previous ping or reset
       def ping
