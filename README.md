@@ -73,10 +73,10 @@ You can read [more detail](readme/val.md) on this command.
 #### Output and logging options
 
 There are several options to control where Loba writes its output:
-* `out`: can redirect from the default `$stdout`
-* `log`: controls whether logging occurs
+* `out`: controls whether `puts` to `$stdout` occurs (default: `true`)
+* `log`: controls whether logging occurs (default: `false`)
 * `logger`: controls which logger is used
-* `logdev`: in non-Rails environments, another way to where logging occurs
+* `logdev`: in non-Rails environments, another way to direct where logging occurs
 
 You can read [more detail](readme/log.md) about how to use these options.
 
@@ -117,12 +117,12 @@ The expectation is that Loba statements are just for development or test trace s
 
 `Loba.ts` and `Loba.val` try to protect against timestamp or value notice requests being accidentally left in the code by checking for the Rails environment Loba is being invoked under. If in production, `Loba.ts` and `Loba.val` will normally just return immediately without attempting to render anything to help minimize any impact on production code.
 
-However, that behavior can be overridden by using the options hash with `:production => true` as an additional last argument to output a notice even when in the production environment. Note also behavior of the `log` option, which defaults to `false` (introduced in v2.0.0). In general, enabling in production should not be done, but we're consenting adults.
+However, that behavior can be overridden by using the option `production: true` as an additional argument to output a notice even when in the production environment. Note also behavior of the `log` option, which defaults to `false` (introduced in v2.0.0). In general, enabling in production should not be done, but we're consenting adults.
 
-WARNING: this gem depends on the [binding_of_caller gem](https://rubygems.org/gems/binding_of_caller) -- use `:production => true` with their warning in mind:
+WARNING: this gem depends on the [binding_of_caller gem](https://rubygems.org/gems/binding_of_caller) -- use `production: true` with their warning in mind:
 > **Recommended for use only in debugging situations. Do not use this in production apps.**
 
-These considerations also have an impact on how you install the Loba gem when using `bundler`. If you only install the gem for :development and :test, then any Loba statements left in the code when it goes to production will cause an error because the statements wouldn't be recognized. That can be a good thing if you never want them left in.
+These considerations also have an impact on how you install the Loba gem when using `bundler`. If you only install the gem for `:development` and `:test`, then any Loba statements left in the code when it goes to production will cause an error because the statements wouldn't be recognized. That can be a good thing if you never want them left in.
 
 If you simply install the gem for all environments, then Loba will be available in production, but you may not notice as easily if some Loba calls are unintentionally left in. Of course, if you want Loba statements to possibly work in production, then you should install the gem for all environments.
 
