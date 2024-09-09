@@ -116,10 +116,10 @@ The following options may be provided via keywords:
 * `label`: give a string to explicitly provide a label to use in the notice (see sample above) \[_default: attempts to infer a label from the first argument]_\]
 * `inspect`: true if this value notice is to use #inspect against the content being evaluated; occasionally, `inspect: false` can give a more useful result \[_default: `true`_\]
 * `production`: true if this value notice is to be enabled when running in :production environment (see ["Environment Notes"](README.md#environment-notes)) \[_default: `false`_\]
-* `log`: true if output is to be sent to both `$stdout` and to a log [_default: `false`_\]
+* `log`: true if output is to be sent to a log [_default: `false`_\]
 * `logger`: accepts a (non-default) `Logger` to write to (also assumes `log` to be true, unless explicitly set to `false`) \[_default: nil_\]
 * `logdev`: for non-Rails environments -- accepts a `logdev` for Loba's fallback Logger to write to; ignored when `logger` is specified or when in Rails [_default: nil_\]
-* `out`: `true` [_default: `true`_\]
+* `out`: true if this value notice is `puts` to `$stdout` [_default: `true`_\]
 
 ###### Example 5: Using special options
 
