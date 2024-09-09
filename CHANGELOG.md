@@ -6,12 +6,18 @@ The format is based on [Keep a Changelog (1.0.0)](https://keepachangelog.com/en/
 and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning (2.0.0)](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Refreshed gems and dependencies
-- Updated documentation for new options
-- Changed so `log` option will allow logging in non-Rails environments
+
+## [2.1.0] - 2024-09-09
+### Added
 - Added `logger` option for accepting a logger to write to instead of default behavior
 - Added `logdev` option to direct logging in non-Rails environments
 - Added `out` option to allow turning off console (`puts`) output
+
+### Changed
+- Changed so `log` option will allow logging in non-Rails environments
+- Changed so `log` option will be defaulted to `true` when `out` options is set to `false`
+- Updated documentation for new and changed options and to improve completeness
+- Refreshed gems and dependencies
 
 ## [2.0.0] - 2023-07-07
 ### Added
@@ -98,7 +104,8 @@ and, as of version 0.3.0 and later, this project adheres to [Semantic Versioning
 ### Added
 - Initial implementation
 
-[Unreleased]: https://github.com/rdnewman/loba/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/rdnewman/loba/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/rdnewman/loba/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/rdnewman/loba/compare/v1.2.1...v2.0.0
 [1.2.1]: https://github.com/rdnewman/loba/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/rdnewman/loba/compare/v1.1.0...v1.2.0
