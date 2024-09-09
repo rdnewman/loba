@@ -4,7 +4,7 @@
 
 Logging generally will not occur, but this behavior can be overridden.
 
-Loba tries to make intelligent choices about output occurs based on chosen options while still offering full control.
+Loba tries to make intelligent choices about how output occurs based on chosen options while still offering full control.
 
 #### Logging
 
