@@ -95,8 +95,10 @@ module Loba # rubocop:disable Style/Documentation
   end
   module_function :value
 
+  # rubocop:disable Layout/LineLength
   # Shorthand alias for Loba.value.
   # @!method val(argument, label: nil, inspect: true, production: false, log: false, logger: nil, logdev:nil, out: true)
   alias val value
   module_function :val
+  # rubocop:enable Layout/LineLength
 end
