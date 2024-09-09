@@ -24,7 +24,7 @@ Loba statements are intended to be minimally invasive and atomic. They should ha
 
 Loba statements are expected to be removed when you're done with them. No point in cluttering up production code.
 
-Loba will generally always write to $stdout (i.e., `puts`). In addition to $stdout, Loba can also be made to write to a log (:debug). Writing to $stdout can be overridden.
+Loba will generally always write to `$stdout` (i.e., `puts`). In addition to `$stdout`, Loba can also be made to write to a log (:debug). Writing to `$stdout` can be overridden.
 
 Loba will work equally well with or without Rails. If Rails is present and writing to a log is wanted, it will use the Rails log (e.g., `Rails.logger.debug`).
 
@@ -56,7 +56,7 @@ You can read [more detail](readme/ts.md) on this command.
 
 #### Variable or method return inspection:  `Loba.val`
 
-Writes line to $stdout (or optionally to a log, `logger.debug`) showing value with method and class identification.
+Writes line to `$stdout` (or optionally to a log, `logger.debug`) showing value with method and class identification.
 
 ```ruby
 Loba.val :var_sym   # the :var_sym argument is the variable or method name given as a symbol

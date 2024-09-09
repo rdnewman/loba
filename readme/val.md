@@ -1,6 +1,6 @@
 #### Value notices:  `Loba.val`
 
-Writes line to $stdout (or optionally to Rails.logger.debug if available) showing value with method and class identification.
+Writes line to `$stdout` (or optionally to Rails.logger.debug if available) showing value with method and class identification.
 
 ```ruby
 Loba.val :var_sym         # the :var_sym argument is the variable or method name given as a symbol (see below)

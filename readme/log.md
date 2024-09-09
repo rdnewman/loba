@@ -121,7 +121,7 @@ This option behaves the same whether in Rails or non-Rails environments.
 ```
 
 ```ruby
-..., out: $stderr # non-falsey value treated as true, continues to write to $stdout (as with any other non-falsey value)
+..., out: $stderr # non-falsey value treated as true, continues to write to `$stdout` (as with any other non-falsey value)
 ```
 ##### Will not use `puts` to output to console
 
