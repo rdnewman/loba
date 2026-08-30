@@ -18,6 +18,9 @@ Metrics/BlockLength:
 Metrics/MethodLength:
   Max: 15
 
+RSpec/ExampleLength:
+  Max: 15
+
 Style/DoubleNegation:
   Enabled: false
 

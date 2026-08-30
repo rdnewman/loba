@@ -1,4 +1,7 @@
 require_relative "lba/version"
+require_relative "lba/internal/run"
+require_relative "lba/internal/sink_resolver"
+require_relative "lba/internal/writer"
 
 # lba: structured, AI-consumable trace-debugging.
 module Lba
