@@ -70,5 +70,12 @@ RSpec.describe Lba::Internal::SinkResolver, :aggregate_failures do
 
       expect(described_class.resolve(run:)).to equal($stdout)
     end
+
+    it "falls back to $stdout when the resolved directory exists but isn't writable" do
+      allow(Dir).to receive(:pwd).and_return(tmp_dir)
+      allow(File).to receive(:writable?).and_return(false)
+
+      expect(described_class.resolve(run:)).to equal($stdout)
+    end
   end
 end

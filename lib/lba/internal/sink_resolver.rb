@@ -17,7 +17,11 @@ module Lba
 
         candidate = sink || ENV["LBA_SINK"] || default_path
 
-        ensure_writable(candidate) ? candidate : $stdout
+        if ensure_writable(candidate)
+          candidate
+        else
+          $stdout
+        end
       end
 
     private
@@ -37,8 +41,9 @@ module Lba
       end
 
       def ensure_writable(path)
-        FileUtils.mkdir_p(File.dirname(path))
-        true
+        dir = File.dirname(path)
+        FileUtils.mkdir_p(dir)
+        File.writable?(dir)
       rescue SystemCallError
         false
       end
