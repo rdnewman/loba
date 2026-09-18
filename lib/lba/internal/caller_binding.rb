@@ -12,9 +12,12 @@ module Lba
 
       def class_name
         target = RubyVM::DebugInspector.open { |dc| dc.frame_self(depth + FRAME_OFFSET) }
-        return target.name if target.instance_of?(::Class)
+        value = if target.instance_of?(::Class)
+                  target.name
+                else
+                  target.class.name
+                end
 
-        value = target.class.name
         if value.nil? || value.empty?
           "<anonymous class>"
         else

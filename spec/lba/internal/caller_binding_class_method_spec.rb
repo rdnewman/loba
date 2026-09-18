@@ -12,4 +12,12 @@ RSpec.describe Lba::Internal::CallerBinding do
       expect(named_class.method_type).to eq(:class)
     end
   end
+
+  context "when called from a class method on an anonymous class" do
+    it 'returns "<anonymous class>" for class_name' do
+      anonymous_class = Class.new(ClassTestCase).as_class_using(caller_binding)
+
+      expect(anonymous_class.class_name).to eq("<anonymous class>")
+    end
+  end
 end

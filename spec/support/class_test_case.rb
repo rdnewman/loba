@@ -20,6 +20,9 @@ class ClassTestCase
     # @return [Symbol] whatever +subject.method_type+ reports for this class
     def method_type = subject.method_type
 
+    # @return [String] whatever +subject.class_name+ reports for this class
+    def class_name = subject.class_name
+
     # Clears the subject this class was configured with. Unlike an
     # InstanceTestCase, whose subject dies with its instance, this class's
     # subject is real persistent class state that outlives any one example --
