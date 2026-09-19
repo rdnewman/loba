@@ -20,8 +20,8 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       hooks = capture_at_exit_hooks(on: tracker)
       tracker.send(:register_at_exit!)
 
-      5.times { |i| tracker.record(site_key, value: i, sink:, cap: 5) }
-      8.times { |i| tracker.record(site_key, value: i, sink:, cap: 5) }
+      5.times { tracker.record(site_key, sink:, cap: 5) }
+      8.times { tracker.record(site_key, sink:, cap: 5) }
 
       hooks.first.call
 
@@ -35,8 +35,8 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       hooks = capture_at_exit_hooks(on: tracker)
       tracker.send(:register_at_exit!)
 
-      6.times { |i| tracker.record(site_key, value: i, sink: order_sink, cap: 5) }
-      9.times { |i| tracker.record(invoice_key, value: i, sink: invoice_sink, cap: 5) }
+      6.times { tracker.record(site_key, sink: order_sink, cap: 5) }
+      9.times { tracker.record(invoice_key, sink: invoice_sink, cap: 5) }
 
       hooks.first.call
 
@@ -51,8 +51,8 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       hooks = capture_at_exit_hooks(on: tracker)
       tracker.send(:register_at_exit!)
 
-      4.times { |i| tracker.record(site_key, value: i, sink:, cap: 5) }
-      7.times { |i| tracker.record(invoice_key, value: i, sink: invoice_sink, cap: 5) }
+      4.times { tracker.record(site_key, sink:, cap: 5) }
+      7.times { tracker.record(invoice_key, sink: invoice_sink, cap: 5) }
 
       hooks.first.call
 
@@ -81,7 +81,7 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       sink = StringIO.new
 
       current = described_class.current
-      6.times { |i| current.record(site_key, value: i, sink:, cap: 5) }
+      6.times { current.record(site_key, sink:, cap: 5) }
 
       hooks.first.call
 

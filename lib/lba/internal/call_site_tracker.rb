@@ -24,7 +24,7 @@ module Lba
         site[:suppressed]
       end
 
-      def record(site_key, value:, sink: nil, cap: DEFAULT_CAP, window: DEFAULT_WINDOW)
+      def record(site_key, sink: nil, cap: DEFAULT_CAP, window: DEFAULT_WINDOW)
         site = site_for(site_key)
         refresh_window!(site_key, site, sink:, window:)
 
@@ -35,12 +35,7 @@ module Lba
 
         return suppress!(site) if site[:site_seq] > cap
 
-        changed = !site[:value_seen] || value != site[:last_value]
-        prev_value = site[:last_value]
-        site[:last_value] = value
-        site[:value_seen] = true
-
-        { seq: @global_seq, site_seq: site[:site_seq], changed:, prev_value: }
+        { seq: @global_seq, site_seq: site[:site_seq] }
       end
 
     private
@@ -50,8 +45,6 @@ module Lba
       def site_for(site_key)
         sites[site_key] ||= {
           site_seq: 0,
-          last_value: nil,
-          value_seen: false,
           window_start: nil,
           suppressed: false,
           suppressed_count: 0
