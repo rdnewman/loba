@@ -11,6 +11,7 @@ group :development do
 end
 
 group :test do
+  gem "logger"
   gem "rspec"
   gem "simplecov", require: false
 end
