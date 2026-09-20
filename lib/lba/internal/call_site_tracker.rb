@@ -19,23 +19,23 @@ module Lba
 
       def suppressed?(site_key, sink: nil, window: DEFAULT_WINDOW)
         site = site_for(site_key)
-        refresh_window!(site_key, site, sink:, window:)
+        refresh_window!(site_key, site, sink:, window:, now: Process.clock_gettime(Process::CLOCK_MONOTONIC))
 
         site[:suppressed]
       end
 
       def record(site_key, sink: nil, cap: DEFAULT_CAP, window: DEFAULT_WINDOW)
+        now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         site = site_for(site_key)
-        refresh_window!(site_key, site, sink:, window:)
+        refresh_window!(site_key, site, sink:, window:, now:)
 
         return suppress!(site) if site[:suppressed]
 
-        site[:site_seq] += 1
-        @global_seq += 1
+        increment!(site)
 
-        return suppress!(site) if site[:site_seq] > cap
+        return suppress!(site) if over_cap?(site, cap)
 
-        { seq: @global_seq, site_seq: site[:site_seq] }
+        { seq: @global_seq, site_seq: site[:site_seq], diff: advance_diff!(site, now) }
       end
 
     private
@@ -47,24 +47,47 @@ module Lba
           site_seq: 0,
           window_start: nil,
           suppressed: false,
-          suppressed_count: 0
+          suppressed_count: 0,
+          last_mono_time: nil
         }
       end
 
-      def refresh_window!(site_key, site, sink:, window:)
+      def refresh_window!(site_key, site, sink:, window:, now:)
         site[:sink] = sink if sink
-
-        now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         site[:window_start] ||= now
 
-        return if now - site[:window_start] < window
+        return unless window_expired?(site, now, window)
 
         flush!(site_key, site, sink:) if site[:suppressed]
+        reset_window!(site, now)
+      end
 
+      def window_expired?(site, now, window)
+        now - site[:window_start] >= window
+      end
+
+      def reset_window!(site, now)
         site[:window_start] = now
         site[:site_seq] = 0
         site[:suppressed] = false
         site[:suppressed_count] = 0
+      end
+
+      def increment!(site)
+        site[:site_seq] += 1
+        @global_seq += 1
+      end
+
+      def over_cap?(site, cap)
+        site[:site_seq] > cap
+      end
+
+      def advance_diff!(site, now)
+        diff = if site[:last_mono_time]
+                 now - site[:last_mono_time]
+               end
+        site[:last_mono_time] = now
+        diff
       end
 
       def suppress!(site)

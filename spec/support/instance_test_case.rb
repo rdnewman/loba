@@ -21,6 +21,12 @@ class InstanceTestCase
   # @return [String] whatever +subject.source_line+ reports for this instance
   def source_line = subject.source_line
 
+  # @return [String] whatever +subject.file+ reports for this instance
+  def file = subject.file
+
+  # @return [Integer] whatever +subject.line+ reports for this instance
+  def line = subject.line
+
 private
 
   attr_reader :subject

@@ -102,5 +102,22 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       expect(result).not_to eq(:suppressed)
       expect(result).to include(site_seq: 1)
     end
+
+    it "keeps diff timing across a window reset (unaffected by cap bookkeeping)",
+       :aggregate_failures do
+      window_start = 1_000.0
+      allow(Process).to receive(:clock_gettime)
+        .with(Process::CLOCK_MONOTONIC).and_return(window_start)
+
+      first = tracker.record(site_key, sink:, cap: 5, window: 60)
+      6.times { tracker.record(site_key, sink:, cap: 5, window: 60) }
+
+      allow(Process).to receive(:clock_gettime)
+        .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
+      result = tracker.record(site_key, sink:, cap: 5, window: 60)
+
+      expect(first).to include(diff: nil)
+      expect(result).to include(diff: 61.0)
+    end
   end
 end

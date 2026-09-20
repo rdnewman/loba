@@ -15,4 +15,12 @@ RSpec.describe Lba::Internal::CallerBinding do
       expect(poro.report_local_number).to eq(123)
     end
   end
+
+  context "when evaluating a non-symbol argument" do
+    it "returns the argument unchanged without evaluating it as code" do
+      invalid_ruby_code = "this is not valid ruby !!"
+
+      expect(caller_binding.evaluate(invalid_ruby_code)).to equal(invalid_ruby_code)
+    end
+  end
 end

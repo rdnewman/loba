@@ -23,6 +23,26 @@ RSpec.describe Lba::Internal::CallerBinding do
 
       expect(poro.source_line).to match(expected)
     end
+
+    it "reports a file path ending in the calling file's name" do
+      poro = PlainOldRubyObject.with(caller_binding)
+
+      expect(poro.file).to end_with("instance_test_case.rb")
+    end
+
+    it "reports line as the Integer line number" do
+      poro = PlainOldRubyObject.with(caller_binding)
+
+      expect(poro.line).to be_a(Integer)
+    end
+  end
+
+  it "keeps file and line consistent with source_line, for the same call site" do
+    # rubocop:disable-next Style/ParallelAssignment -- all three calls must happen
+    # from this exact physical line for the assertion to mean anything
+    file, line, source_line = caller_binding.file, caller_binding.line, caller_binding.source_line
+
+    expect(source_line).to start_with("#{file}:#{line}:")
   end
 
   context "when called from an instance of an anonymous class" do
