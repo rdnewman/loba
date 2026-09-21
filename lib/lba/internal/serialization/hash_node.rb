@@ -24,7 +24,7 @@ module Lba
 
         def self.handles?(value) = value.is_a?(Hash)
 
-        def initialize(value:, depth: 0)
+        def initialize(value:, depth: 0, use_inspect: true)
           if depth < MAX_DEPTH
             # Each pair is serialized as a plain 2-element Array -- that's
             # exactly what a Hash entry already is -- so ArrayNode's own
@@ -34,7 +34,7 @@ module Lba
             # the only place depth actually advances, matching how a key and
             # value would be dispatched directly without the pair wrapper.
             @pairs = value.first(MAX_ENTRIES).map do |key, entry|
-              ArrayNode.serialize(value: [key, entry], depth:)
+              ArrayNode.serialize(value: [key, entry], depth:, use_inspect:)
             end
           end
 
@@ -43,7 +43,7 @@ module Lba
 
         def serialize
           if depth >= MAX_DEPTH
-            FallbackNode.serialize(value:, depth:)
+            FallbackNode.serialize(value:, depth:, use_inspect:)
           else
             { value: values, value_type:, inspected:, truncated: }
           end

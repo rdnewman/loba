@@ -56,6 +56,18 @@ RSpec.describe Lba::Internal::Serialization::ArrayNode do
       expect(result[:inspected]).to be true
       expect(result[:value]).to eq([[[[["[[...]]"]]]]])
     end
+
+    it "forwards use_inspect to the cutoff fallback" do
+      too_deep = nested_array(described_class::MAX_DEPTH + 1)
+      inner = nested_array(1)
+      allow(Lba::Internal::Serialization::FallbackNode).to receive(:serialize).and_call_original
+
+      described_class.serialize(value: too_deep, use_inspect: false)
+
+      expect(Lba::Internal::Serialization::FallbackNode).to have_received(:serialize).with(
+        value: inner, depth: described_class::MAX_DEPTH, use_inspect: false
+      )
+    end
   end
 
   describe ".serialize with an oversized Array", :aggregate_failures do

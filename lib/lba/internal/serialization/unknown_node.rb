@@ -14,7 +14,7 @@ module Lba
         CANDIDATE_NODES = [StringNode, NativeNode, ArrayNode, HashNode, FallbackNode].freeze
 
         def serialize
-          node_class.serialize(value:, depth:)
+          node_class.serialize(value:, depth:, use_inspect:)
         end
 
       private

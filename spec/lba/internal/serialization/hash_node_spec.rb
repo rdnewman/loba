@@ -69,6 +69,18 @@ RSpec.describe Lba::Internal::Serialization::HashNode do
         self: { self: { self: { self: { self: circular.inspect } } } }
       )
     end
+
+    it "forwards use_inspect to the cutoff fallback" do
+      too_deep = nested_hash(described_class::MAX_DEPTH + 1)
+      inner = nested_hash(1)
+      allow(Lba::Internal::Serialization::FallbackNode).to receive(:serialize).and_call_original
+
+      described_class.serialize(value: too_deep, use_inspect: false)
+
+      expect(Lba::Internal::Serialization::FallbackNode).to have_received(:serialize).with(
+        value: inner, depth: described_class::MAX_DEPTH, use_inspect: false
+      )
+    end
   end
 
   describe ".serialize with an oversized Hash", :aggregate_failures do

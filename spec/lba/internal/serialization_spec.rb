@@ -12,6 +12,31 @@ RSpec.describe Lba::Internal::Serialization do
     end
   end
 
+  describe ".serialize with inspect: false", :aggregate_failures do
+    it "renames the public inspect: kwarg through to the fallback's #to_s choice" do
+      # #to_s and #inspect must actually differ for this value, or the
+      # assertion can't tell the two code paths apart -- see FallbackNode's
+      # own spec for why a bare Object.new isn't sufficient here.
+      plain_object = Object.new
+      plain_object.instance_variable_set(:@x, 1)
+
+      result = described_class.serialize(value: plain_object, inspect: false)
+
+      expect(result[:value]).to eq(plain_object.to_s)
+      expect(result[:value]).not_to eq(plain_object.inspect)
+      expect(result[:inspected]).to be true
+    end
+
+    it "still uses #inspect by default" do
+      plain_object = Object.new
+      plain_object.instance_variable_set(:@x, 1)
+
+      result = described_class.serialize(value: plain_object)
+
+      expect(result[:value]).to eq(plain_object.inspect)
+    end
+  end
+
   describe ".serialize with a realistic mixed structure", :aggregate_failures do
     # rubocop:disable-next RSpec/ExampleLength -- a realistic mixed tree needs a
     # correspondingly real input/output pair; splitting it up would obscure it.

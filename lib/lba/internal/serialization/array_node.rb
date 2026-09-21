@@ -24,10 +24,10 @@ module Lba
 
         def self.handles?(value) = value.is_a?(Array)
 
-        def initialize(value:, depth: 0)
+        def initialize(value:, depth: 0, use_inspect: true)
           if depth < MAX_DEPTH
             @elements = value.first(MAX_ENTRIES).map do |entry|
-              UnknownNode.serialize(value: entry, depth: depth + 1)
+              UnknownNode.serialize(value: entry, depth: depth + 1, use_inspect:)
             end
           end
 
@@ -36,7 +36,7 @@ module Lba
 
         def serialize
           if depth >= MAX_DEPTH
-            FallbackNode.serialize(value:, depth:)
+            FallbackNode.serialize(value:, depth:, use_inspect:)
           else
             { value: values, value_type:, inspected:, truncated: }
           end

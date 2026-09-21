@@ -6,12 +6,12 @@ module Lba
       # and the abstract instance contract each concrete node must implement.
       # No shared behavior beyond that -- each concrete node's own code is
       # nothing but its distinguishing #serialize logic.
-      BaseNode = Data.define(:value, :depth) do
+      BaseNode = Data.define(:value, :depth, :use_inspect) do
         def self.serialize(...) = new(...).serialize
 
         def self.handles?(_value) = false
 
-        def initialize(value:, depth: 0)
+        def initialize(value:, depth: 0, use_inspect: true)
           super
         end
 
