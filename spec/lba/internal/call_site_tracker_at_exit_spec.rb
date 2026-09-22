@@ -5,15 +5,6 @@ RSpec.describe Lba::Internal::CallSiteTracker do
   let(:site_key) { "app/models/order.rb:10" }
   let(:invoice_key) { "app/models/invoice.rb:20" }
 
-  # Stubbing out Kernel#at_exit (rather than letting it really register) keeps
-  # a stray hook from surviving into the rest of the test suite and firing
-  # against stale doubles when the real rspec process exits.
-  def capture_at_exit_hooks(on:)
-    hooks = []
-    allow(on).to receive(:at_exit) { |&block| hooks << block }
-    hooks
-  end
-
   describe "running the shutdown flush" do
     it "writes the still-open window's true suppressed count for a capped site" do
       sink = StringIO.new

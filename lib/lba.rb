@@ -10,7 +10,12 @@ require_relative "lba/internal/settings"
 require_relative "lba/internal/run"
 require_relative "lba/internal/sink_resolver"
 require_relative "lba/internal/writer"
+require_relative "lba/internal/value"
+require_relative "lba/value"
 
 # lba: structured, AI-consumable trace-debugging.
 module Lba
+  class << self
+    alias value val
+  end
 end
