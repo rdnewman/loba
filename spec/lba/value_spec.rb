@@ -47,6 +47,26 @@ class LbaValCallerContexts
   end
 
   WITHIN_LAMBDA_LINE = instance_method(:within_lambda).source_location[1] + 3
+
+  def with_undefined_name(sink:)
+    Lba.val(:undefined_name, sink:)
+  end
+
+  def with_raising_method(sink:)
+    Lba.val(:raising_method, sink:)
+  end
+
+  def with_interrupting_method(sink:)
+    Lba.val(:interrupting_method, sink:)
+  end
+
+  def raising_method
+    raise ArgumentError, "boom"
+  end
+
+  def interrupting_method
+    raise Interrupt
+  end
 end
 
 class LbaValCallerContextsSubclass < LbaValCallerContexts; end
@@ -199,6 +219,44 @@ RSpec.describe Lba, ".val" do
       Class.new(LbaValCallerContexts).new.with_non_symbol(sink:)
 
       expect(written_record(sink)).to include(class_name: "<anonymous class>")
+    end
+  end
+
+  # A tracing call must never break the code it traces.
+  context "when evaluating a Symbol raises" do
+    it "does not raise into the calling code" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      expect { LbaValCallerContexts.new.with_undefined_name(sink:) }.not_to raise_error
+    end
+
+    it "records the error in place of the value", :aggregate_failures do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContexts.new.with_undefined_name(sink:)
+
+      record = written_record(sink)
+      expect(record).to include(label: "undefined_name", method_name: "with_undefined_name")
+      expect(record[:error]).to start_with("NameError: ").and include("undefined_name")
+      expect(record.keys).not_to include(:value, :value_type, :inspected, :truncated)
+    end
+
+    it "records a traced method's own error" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContexts.new.with_raising_method(sink:)
+
+      expect(written_record(sink)).to include(error: "ArgumentError: boom")
+    end
+
+    it "lets exceptions outside StandardError, such as Interrupt, through" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      expect { LbaValCallerContexts.new.with_interrupting_method(sink:) }.to raise_error(Interrupt)
     end
   end
 end

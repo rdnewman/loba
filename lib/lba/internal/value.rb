@@ -81,10 +81,18 @@ module Lba
       end
 
       def value_fields
-        {
-          label: Label.infer(argument:, label:),
-          **Serialization.serialize(value: caller_binding.evaluate(argument), inspect:)
-        }
+        { label: Label.infer(argument:, label:), **evaluated_fields }
+      end
+
+      # Evaluating a Symbol runs the caller's code, which can raise; that is
+      # recorded rather than raised, so tracing never breaks the traced code.
+      # Only evaluation is rescued, so lba's own bugs still surface.
+      def evaluated_fields
+        evaluated = caller_binding.evaluate(argument)
+      rescue StandardError => e
+        { error: "#{e.class}: #{e.message}" }
+      else
+        Serialization.serialize(value: evaluated, inspect:)
       end
     end
   end
