@@ -1,15 +1,15 @@
+require_relative "string_node"
+
 module Lba
   module Internal
     module Serialization
       module FallbackNode
         class << self
+          # The rendered text is cut exactly as a long String is.
           def serialize(value:, use_inspect: true, **)
-            {
-              value: rendered_value(value, use_inspect),
-              value_type: value.class.name,
-              inspected: true,
-              truncated: false
-            }
+            StringNode
+              .serialize(value: rendered_value(value, use_inspect))
+              .merge(value_type: value.class.name, inspected: true)
           end
 
         private

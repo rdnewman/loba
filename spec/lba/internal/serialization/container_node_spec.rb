@@ -103,6 +103,15 @@ RSpec.describe Lba::Internal::Serialization::ContainerNode do
         expect(result).to include(value: "[1]", inspected: true)
       end
 
+      it "cuts a long #inspect of itself and flags it truncated" do
+        long_entries = Array.new(Lba::Internal::Serialization::StringNode::MAX_LENGTH) { 1 }
+
+        result = ListContainerNode.serialize(value: long_entries, depth: described_class::MAX_DEPTH)
+
+        expect(result[:value]).to end_with(" chars]")
+        expect(result[:truncated]).to be true
+      end
+
       # Its own output is #inspect either way, so only skipping the walk shows.
       it "never serializes its children" do
         allow(Lba::Internal::Serialization::UnknownNode).to receive(:serialize).and_call_original
