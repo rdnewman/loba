@@ -1,4 +1,5 @@
 require "json"
+require "logger"
 require "stringio"
 
 class LbaValIntegrationTestCase
@@ -80,6 +81,12 @@ RSpec.describe Lba, ".val" do
 
   def written_record(sink)
     JSON.parse(sink.string, symbolize_names: true)
+  end
+
+  # Logger prefixes each line with its own severity and timestamp; the record
+  # is the JSON object after that.
+  def logged_record(log_output)
+    JSON.parse(log_output.string[/\{.*\}/], symbolize_names: true)
   end
 
   # rubocop:disable-next RSpec/ExampleLength -- one call, one complete record;
@@ -219,6 +226,44 @@ RSpec.describe Lba, ".val" do
       Class.new(LbaValCallerContexts).new.with_non_symbol(sink:)
 
       expect(written_record(sink)).to include(class_name: "<anonymous class>")
+    end
+  end
+
+  # One call writes to the sink and mirrors to the logger: both, not either.
+  context "when mirroring to a logger", :aggregate_failures do
+    it "writes the same record to the sink and to the given logger" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+      log_output = StringIO.new
+
+      LbaValIntegrationTestCase.new.call_val(sink:, logger: Logger.new(log_output))
+
+      expect(written_record(sink)).to include(value: "traced value")
+      expect(logged_record(log_output)).to eq(written_record(sink))
+    end
+
+    it "writes to the sink and to Rails.logger when log: true inside Rails" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+      rails_log_output = StringIO.new
+      stub_const("Rails", mock_rails(logger: Logger.new(rails_log_output)))
+
+      LbaValIntegrationTestCase.new.call_val(sink:, log: true)
+
+      expect(written_record(sink)).to include(value: "traced value")
+      expect(logged_record(rails_log_output)).to eq(written_record(sink))
+    end
+
+    it "writes only to the sink by default, even inside Rails" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+      rails_log_output = StringIO.new
+      stub_const("Rails", mock_rails(logger: Logger.new(rails_log_output)))
+
+      LbaValIntegrationTestCase.new.call_val(sink:)
+
+      expect(written_record(sink)).to include(value: "traced value")
+      expect(rails_log_output.string).to be_empty
     end
   end
 
