@@ -3,19 +3,25 @@ require "debug_inspector"
 module Lba
   module Internal
     class CallerBinding
-      # Skips the .open block and the public method's own frame to reach its caller.
+      # Skips the .open block and #initialize to reach whoever called .new.
       FRAME_OFFSET = 2
 
+      # Each .open snapshots the whole stack, costing time in proportion to its
+      # depth, so everything is read from the frame in one open.
       def initialize(depth: 0)
-        @depth = depth
+        RubyVM::DebugInspector.open do |context|
+          frame = depth + FRAME_OFFSET
+          @location = context.backtrace_locations[frame]
+          @frame_self = context.frame_self(frame)
+          @frame_binding = context.frame_binding(frame)
+        end
       end
 
       def class_name
-        target = frame_self
-        value = if target.instance_of?(::Class)
-                  target.name
+        value = if module_self?
+                  frame_self.name
                 else
-                  target.class.name
+                  class_of_frame_self.name
                 end
 
         if value.nil? || value.empty?
@@ -26,8 +32,7 @@ module Lba
       end
 
       def method_type
-        target = frame_self
-        if target.instance_of?(::Class)
+        if module_self?
           :class
         else
           :instance
@@ -35,7 +40,7 @@ module Lba
       end
 
       def method_name
-        value = frame_binding_eval("__method__")
+        value = frame_binding.eval("__method__")
 
         if value.nil? || value.empty?
           "<anonymous method>"
@@ -59,27 +64,21 @@ module Lba
       def evaluate(argument)
         return argument unless argument.is_a?(Symbol)
 
-        frame_binding_eval(argument.to_s)
+        frame_binding.eval(argument.to_s)
       end
 
     private
 
-      attr_reader :depth
+      attr_reader :location, :frame_self, :frame_binding
 
-      # Each helper adds a frame of its own, hence the +1 here rather than in
-      # FRAME_OFFSET.
-      def location
-        RubyVM::DebugInspector.open { |dc| dc.backtrace_locations[depth + FRAME_OFFSET + 1] }
+      # Module#=== and Kernel#class via bind_call also work on a BasicObject,
+      # which has neither #is_a? nor #class of its own.
+      def module_self?
+        ::Module === frame_self # rubocop:disable Style/CaseEquality -- see above
       end
 
-      def frame_self
-        RubyVM::DebugInspector.open { |dc| dc.frame_self(depth + FRAME_OFFSET + 1) }
-      end
-
-      def frame_binding_eval(string)
-        RubyVM::DebugInspector.open do |dc|
-          dc.frame_binding(depth + FRAME_OFFSET + 1).eval(string)
-        end
+      def class_of_frame_self
+        ::Kernel.instance_method(:class).bind_call(frame_self)
       end
     end
   end

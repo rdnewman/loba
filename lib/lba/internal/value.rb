@@ -4,8 +4,8 @@ module Lba
   module Internal
     class Value
       # The frames between the caller and #record: .val, Value.record, and
-      # #record itself. Depth counts from where caller_binding is called, not
-      # where it was built, so every call must sit directly in #record.
+      # #record itself. Depth counts from where the CallerBinding is built, so
+      # it must be built directly in #record.
       DEPTH = 3
 
       def self.record(...) = new(...).record
@@ -20,39 +20,33 @@ module Lba
         @sink = sink
       end
 
-      # rubocop:disable-next Metrics/AbcSize -- caller_binding calls must stay
-      # inline here (see DEPTH); a helper would add a frame and read the wrong one.
       def record
         return if settings.disabled?
 
-        @file = caller_binding.file
-        @line = caller_binding.line
-        @tracked = CallSiteTracker.current.record("#{file}:#{line}", sink: resolved_sink)
+        @caller_binding = CallerBinding.new(depth: DEPTH)
+        @tracked = CallSiteTracker.current.record(site_key, sink: resolved_sink)
         return if tracked == :suppressed
 
-        @evaluated = caller_binding.evaluate(argument)
-        @class_name = caller_binding.class_name
-        @method_name = caller_binding.method_name
-        @method_type = caller_binding.method_type
-
-        full_record = build_record
-        Writer.write(full_record, sink: resolved_sink)
-        settings.logger&.debug(JSON.generate(full_record))
+        write(build_record)
 
         nil
       end
 
     private
 
-      attr_reader :argument, :label, :inspect, :log, :logger, :sink,
-                  :file, :line, :tracked, :evaluated, :class_name, :method_name, :method_type
+      attr_reader :argument, :label, :inspect, :log, :logger, :sink, :caller_binding, :tracked
+
+      def site_key
+        "#{caller_binding.file}:#{caller_binding.line}"
+      end
+
+      def write(full_record)
+        Writer.write(full_record, sink: resolved_sink)
+        settings.logger&.debug(JSON.generate(full_record))
+      end
 
       def settings
         @settings ||= Settings.new(log:, logger:)
-      end
-
-      def caller_binding
-        @caller_binding ||= CallerBinding.new(depth: DEPTH)
       end
 
       def resolved_sink
@@ -60,7 +54,7 @@ module Lba
       end
 
       def build_record
-        { **common_fields, **value_fields }
+        { **common_fields, **caller_fields, **value_fields }
       end
 
       def common_fields
@@ -72,19 +66,24 @@ module Lba
           type: "val",
           wall_time: Time.now.to_f,
           mono_time: Process.clock_gettime(Process::CLOCK_MONOTONIC),
-          diff: tracked[:diff],
-          file:,
-          line:,
-          class_name:,
-          method_name:,
-          method_type:
+          diff: tracked[:diff]
+        }
+      end
+
+      def caller_fields
+        {
+          file: caller_binding.file,
+          line: caller_binding.line,
+          class_name: caller_binding.class_name,
+          method_name: caller_binding.method_name,
+          method_type: caller_binding.method_type
         }
       end
 
       def value_fields
         {
           label: Label.infer(argument:, label:),
-          **Serialization.serialize(value: evaluated, inspect:)
+          **Serialization.serialize(value: caller_binding.evaluate(argument), inspect:)
         }
       end
     end

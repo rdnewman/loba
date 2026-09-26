@@ -54,9 +54,47 @@ RSpec.describe Lba, ".val" do
     expect(p99).to be < 0.010
   end
 
-  # RSpec and this file's stubs inflate the count several times over plain
-  # Ruby. The inflation is steady, so the bound still catches a regression,
-  # but it isn't real-world cost. A call allocates about half this here.
+  def at_stack_depth(depth, &)
+    if depth.zero?
+      yield
+    else
+      at_stack_depth(depth - 1, &)
+    end
+  end
+
+  # Alternates shallow and deep runs so run order can't skew the comparison,
+  # and keeps the fastest of each, since noise only ever adds time. Makes 400
+  # calls in all, under the cap for a single call site.
+  def added_cost_at_depth(depth, &)
+    shallow_times = []
+    deep_times = []
+    5.times do
+      shallow_times << elapsed { 40.times(&) }
+      deep_times << elapsed { at_stack_depth(depth) { 40.times(&) } }
+    end
+
+    deep_times.min - shallow_times.min
+  end
+
+  # RubyVM::DebugInspector.open snapshots the whole stack, so its cost grows
+  # with depth, and Rails stacks run deep. Lba.val should pay that about once
+  # per call, not once per field it reads.
+  it "grows with stack depth about as much as one stack snapshot", :performance do
+    stub_call_site_tracker_at_exit
+    depth = 200
+    sink = StringIO.new
+
+    one_snapshot = added_cost_at_depth(depth) do
+      RubyVM::DebugInspector.open(&:backtrace_locations)
+    end
+    one_val = added_cost_at_depth(depth) { described_class.val(42, sink:) }
+
+    expect(one_val / one_snapshot).to be < 2.0
+  end
+
+  # Each stack snapshot allocates an object per frame, so this also depends on
+  # stack depth, which RSpec adds to. The bound catches a regression but isn't
+  # real-world cost. A call allocates about 200 here.
   it "allocates only a bounded, explicit number of objects per call" do
     stub_call_site_tracker_at_exit
     iterations = 300
@@ -64,7 +102,7 @@ RSpec.describe Lba, ".val" do
 
     allocations = allocations_during { iterations.times { described_class.val(42, sink:) } }
 
-    expect(allocations / iterations.to_f).to be < 2000
+    expect(allocations / iterations.to_f).to be < 500
   end
 
   # Retained memory is a real cost for a tool that runs inside a live process.
