@@ -12,14 +12,29 @@ RSpec.describe Lba::Internal::Serialization::UnknownNode do
     end
 
     it "dispatches a String to StringNode, truncation included" do
-      long_string = "a" * (Lba::Internal::Serialization::StringNode::MAX_LENGTH + 3)
-
       max_length = Lba::Internal::Serialization::StringNode::MAX_LENGTH
+      long_string = "a" * (max_length + 3)
 
       result = described_class.serialize(value: long_string)
 
       expect(result[:value]).to eq("#{'a' * max_length} [+3 chars]")
       expect(result[:truncated]).to be true
+    end
+
+    it "dispatches an Array to ArrayNode" do
+      result = described_class.serialize(value: [1, 2])
+
+      expect(result[:value]).to eq([1, 2])
+      expect(result[:value_type]).to eq("Array")
+      expect(result[:inspected]).to be false
+    end
+
+    it "dispatches a Hash to HashNode" do
+      result = described_class.serialize(value: { a: 1 })
+
+      expect(result[:value]).to eq(a: 1)
+      expect(result[:value_type]).to eq("Hash")
+      expect(result[:inspected]).to be false
     end
 
     it "dispatches a value with no dedicated node type to FallbackNode" do
@@ -30,6 +45,37 @@ RSpec.describe Lba::Internal::Serialization::UnknownNode do
       expect(result[:value]).to eq(plain_object.inspect)
       expect(result[:value_type]).to eq("Object")
       expect(result[:inspected]).to be true
+    end
+
+    # Subclasses such as HashWithIndifferentAccess must reach their structural
+    # node. Exact-class dispatch would send them to FallbackNode.
+    context "when given a subclass of a type with its own node" do
+      it "dispatches a String subclass to StringNode" do
+        string_subclass_value = Class.new(String).new("hello")
+
+        result = described_class.serialize(value: string_subclass_value)
+
+        expect(result[:value]).to eq("hello")
+        expect(result[:inspected]).to be false
+      end
+
+      it "dispatches an Array subclass to ArrayNode" do
+        array_subclass_value = Class.new(Array).new([1, 2])
+
+        result = described_class.serialize(value: array_subclass_value)
+
+        expect(result[:value]).to eq([1, 2])
+        expect(result[:inspected]).to be false
+      end
+
+      it "dispatches a Hash subclass to HashNode" do
+        hash_subclass_value = Class.new(Hash)[a: 1]
+
+        result = described_class.serialize(value: hash_subclass_value)
+
+        expect(result[:value]).to eq(a: 1)
+        expect(result[:inspected]).to be false
+      end
     end
   end
 end

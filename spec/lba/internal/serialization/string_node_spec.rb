@@ -31,14 +31,4 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
       expect(result[:truncated]).to be false
     end
   end
-
-  describe ".handles?" do
-    it "returns true for a String" do
-      expect(described_class.handles?("hello")).to be true
-    end
-
-    it "returns false for a non-String" do
-      expect(described_class.handles?(42)).to be false
-    end
-  end
 end

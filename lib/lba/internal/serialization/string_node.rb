@@ -4,15 +4,9 @@ module Lba
   module Internal
     module Serialization
       class StringNode < BaseNode
-        # A String longer than this is cut to exactly this many characters,
-        # then has a "[+N chars]" marker appended showing how many were
-        # dropped -- the marker's own length isn't counted against this limit.
-        #
-        # 500 is an unvalidated placeholder, not a measured value -- there's no
-        # performance data yet showing where cost actually starts to matter.
+        # Longer strings are cut to this length, then marked "[+N chars]".
+        # The marker doesn't count toward the limit. 500 is a guess.
         MAX_LENGTH = 500
-
-        def self.handles?(value) = value.is_a?(String)
 
         def serialize
           omitted = value.length - MAX_LENGTH

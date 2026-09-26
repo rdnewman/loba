@@ -4,25 +4,13 @@ module Lba
   module Internal
     module Serialization
       class ArrayNode < BaseNode
-        # Containers recurse up to this many levels before falling back to
-        # #inspect. This also bounds a circular structure's recursion -- it
-        # can't exceed MAX_DEPTH regardless of the cycle, and Ruby's own
-        # #inspect handles the resulting cycle safely once recursion stops.
-        #
-        # 5 is an unvalidated placeholder, not a measured value -- there's no
-        # performance data yet showing where cost actually starts to matter.
+        # Deeper containers fall back to #inspect. This also stops a cycle,
+        # which Ruby's own #inspect then handles safely. 5 is a guess.
         MAX_DEPTH = 5
 
-        # An Array with more than this many entries has the rest dropped, then
-        # gets one trailing sentinel entry appended showing how many were
-        # dropped -- entries beyond this limit are never even recursed into,
-        # so a huge accidental value doesn't cost more than this to process.
-        #
-        # 50 is an unvalidated placeholder, same caveat as MAX_DEPTH above: no
-        # performance data yet showing where cost actually starts to matter.
+        # Entries past this are never walked; one trailing sentinel counts
+        # them. This bounds the cost of a huge value. 50 is a guess.
         MAX_ENTRIES = 50
-
-        def self.handles?(value) = value.is_a?(Array)
 
         def initialize(value:, depth: 0, use_inspect: true)
           if depth < MAX_DEPTH

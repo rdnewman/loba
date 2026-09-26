@@ -1,40 +1,65 @@
-# A scoped baseline for the Serialization module specifically, ahead of the
-# full Lba.val overhead gate planned for Phase 4 (see eager-forging-wave.md).
-# A tracing tool with real or inconsistent overhead corrupts the very thing
-# it measures, worst for Lba.ts, whose whole job is an honest elapsed time.
-# This "before" baseline is the only way to notice complexity adding
-# overhead later. Scoped to a single scalar value -- the separate, much
-# larger cost of deep/wide container structures is already characterized in
-# the plan document and deliberately not re-measured here.
+# Serialization's own cost, apart from the rest of Lba.val.
+#
+# Timing checks vary by machine, so they're tagged :performance and run only
+# with `--tag performance`. The allocation check doesn't, so it runs by default.
 RSpec.describe Lba::Internal::Serialization do
-  describe "performance", :aggregate_failures do
+  describe ".serialize" do
     def elapsed
       start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       yield
       Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
     end
 
-    it "adds only a small, explicit amount of overhead over a no-op baseline" do
+    def structure_with(breadth)
+      Array.new(breadth) { Array.new(5) { Array.new(5) { "leaf" } } }
+    end
+
+    # Every Array and every leaf counts as one value, matching what the walk
+    # visits.
+    def value_count(value)
+      if value.is_a?(Array)
+        1 + value.sum { |entry| value_count(entry) }
+      else
+        1
+      end
+    end
+
+    def allocations_per_value(breadth)
+      structure = structure_with(breadth)
+
+      allocations = allocations_during { described_class.serialize(value: structure) }
+
+      allocations / value_count(structure).to_f
+    end
+
+    it "adds only a small, explicit amount of overhead over a no-op baseline", :performance do
       iterations = 10_000
 
       baseline = elapsed { iterations.times { Process.clock_gettime(Process::CLOCK_MONOTONIC) } }
       measured = elapsed { iterations.times { described_class.serialize(value: 42) } }
 
       overhead_per_call = (measured - baseline) / iterations
-
       expect(overhead_per_call).to be < 0.0001 # 100 microseconds/call, a generous ceiling
     end
 
-    it "has consistent, low-variance overhead across many calls" do
+    # p99, not max: a single call can hit a GC pause or scheduler blip
+    # unrelated to Serialization itself.
+    it "keeps the 99th-percentile call under 100 microseconds", :performance do
       iterations = 1_000
-      timings = Array.new(iterations) { elapsed { described_class.serialize(value: 42) } }.sort
-      mean = timings.sum / timings.size
-      p99 = timings[(iterations * 0.99).to_i]
 
-      # p99, not max: a single call can hit a GC pause or scheduler blip
-      # unrelated to Serialization itself. p99 reflects typical consistency
-      # without being sensitive to one-off OS noise the way a raw max is.
-      expect(p99).to be < [mean * 10, 0.0001].max
+      timings = Array.new(iterations) { elapsed { described_class.serialize(value: 42) } }.sort
+
+      p99 = timings[(iterations * 0.99).to_i]
+      expect(p99).to be < 0.0001
+    end
+
+    # Total cost grows with the number of values, as expected. Cost per value
+    # must not, or some step is re-walking or re-copying what it visited.
+    it "does not allocate more per value as the value grows" do
+      small = allocations_per_value(10)
+      large = allocations_per_value(40)
+
+      expect(large).to be <= small
     end
   end
 end

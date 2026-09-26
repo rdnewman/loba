@@ -4,8 +4,6 @@ module Lba
   module Internal
     module Serialization
       class FallbackNode < BaseNode
-        def self.handles?(_value) = true
-
         def serialize
           {
             value: rendered_value,
