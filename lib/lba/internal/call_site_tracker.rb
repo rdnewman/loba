@@ -2,12 +2,22 @@ require_relative "writer"
 
 module Lba
   module Internal
+    # Numbers records across the process and per call site, and caps how many
+    # records one call site writes per window of time.
     class CallSiteTracker
+      # Records one call site may write per window.
       DEFAULT_CAP = 500
+
+      # Length of a window, in seconds.
       DEFAULT_WINDOW = 60
 
       class << self
+        # This process's tracker. On first use it registers an +at_exit+ hook
+        # that writes the count of calls skipped at any capped site.
+        #
         # A forked child inherits this memo; the pid check gives it fresh counters.
+        #
+        # @return [CallSiteTracker]
         def current
           return @current if @current&.pid == Process.pid
 
@@ -15,8 +25,10 @@ module Lba
         end
       end
 
+      # @return [Integer] the id of the process that created this tracker
       attr_reader :pid
 
+      # Starts with no call sites seen.
       def initialize
         @pid = Process.pid
         @sites = {}
@@ -30,6 +42,22 @@ module Lba
         site[:suppressed]
       end
 
+      # Counts one call at a site, unless the site is capped for its current
+      # window. A capped site skips calls until the window ends; the next call
+      # after that writes one record counting the calls skipped, and the site
+      # starts a new window with its numbering back at 1.
+      #
+      # @param site_key [String] the call site, as +"file:line"+
+      # @param sink [IO, String, nil] where this site's skipped-call record goes
+      # @param cap [Integer] records the site may write per window
+      # @param window [Numeric] window length, in seconds
+      # @return [Hash{Symbol => Integer, Float, nil}, :suppressed] +:suppressed+
+      #   if the site is capped; otherwise:
+      #   * +:seq+ [Integer] - this record's order among all the process's records
+      #   * +:site_seq+ [Integer] - its order among the site's records in the
+      #     current window
+      #   * +:diff+ [Float, nil] - seconds since the site's previous record, or
+      #     +nil+ for its first
       def record(site_key, sink: nil, cap: DEFAULT_CAP, window: DEFAULT_WINDOW)
         now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         site = site_for(site_key)

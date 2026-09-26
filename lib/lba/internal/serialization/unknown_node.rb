@@ -7,9 +7,19 @@ require_relative "fallback_node"
 module Lba
   module Internal
     module Serialization
+      # Sends a value to the node for its kind.
       module UnknownNode
+        # Serializes a value with the node for its kind.
+        #
         # A pure dispatcher: every node answers .serialize(value:, depth:,
         # use_inspect:), whether it's a module or a class.
+        #
+        # @param value [Object] the value to serialize
+        # @param depth [Integer] how deeply +value+ is nested in the value being
+        #   recorded
+        # @param use_inspect [Boolean] +true+ to render a value with no JSON form
+        #   with +#inspect+; +false+ to use +#to_s+
+        # @return (see Lba::Internal::Serialization.serialize)
         def self.serialize(value:, depth: 0, use_inspect: true)
           node_class(value).serialize(value:, depth:, use_inspect:)
         end

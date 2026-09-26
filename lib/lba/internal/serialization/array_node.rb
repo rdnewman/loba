@@ -3,6 +3,8 @@ require_relative "container_node"
 module Lba
   module Internal
     module Serialization
+      # Serializes Arrays: each entry becomes a child, and a trailing entry
+      # counts any past ContainerNode::MAX_ENTRIES.
       class ArrayNode < ContainerNode
       private
 

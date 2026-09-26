@@ -16,6 +16,8 @@ require_relative "lba/value"
 # lba: structured, AI-consumable trace-debugging.
 module Lba
   class << self
+    # Alias for Lba.val.
+    # @!method value(argument, label: nil, inspect: true, log: nil, logger: nil, sink: nil)
     alias value val
   end
 end

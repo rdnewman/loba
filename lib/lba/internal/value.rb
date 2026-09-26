@@ -2,15 +2,22 @@ require "json"
 
 module Lba
   module Internal
+    # Carries out one +Lba.val+ call: checks it's enabled and not capped,
+    # captures the caller and the value, and writes the record.
     class Value
       # The frames between the caller and #record: .val, Value.record, and
       # #record itself. Depth counts from where the CallerBinding is built, so
       # it must be built directly in #record.
       DEPTH = 3
 
+      # Records one value; shorthand for +new(...).record+.
+      #
+      # @return (see #record)
       def self.record(...) = new(...).record
 
-      # rubocop:disable-next Metrics/ParameterLists -- matches Lba.val's public kwarg surface
+      # rubocop:disable Metrics/ParameterLists -- matches Lba.val's public kwarg surface
+
+      # @param (see Lba.val)
       def initialize(argument, label: nil, inspect: true, log: nil, logger: nil, sink: nil)
         @argument = argument
         @label = label
@@ -19,7 +26,12 @@ module Lba
         @logger = logger
         @sink = sink
       end
+      # rubocop:enable Metrics/ParameterLists
 
+      # Writes the record to the sink, and to the logger if logging. Does
+      # nothing inside Rails production, or once this call site is capped.
+      #
+      # @return [void]
       def record
         return if settings.disabled?
 

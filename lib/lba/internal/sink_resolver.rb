@@ -2,16 +2,28 @@ require "fileutils"
 
 module Lba
   module Internal
+    # Decides where a record is written.
     class SinkResolver
       class << self
+        # Decides the sink; shorthand for +new(...).resolve+.
+        #
+        # @return (see #resolve)
         def resolve(...) = new(...).resolve
       end
 
+      # @param sink [IO, String, nil] an explicit sink, if one was given
+      # @param run [Run] the run whose file is the default sink
       def initialize(sink: nil, run: Run.current)
         @sink = sink
         @run = run
       end
 
+      # In order: an IO given as +sink+; a path given as +sink+; the +LBA_SINK+
+      # environment variable; the run's file (under +tmp/lba/runs/+ in Rails,
+      # otherwise +.lba/runs/+ in the current directory). Falls back to
+      # +$stdout+ if the chosen path's directory can't be created or written.
+      #
+      # @return [IO, String] an IO, or a file path to append to
       def resolve
         return sink if sink.respond_to?(:write)
 

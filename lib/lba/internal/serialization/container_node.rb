@@ -13,8 +13,19 @@ module Lba
         # bounds the cost of a huge value. 50 is a guess.
         MAX_ENTRIES = 50
 
+        # Serializes a container; shorthand for +new(...).serialize+.
+        #
+        # @return (see Lba::Internal::Serialization.serialize)
         def self.serialize(...) = new(...).serialize
 
+        # Serializes the container's first MAX_ENTRIES children, unless it is
+        # nested MAX_DEPTH or more deep.
+        #
+        # @param value [Array, Hash] the container to serialize
+        # @param depth [Integer] how deeply +value+ is nested in the value being
+        #   recorded
+        # @param use_inspect [Boolean] +true+ to render a value with no JSON form
+        #   with +#inspect+; +false+ to use +#to_s+
         def initialize(value:, depth: 0, use_inspect: true)
           @value = value
           @depth = depth
@@ -26,6 +37,10 @@ module Lba
           end
         end
 
+        # Assembles the container's result from its children, or renders the
+        # whole container as text if it is nested MAX_DEPTH or more deep.
+        #
+        # @return (see Lba::Internal::Serialization.serialize)
         def serialize
           if depth >= MAX_DEPTH
             FallbackNode.serialize(value:, depth:, use_inspect:)

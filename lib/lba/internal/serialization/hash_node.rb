@@ -3,6 +3,8 @@ require_relative "container_node"
 module Lba
   module Internal
     module Serialization
+      # Serializes Hashes: keys and values both become children, and an extra
+      # key counts any pairs past ContainerNode::MAX_ENTRIES.
       class HashNode < ContainerNode
       private
 
