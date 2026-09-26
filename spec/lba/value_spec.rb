@@ -31,6 +31,20 @@ class LbaValCallerContexts
     Lba.val("direct value", sink:)
   end
 
+  def with_explicit_label(sink:)
+    labeled_local = "labeled value" # rubocop:disable Lint/UselessAssignment -- read via Lba.val's eval
+    Lba.val(:labeled_local, label: "Custom label", sink:)
+  end
+
+  def with_inspect_disabled(sink:)
+    @traced = "ivar value"
+    Lba.val(:self, inspect: false, sink:)
+  end
+
+  def through_alias(sink:)
+    Lba.value("aliased value", sink:)
+  end
+
   def within_block(sink:)
     [1].each do |item| # rubocop:disable Lint/UnusedBlockArgument -- read via Lba.val's eval
       Lba.val(:item, sink:)
@@ -149,6 +163,47 @@ RSpec.describe Lba, ".val" do
         class_name: "LbaValCallerContexts", method_name: "with_instance_variable",
         method_type: "instance"
       )
+    end
+  end
+
+  context "when called by its alias, Lba.value" do
+    it "writes the same kind of record as Lba.val" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContexts.new.through_alias(sink:)
+
+      expect(written_record(sink)).to include(value: "aliased value", method_name: "through_alias")
+    end
+  end
+
+  context "when called without the Lba namespace" do
+    it "is not available as a bare val" do
+      expect { Object.new.instance_eval { val(:anything) } }
+        .to raise_error(NoMethodError, /undefined method 'val'/)
+    end
+  end
+
+  context "when given an explicit label" do
+    it "records that label instead of inferring one from the Symbol" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContexts.new.with_explicit_label(sink:)
+
+      expect(written_record(sink)).to include(label: "Custom label", value: "labeled value")
+    end
+  end
+
+  context "when given inspect: false" do
+    it "renders a value it can't represent natively with #to_s instead of #inspect" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+      caller_contexts = LbaValCallerContexts.new
+
+      caller_contexts.with_inspect_disabled(sink:)
+
+      expect(written_record(sink)).to include(label: "self", value: caller_contexts.to_s)
     end
   end
 

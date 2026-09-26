@@ -34,6 +34,11 @@ class PlainOldRubyObject
     Lba::Internal::CallerBinding.new
   end
 
+  def caller_binding_with_hash_local
+    greetings = { somename: "Charlie" } # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
+    Lba::Internal::CallerBinding.new
+  end
+
   def caller_binding_in_block_with_outer_local
     outer_number = 789 # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
     [1].map { Lba::Internal::CallerBinding.new }.first
@@ -400,6 +405,25 @@ RSpec.describe Lba::Internal::CallerBinding do
         caller_binding = PlainOldRubyObject.new.caller_binding
 
         expect(caller_binding.evaluate(:answered?)).to be true
+      end
+    end
+
+    context "when given :self" do
+      it "returns the object it was built in" do
+        object = PlainOldRubyObject.new
+
+        caller_binding = object.caller_binding
+
+        expect(caller_binding.evaluate(:self)).to equal(object)
+      end
+    end
+
+    # loba documents this form for expressions a bare Symbol can't spell.
+    context "when given an expression cast to a Symbol" do
+      it "evaluates the expression in the frame it was built in" do
+        caller_binding = PlainOldRubyObject.new.caller_binding_with_hash_local
+
+        expect(caller_binding.evaluate(:"greetings[:somename]")).to eq("Charlie")
       end
     end
 
