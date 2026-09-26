@@ -1,6 +1,7 @@
 require_relative "serialization/base_node"
 require_relative "serialization/native_node"
 require_relative "serialization/string_node"
+require_relative "serialization/container_node"
 require_relative "serialization/array_node"
 require_relative "serialization/hash_node"
 require_relative "serialization/fallback_node"
