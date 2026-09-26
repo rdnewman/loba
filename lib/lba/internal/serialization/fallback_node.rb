@@ -1,27 +1,25 @@
-require_relative "base_node"
-
 module Lba
   module Internal
     module Serialization
-      class FallbackNode < BaseNode
-        def serialize
-          {
-            value: rendered_value,
-            value_type:,
-            inspected: true,
-            truncated:
-          }
-        end
+      module FallbackNode
+        class << self
+          def serialize(value:, use_inspect: true, **)
+            {
+              value: rendered_value(value, use_inspect),
+              value_type: value.class.name,
+              inspected: true,
+              truncated: false
+            }
+          end
 
-      private
+        private
 
-        def value_type = value.class.name
-
-        def rendered_value
-          if use_inspect
-            value.inspect
-          else
-            value.to_s
+          def rendered_value(value, use_inspect)
+            if use_inspect
+              value.inspect
+            else
+              value.to_s
+            end
           end
         end
       end

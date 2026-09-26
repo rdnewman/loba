@@ -1,12 +1,10 @@
-require_relative "base_node"
-
 module Lba
   module Internal
     module Serialization
       # The shared base for ArrayNode and HashNode: bounded recursion into
       # children and aggregation of their flags. Each subclass supplies
       # #children_of, #values, and #value_type.
-      class ContainerNode < BaseNode
+      class ContainerNode
         # Deeper containers fall back to #inspect. This also stops a cycle,
         # which Ruby's own #inspect then handles safely. 5 is a guess.
         MAX_DEPTH = 5
@@ -15,14 +13,17 @@ module Lba
         # bounds the cost of a huge value. 50 is a guess.
         MAX_ENTRIES = 50
 
-        def initialize(value:, depth: 0, use_inspect: true)
-          if depth < MAX_DEPTH
-            @children = children_of(value.first(MAX_ENTRIES)).map do |child|
-              UnknownNode.serialize(value: child, depth: depth + 1, use_inspect:)
-            end
-          end
+        def self.serialize(...) = new(...).serialize
 
-          super
+        def initialize(value:, depth: 0, use_inspect: true)
+          @value = value
+          @depth = depth
+          @use_inspect = use_inspect
+          return if depth >= MAX_DEPTH
+
+          @children = children_of(value.first(MAX_ENTRIES)).map do |child|
+            UnknownNode.serialize(value: child, depth: depth + 1, use_inspect:)
+          end
         end
 
         def serialize
@@ -35,7 +36,7 @@ module Lba
 
       private
 
-        attr_reader :children
+        attr_reader :value, :depth, :use_inspect, :children
 
         def children_of(_entries)
           raise NotImplementedError

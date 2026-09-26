@@ -1,15 +1,13 @@
-require_relative "base_node"
-
 module Lba
   module Internal
     module Serialization
-      class NativeNode < BaseNode
-        def serialize
+      module NativeNode
+        def self.serialize(value:, **)
           {
             value:,
             value_type: value.class.name,
-            inspected:,
-            truncated:
+            inspected: false,
+            truncated: false
           }
         end
       end

@@ -103,6 +103,15 @@ RSpec.describe Lba::Internal::Serialization::ContainerNode do
         expect(result).to include(value: "[1]", inspected: true)
       end
 
+      # Its own output is #inspect either way, so only skipping the walk shows.
+      it "never serializes its children" do
+        allow(Lba::Internal::Serialization::UnknownNode).to receive(:serialize).and_call_original
+
+        ListContainerNode.serialize(value: [[1]], depth: described_class::MAX_DEPTH)
+
+        expect(Lba::Internal::Serialization::UnknownNode).not_to have_received(:serialize)
+      end
+
       it "forwards use_inspect to the fallback" do
         max_depth = described_class::MAX_DEPTH
         allow(Lba::Internal::Serialization::FallbackNode).to receive(:serialize).and_call_original

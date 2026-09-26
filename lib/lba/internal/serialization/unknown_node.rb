@@ -1,4 +1,3 @@
-require_relative "base_node"
 require_relative "native_node"
 require_relative "string_node"
 require_relative "array_node"
@@ -9,8 +8,8 @@ module Lba
   module Internal
     module Serialization
       module UnknownNode
-        # A pure dispatcher. It holds no state, so it skips the Data.define
-        # object each real node builds.
+        # A pure dispatcher: every node answers .serialize(value:, depth:,
+        # use_inspect:), whether it's a module or a class.
         def self.serialize(value:, depth: 0, use_inspect: true)
           node_class(value).serialize(value:, depth:, use_inspect:)
         end
