@@ -25,6 +25,22 @@ class PlainOldRubyObject
     42
   end
 
+  def answered?
+    true
+  end
+
+  def caller_binding_with_local_named_like_a_method
+    answer = "local answer" # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
+    Lba::Internal::CallerBinding.new
+  end
+
+  def caller_binding_in_block_with_outer_local
+    outer_number = 789 # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
+    [1].map { Lba::Internal::CallerBinding.new }.first
+  end
+
+  @@class_variable_number = 654 # rubocop:disable Style/ClassVars -- read via CallerBinding#evaluate
+
   def caller_binding_from_lambda
     enclosed_lambda = lambda do
       Lba::Internal::CallerBinding.new
@@ -55,6 +71,8 @@ end
 class SubclassOfPlainOldRubyObject < PlainOldRubyObject; end
 
 class NamedRubyClass
+  @class_level_number = 321
+
   def self.caller_binding
     Lba::Internal::CallerBinding.new
   end
@@ -76,6 +94,11 @@ end
 
 class PlainBasicObject < BasicObject
   def caller_binding
+    ::Lba::Internal::CallerBinding.new
+  end
+
+  def caller_binding_with_instance_variable
+    @basic_number = 99
     ::Lba::Internal::CallerBinding.new
   end
 end
@@ -307,11 +330,61 @@ RSpec.describe Lba::Internal::CallerBinding do
       end
     end
 
+    context "when the local is from a method enclosing the block it was built in" do
+      it "returns the enclosing method's local" do
+        caller_binding = PlainOldRubyObject.new.caller_binding_in_block_with_outer_local
+
+        expect(caller_binding.evaluate(:outer_number)).to eq(789)
+      end
+    end
+
+    context "when a local has the same name as a method" do
+      it "returns the local, not the method's result" do
+        caller_binding = PlainOldRubyObject.new.caller_binding_with_local_named_like_a_method
+
+        expect(caller_binding.evaluate(:answer)).to eq("local answer")
+      end
+    end
+
     context "when given a symbol naming an instance variable" do
       it "returns that instance variable's value" do
         caller_binding = PlainOldRubyObject.new.caller_binding_with_instance_variable
 
         expect(caller_binding.evaluate(:@instance_number)).to eq(456)
+      end
+
+      it "returns nil when the instance variable was never set" do
+        caller_binding = PlainOldRubyObject.new.caller_binding
+
+        expect(caller_binding.evaluate(:@never_set)).to be_nil
+      end
+
+      it "reads the class's own instance variable when built in a class method" do
+        caller_binding = NamedRubyClass.caller_binding
+
+        expect(caller_binding.evaluate(:@class_level_number)).to eq(321)
+      end
+
+      it "reads it from a BasicObject" do
+        caller_binding = PlainBasicObject.new.caller_binding_with_instance_variable
+
+        expect(caller_binding.evaluate(:@basic_number)).to eq(99)
+      end
+    end
+
+    context "when given a symbol naming a class variable" do
+      it "returns that class variable's value" do
+        caller_binding = PlainOldRubyObject.new.caller_binding
+
+        expect(caller_binding.evaluate(:@@class_variable_number)).to eq(654)
+      end
+    end
+
+    context "when given a symbol naming a global variable" do
+      it "returns that global's value" do
+        caller_binding = PlainOldRubyObject.new.caller_binding
+
+        expect(caller_binding.evaluate(:$PROGRAM_NAME)).to eq($PROGRAM_NAME)
       end
     end
 
@@ -321,6 +394,20 @@ RSpec.describe Lba::Internal::CallerBinding do
         caller_binding = PlainOldRubyObject.new.caller_binding
 
         expect(caller_binding.evaluate(:answer)).to eq(42)
+      end
+
+      it "calls a predicate method" do
+        caller_binding = PlainOldRubyObject.new.caller_binding
+
+        expect(caller_binding.evaluate(:answered?)).to be true
+      end
+    end
+
+    context "when given a symbol naming a constant" do
+      it "returns the constant as seen from the frame it was built in" do
+        caller_binding = PlainOldRubyObject.new.caller_binding
+
+        expect(caller_binding.evaluate(:BUILD_LINE)).to eq(PlainOldRubyObject::BUILD_LINE)
       end
     end
 
