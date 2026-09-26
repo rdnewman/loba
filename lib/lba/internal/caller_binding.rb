@@ -3,7 +3,7 @@ require "debug_inspector"
 module Lba
   module Internal
     class CallerBinding
-      # .open + this method's own frame, to reach the caller of a public method below
+      # Skips the .open block and the public method's own frame to reach its caller.
       FRAME_OFFSET = 2
 
       def initialize(depth: 0)
@@ -66,10 +66,8 @@ module Lba
 
       attr_reader :depth
 
-      # Each of these helpers is itself one extra frame beyond FRAME_OFFSET's
-      # baseline (a direct .open call) -- the +1 is local to each helper
-      # because that's where the extra frame actually comes from, not a
-      # property of FRAME_OFFSET itself.
+      # Each helper adds a frame of its own, hence the +1 here rather than in
+      # FRAME_OFFSET.
       def location
         RubyVM::DebugInspector.open { |dc| dc.backtrace_locations[depth + FRAME_OFFSET + 1] }
       end

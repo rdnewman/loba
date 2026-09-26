@@ -10,23 +10,68 @@ class LbaValIntegrationTestCase
   LINE_OF_VAL_CALL = instance_method(:call_val).source_location[1] + 2
 end
 
-RSpec.describe Lba, ".val" do
-  # Exercising the real .current (for real seq/site_seq behavior) memoizes
-  # into the process-wide singleton; reset it afterward so it doesn't leak
-  # into other spec files' assumptions about starting from a fresh state.
-  after { Lba::Internal::CallSiteTracker.instance_variable_set(:@current, nil) }
+# One call site per caller context Lba.val has to reflect on correctly.
+# Symbol arguments name locals that only Lba.val reads, through the caller's
+# binding.
+class LbaValCallerContexts
+  def self.from_class_method(sink:)
+    class_local = 7 # rubocop:disable Lint/UselessAssignment -- read via Lba.val's eval
+    Lba.val(:class_local, sink:)
+  end
 
-  # rubocop:disable-next RSpec/ExampleLength -- a full record needs a
-  # correspondingly full set of field assertions; splitting it up would
-  # obscure that this is one call site producing one complete record.
+  FROM_CLASS_METHOD_LINE = method(:from_class_method).source_location[1] + 2
+
+  def with_instance_variable(sink:)
+    @traced = "ivar value"
+    Lba.val(:@traced, sink:)
+  end
+
+  def with_non_symbol(sink:)
+    Lba.val("direct value", sink:)
+  end
+
+  def within_block(sink:)
+    [1].each do |item| # rubocop:disable Lint/UnusedBlockArgument -- read via Lba.val's eval
+      Lba.val(:item, sink:)
+    end
+  end
+
+  WITHIN_BLOCK_LINE = instance_method(:within_block).source_location[1] + 2
+
+  def within_lambda(sink:)
+    tracer = lambda do
+      lambda_local = "lambda value" # rubocop:disable Lint/UselessAssignment -- read via Lba.val's eval
+      Lba.val(:lambda_local, sink:)
+    end
+    tracer.call
+  end
+
+  WITHIN_LAMBDA_LINE = instance_method(:within_lambda).source_location[1] + 3
+end
+
+class LbaValCallerContextsSubclass < LbaValCallerContexts; end
+
+RSpec.describe Lba, ".val" do
+  # The real .current memoizes a process-wide tracker; reset it so other
+  # specs start fresh.
+  after do
+    reset_current(Lba::Internal::CallSiteTracker)
+  end
+
+  def written_record(sink)
+    JSON.parse(sink.string, symbolize_names: true)
+  end
+
+  # rubocop:disable-next RSpec/ExampleLength -- one call, one complete record;
+  # splitting the field checks would hide that.
   it "writes a complete record reflecting the real call site", :aggregate_failures do
     stub_const("Rails", mock_rails(production: false))
-    safe_call_site_tracker_current
+    stub_call_site_tracker_at_exit
     sink = StringIO.new
 
     LbaValIntegrationTestCase.new.call_val(sink:)
 
-    record = JSON.parse(sink.string, symbolize_names: true)
+    record = written_record(sink)
     expect(record[:file]).to end_with("value_spec.rb")
     expect(record[:line]).to eq(LbaValIntegrationTestCase::LINE_OF_VAL_CALL)
     expect(record[:class_name]).to eq("LbaValIntegrationTestCase")
@@ -45,5 +90,115 @@ RSpec.describe Lba, ".val" do
     expect(record[:run_id]).to eq(Lba::Internal::Run.current.id)
     expect(record[:wall_time]).to be_a(Float)
     expect(record[:mono_time]).to be_a(Float)
+  end
+
+  context "when the process forks after an earlier call" do
+    it "writes the child's records under its own run and sequence", :aggregate_failures do
+      stub_call_site_tracker_at_exit
+      parent_sink = StringIO.new
+      described_class.val("from parent", sink: parent_sink)
+      parent_run_id = written_record(parent_sink)[:run_id]
+
+      child_record = in_forked_child do
+        child_sink = StringIO.new
+        described_class.val("from child", sink: child_sink)
+        written_record(child_sink)
+      end
+
+      expect(child_record[:run_id]).not_to eq(parent_run_id)
+      expect(child_record).to include(seq: 1, value: "from child")
+    end
+  end
+
+  context "when capturing an instance variable by Symbol" do
+    it "evaluates it on the calling instance" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContexts.new.with_instance_variable(sink:)
+
+      expect(written_record(sink)).to include(
+        label: "@traced", value: "ivar value",
+        class_name: "LbaValCallerContexts", method_name: "with_instance_variable",
+        method_type: "instance"
+      )
+    end
+  end
+
+  context "when given a non-Symbol value" do
+    it "records the value as-is, with no label" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContexts.new.with_non_symbol(sink:)
+
+      expect(written_record(sink)).to include(
+        label: nil, value: "direct value", method_name: "with_non_symbol"
+      )
+    end
+  end
+
+  context "when called inside a block within a method" do
+    it "reads the block's own locals and reports the enclosing method" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContexts.new.within_block(sink:)
+
+      expect(written_record(sink)).to include(
+        label: "item", value: 1, method_name: "within_block",
+        line: LbaValCallerContexts::WITHIN_BLOCK_LINE
+      )
+    end
+  end
+
+  context "when called inside a lambda within a method" do
+    it "reads the lambda's own locals and reports the enclosing method" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContexts.new.within_lambda(sink:)
+
+      expect(written_record(sink)).to include(
+        label: "lambda_local", value: "lambda value", method_name: "within_lambda",
+        line: LbaValCallerContexts::WITHIN_LAMBDA_LINE
+      )
+    end
+  end
+
+  context "when called from a class method" do
+    it "reports the class itself and a :class method type" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContexts.from_class_method(sink:)
+
+      expect(written_record(sink)).to include(
+        class_name: "LbaValCallerContexts", method_name: "from_class_method",
+        method_type: "class", value: 7, line: LbaValCallerContexts::FROM_CLASS_METHOD_LINE
+      )
+    end
+  end
+
+  context "when called from an inherited method on a subclass" do
+    it "reports the subclass, not the class that defined the method" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContextsSubclass.new.with_non_symbol(sink:)
+
+      expect(written_record(sink)).to include(class_name: "LbaValCallerContextsSubclass")
+    end
+  end
+
+  context "when called from an instance of an anonymous class" do
+    it "reports a placeholder class name" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      Class.new(LbaValCallerContexts).new.with_non_symbol(sink:)
+
+      expect(written_record(sink)).to include(class_name: "<anonymous class>")
+    end
   end
 end

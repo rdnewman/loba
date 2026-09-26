@@ -1,6 +1,5 @@
-# __method__ resolves by lexical position, not by what dynamically calls it --
-# a block/lambda nested inside a real `def` still reports that def's name,
-# even though the lambda itself is (like every lambda) unnamed as an object.
+# __method__ is lexical: a lambda inside a `def` reports that def's name,
+# though the lambda itself has none.
 class PoroWithEnclosedLambda < InstanceTestCase
   def method_name
     enclosed_lambda = lambda do
@@ -23,9 +22,7 @@ RSpec.describe Lba::Internal::CallerBinding do
       end
     end
 
-    # A real, if rare, way this could be invoked in the wild (a bare script, a
-    # top-level rake task body) -- not the 80% case, but not metaprogramming
-    # either: it's the actual scenario under test, not a construction shortcut.
+    # Rare but real: a bare script or a top-level rake task body.
     context "when defined outside an enclosing method" do
       it 'returns "<anonymous method>"' do
         bare_lambda = lambda do

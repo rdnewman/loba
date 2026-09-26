@@ -42,7 +42,7 @@ RSpec.describe Lba::Internal::Run do
   end
 
   describe ".current" do
-    after { described_class.instance_variable_set(:@current, nil) }
+    after { reset_current(described_class) }
 
     it "returns a Run instance" do
       expect(described_class.current).to be_a(described_class)
@@ -50,6 +50,17 @@ RSpec.describe Lba::Internal::Run do
 
     it "memoizes the same instance across repeated calls" do
       expect(described_class.current).to equal(described_class.current)
+    end
+
+    context "when the process forks after .current is memoized" do
+      it "gives the child its own run, identified by the child's pid", :aggregate_failures do
+        parent_run_id = described_class.current.id
+
+        child = in_forked_child { { pid: Process.pid, run_id: described_class.current.id } }
+
+        expect(child[:run_id]).not_to eq(parent_run_id)
+        expect(child[:run_id]).to include("-#{child[:pid]}-")
+      end
     end
   end
 end

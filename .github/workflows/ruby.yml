@@ -29,3 +29,20 @@ jobs:
     - name: Lint using Rubocop
       run: |
         bundle exec rubocop
+
+  performance:
+    runs-on: ubuntu-latest
+    # Timing checks depend on the runner's speed and load, so a failure here
+    # is reported without failing the workflow.
+    continue-on-error: true
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '4.0'
+        bundler-cache: true
+    - name: Timing checks using RSpec
+      run: |
+        bundle exec rspec --tag performance

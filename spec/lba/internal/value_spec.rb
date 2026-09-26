@@ -24,20 +24,14 @@ RSpec.describe Lba::Internal::Value do
       before do
         stub_const("Rails", mock_rails(production: false))
 
-        # Stubbing the class method itself, rather than calling the real
-        # .current and stubbing #record on it, so this never touches (or
-        # memoizes) the actual process-wide singleton -- doing that would
-        # both leak @current state into other spec files and register a
-        # real Kernel#at_exit hook against the live test process.
+        # Stubs .current itself so the real singleton is never memoized and
+        # never registers an at_exit hook in the test process.
         tracker = instance_double(Lba::Internal::CallSiteTracker, record: :suppressed)
         allow(Lba::Internal::CallSiteTracker).to receive(:current).and_return(tracker)
 
-        # A narrow instance_double: only #file/#line are stubbed, matching what
-        # building the site key actually needs. If #record went on to call
-        # #evaluate/#class_name/#method_name/#method_type anyway -- the
-        # expensive work this gate exists to skip -- this double would raise
-        # on that unexpected message, and the "does not raise" example below
-        # would catch it.
+        # Only #file and #line are stubbed, since the site key needs just
+        # those. Any other call is the costly work this gate skips; the
+        # double raises on it, and the "does not raise" example catches that.
         caller_binding = instance_double(Lba::Internal::CallerBinding, file: "app.rb", line: 10)
         allow(Lba::Internal::CallerBinding).to receive(:new).and_return(caller_binding)
 

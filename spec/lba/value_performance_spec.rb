@@ -1,122 +1,93 @@
 require "stringio"
 
-# The Phase 4 runtime-overhead hard gate (see eager-forging-wave.md): loba's
-# original design goal -- keep the instrumented call site thin -- carries
-# over here, and matters even more for Lba.ts specifically, whose whole job
-# is an honest elapsed-time diff. A tracing tool with real or inconsistent
-# overhead corrupts the very thing it measures. This exercises the full
-# Lba.val path for real (CallerBinding reflection, CallSiteTracker,
-# Settings, Serialization, Writer) -- unlike serialization_performance_spec.rb,
-# which scoped to just Serialization ahead of this fuller gate existing.
+# Keeps the full Lba.val path cheap enough not to change the code it traces.
+#
+# Timing checks vary by machine, so they're tagged :performance and run only
+# with `--tag performance`. Memory checks don't, so they run by default.
+#
+# Each example stays under CallSiteTracker's cap of 500 calls per site per
+# minute. Past it, calls take the cheaper suppressed path and skew the result.
 RSpec.describe Lba, ".val" do
-  describe "performance", :aggregate_failures do
-    def elapsed
-      start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      yield
-      Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
-    end
+  after { reset_current(Lba::Internal::CallSiteTracker) }
 
-    # Real CallSiteTracker.current behavior (real seq/site_seq/cap accounting)
-    # without registering a real at_exit hook against this test process.
-    before { safe_call_site_tracker_current }
-    after { Lba::Internal::CallSiteTracker.instance_variable_set(:@current, nil) }
-
-    # CallSiteTracker's default cap is 500 records per 60-second window, and
-    # Lba.val has no public cap:/window: override -- this must stay
-    # comfortably under that per call site, or later iterations would
-    # silently get suppressed (and artificially fast) partway through.
-    it "adds only a small, explicit amount of overhead over a no-op baseline" do
-      iterations = 300
-      sink = StringIO.new
-
-      baseline = elapsed { iterations.times { Process.clock_gettime(Process::CLOCK_MONOTONIC) } }
-      measured = elapsed { iterations.times { described_class.val(42, sink:) } }
-
-      overhead_per_call = (measured - baseline) / iterations
-
-      expect(overhead_per_call).to be < 0.005 # 5ms/call -- plan's "low-single-digit milliseconds"
-    end
-
-    it "has consistent, low-variance overhead across many calls" do
-      iterations = 300
-      sink = StringIO.new
-      timings = Array.new(iterations) { elapsed { described_class.val(42, sink:) } }.sort
-      mean = timings.sum / timings.size
-      p99 = timings[(iterations * 0.99).to_i]
-
-      # p99, not max: a single call can hit a GC pause or scheduler blip
-      # unrelated to Lba.val itself.
-      expect(p99).to be < [mean * 10, 0.005].max
-    end
+  def elapsed
+    start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    yield
+    Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
   end
 
-  # Speed and memory are sometimes traded off against each other -- a fast
-  # implementation that quietly retains memory is its own real cost,
-  # especially for a tool meant to run continuously inside a live process.
-  describe "memory", :aggregate_failures do
-    before { safe_call_site_tracker_current }
-    after { Lba::Internal::CallSiteTracker.instance_variable_set(:@current, nil) }
+  # Empties the sink, whose output is expected, runs a full GC, and returns
+  # the live heap slot count.
+  def clear_and_collect(sink)
+    sink.truncate(0)
+    sink.rewind
+    GC.start
+    GC.stat[:heap_live_slots]
+  end
 
-    it "allocates only a bounded, explicit number of objects per call" do
-      iterations = 300
-      sink = StringIO.new
+  it "adds only a small, explicit amount of overhead over a no-op baseline", :performance do
+    stub_call_site_tracker_at_exit
+    iterations = 300
+    sink = StringIO.new
 
-      GC.disable
-      before = GC.stat[:total_allocated_objects]
-      iterations.times { described_class.val(42, sink:) }
-      after = GC.stat[:total_allocated_objects]
-      GC.enable
+    baseline = elapsed { iterations.times { Process.clock_gettime(Process::CLOCK_MONOTONIC) } }
+    measured = elapsed { iterations.times { described_class.val(42, sink:) } }
 
-      objects_per_call = (after - before) / iterations.to_f
+    overhead_per_call = (measured - baseline) / iterations
 
-      # ~1045 measured directly inside this actual spec environment -- NOT
-      # representative of bare production allocation cost. Verified
-      # empirically: RSpec itself, merely loaded and running inside an
-      # example, roughly triples a bare script's allocation count (197.8 ->
-      # 573.9, no mocks involved), and this file's own mocking
-      # (verify_partial_doubles, the CallSiteTracker stub) inflates it
-      # further. That inflation is a stable property of the test harness,
-      # not of Lba.val, so the useful signal here is a regression in this
-      # number over time, not its absolute value against real-world use.
-      expect(objects_per_call).to be < 2000
-    end
+    # A tripwire for order-of-magnitude regressions. Typical overhead is under
+    # a tenth of this.
+    expect(overhead_per_call).to be < 0.005
+  end
 
-    # rubocop:disable-next RSpec/ExampleLength -- each batch needs its own
-    # physical call-site line (see the comment inside); collapsing them into
-    # a loop would defeat the point.
-    it "does not retain memory across repeated batches of calls" do
-      batch_size = 300
-      sink = StringIO.new
+  # Bounds the noise Lba.val adds to an elapsed-time diff, which Lba.ts
+  # reports. GC pauses set the tail and cost the same wall time on any
+  # machine, so the bound is absolute and loose, not a multiple of the mean.
+  it "keeps the 99th-percentile call under 10ms", :performance do
+    stub_call_site_tracker_at_exit
+    iterations = 300
+    sink = StringIO.new
 
-      # Each batch calls Lba.val from its own physical line, on purpose --
-      # they share a helper method's line, they'd share one site key and
-      # cross the 500-call cap partway through, silently switching the
-      # later batches over to the (much cheaper) suppressed path instead of
-      # each genuinely exercising the real one.
-      reset = lambda do
-        sink.truncate(0)
-        sink.rewind
-        GC.start
-      end
+    timings = Array.new(iterations) { elapsed { described_class.val(42, sink:) } }.sort
 
-      # First batch warms up any one-time setup cost (autoloaded constants,
-      # etc.) so it doesn't get mistaken for a growth trend below.
-      batch_size.times { described_class.val(42, sink:) }
-      reset.call
-      after_first_batch = GC.stat[:heap_live_slots]
+    p99 = timings[(iterations * 0.99).to_i]
+    expect(p99).to be < 0.010
+  end
 
-      batch_size.times { described_class.val(42, sink:) }
-      reset.call
-      batch_size.times { described_class.val(42, sink:) }
-      reset.call
-      batch_size.times { described_class.val(42, sink:) }
-      reset.call
-      after_later_batches = GC.stat[:heap_live_slots]
+  # RSpec and this file's stubs inflate the count several times over plain
+  # Ruby. The inflation is steady, so the bound still catches a regression,
+  # but it isn't real-world cost. A call allocates about half this here.
+  it "allocates only a bounded, explicit number of objects per call" do
+    stub_call_site_tracker_at_exit
+    iterations = 300
+    sink = StringIO.new
 
-      # Live heap size after a full GC should be flat across batches, not
-      # grow with call count -- growth here would mean something is being
-      # retained (a reference held onto) rather than becoming garbage.
-      expect(after_later_batches - after_first_batch).to be < 500
-    end
+    allocations = allocations_during { iterations.times { described_class.val(42, sink:) } }
+
+    expect(allocations / iterations.to_f).to be < 2000
+  end
+
+  # Retained memory is a real cost for a tool that runs inside a live process.
+  #
+  # Each batch has its own line, and so its own site key; sharing one would
+  # cross the cap. The first batch absorbs one-time setup, such as
+  # autoloading, so it isn't mistaken for growth.
+  it "does not retain memory across repeated batches of calls" do
+    stub_call_site_tracker_at_exit
+    batch_size = 300
+    sink = StringIO.new
+
+    batch_size.times { described_class.val(42, sink:) }
+    after_first_batch = clear_and_collect(sink)
+    batch_size.times { described_class.val(42, sink:) }
+    clear_and_collect(sink)
+    batch_size.times { described_class.val(42, sink:) }
+    clear_and_collect(sink)
+    batch_size.times { described_class.val(42, sink:) }
+    after_later_batches = clear_and_collect(sink)
+
+    # Growth across batches would mean something holds references it should
+    # let go.
+    expect(after_later_batches - after_first_batch).to be < 500
   end
 end

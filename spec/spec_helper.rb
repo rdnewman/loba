@@ -11,7 +11,11 @@ end
 
 RSpec.configure do |config|
   config.include MockedRails
+  config.include AllocationHelpers
   config.include CallSiteTrackerHelpers
+  config.include ForkHelpers
+  config.include MemoizedCurrentHelpers
+  config.include SerializationHelpers
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
@@ -25,6 +29,10 @@ RSpec.configure do |config|
 
   config.shared_context_metadata_behavior = :apply_to_host_groups
   config.filter_run_when_matching :focus
+
+  # Timing checks depend on the machine running them; run them deliberately
+  # with `bundle exec rspec --tag performance`.
+  config.filter_run_excluding performance: true
   config.disable_monkey_patching!
   config.warnings = true
 

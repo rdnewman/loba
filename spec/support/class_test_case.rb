@@ -1,9 +1,7 @@
 # rubocop:disable Style/GuardClause, Style/IfUnlessModifier
 
-# Base harness for scenarios where the {Lba::Internal::CallerBinding} subject is
-# exercised from within a genuine class method call, so +self+ at the
-# reflection point is the class itself -- never instantiated, since a real
-# instance would defeat the scenario this harness exists to represent.
+# Exercises {Lba::Internal::CallerBinding} from a class method, so +self+ is
+# the class. Never instantiated; an instance would defeat the scenario.
 class ClassTestCase
   class << self
     # Configures this class to use +subject+ and returns the class itself
@@ -23,11 +21,8 @@ class ClassTestCase
     # @return [String] whatever +subject.class_name+ reports for this class
     def class_name = subject.class_name
 
-    # Clears the subject this class was configured with. Unlike an
-    # InstanceTestCase, whose subject dies with its instance, this class's
-    # subject is real persistent class state that outlives any one example --
-    # call this in an +after+ hook wherever +as_class_using+ is used, so it
-    # doesn't leak into whatever example runs next.
+    # Clears the configured subject. It's class state that outlives the
+    # example, so call this in an +after+ hook wherever +as_class_using+ is used.
     def reset_subject
       if instance_variable_defined?(:@subject)
         remove_instance_variable(:@subject)

@@ -7,12 +7,18 @@ module Lba
       DEFAULT_WINDOW = 60
 
       class << self
+        # A forked child inherits this memo; the pid check gives it fresh counters.
         def current
-          @current ||= new.tap { |tracker| tracker.send(:register_at_exit!) }
+          return @current if @current&.pid == Process.pid
+
+          @current = new.tap { |tracker| tracker.send(:register_at_exit!) }
         end
       end
 
+      attr_reader :pid
+
       def initialize
+        @pid = Process.pid
         @sites = {}
         @global_seq = 0
       end
@@ -97,8 +103,10 @@ module Lba
         :suppressed
       end
 
+      # Forked children inherit this hook; the pid check keeps them from
+      # re-flushing the parent's suppressed sites.
       def register_at_exit!
-        at_exit { flush_all! }
+        at_exit { flush_all! if pid == Process.pid }
       end
 
       def flush_all!

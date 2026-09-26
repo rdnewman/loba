@@ -1,6 +1,5 @@
-# Base harness for scenarios where the {Lba::Internal::CallerBinding} subject is
-# exercised from within a genuine instance method call, so +self+ at the
-# reflection point is a real instance, not the class itself.
+# Exercises {Lba::Internal::CallerBinding} from an instance method, so +self+
+# is an instance.
 class InstanceTestCase
   class << self
     alias instance_with new # for readability only

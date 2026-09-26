@@ -3,13 +3,9 @@ require "json"
 module Lba
   module Internal
     class Value
-      # .val -> Internal::Value.record -> Internal::Value#record, three frames
-      # of lba's own machinery between here and the real caller. Every
-      # caller_binding public method call below must happen directly inside
-      # #record, at this same nesting level -- depth is measured from
-      # wherever the call actually occurs, not from where the CallerBinding
-      # instance was constructed, so calling from a nested helper instead
-      # would silently point at the wrong frame.
+      # The frames between the caller and #record: .val, Value.record, and
+      # #record itself. Depth counts from where caller_binding is called, not
+      # where it was built, so every call must sit directly in #record.
       DEPTH = 3
 
       def self.record(...) = new(...).record
@@ -24,10 +20,8 @@ module Lba
         @sink = sink
       end
 
-      # rubocop:disable-next Metrics/AbcSize -- every caller_binding call
-      # here has to stay inline at this exact nesting level (see DEPTH's
-      # comment above); extracting any of them into a helper would put that
-      # call one frame further from the real caller and silently break it.
+      # rubocop:disable-next Metrics/AbcSize -- caller_binding calls must stay
+      # inline here (see DEPTH); a helper would add a frame and read the wrong one.
       def record
         return if settings.disabled?
 
