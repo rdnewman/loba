@@ -5,19 +5,19 @@ RSpec.describe Lba::Internal::CallSiteTracker do
   subject(:tracker) { described_class.new }
 
   let(:sink) { instance_double(IO, write: nil, flush: nil) }
-  let(:site_key) { "app/models/order.rb:10" }
+  let(:site) { { type: "val", file: "app/models/order.rb", line: 10 } }
 
   describe "#record with a write-time cap" do
     it "returns normal records for every call up to the cap" do
-      results = Array.new(5) { tracker.record(site_key, sink:, cap: 5) }
+      results = Array.new(5) { tracker.record(**site, sink:, cap: 5) }
 
       expect(results).to all(include(:seq, :site_seq))
     end
 
     it "suppresses the call that crosses the cap without writing anything", :aggregate_failures do
-      5.times { tracker.record(site_key, sink:, cap: 5) }
+      5.times { tracker.record(**site, sink:, cap: 5) }
 
-      result = tracker.record(site_key, sink:, cap: 5)
+      result = tracker.record(**site, sink:, cap: 5)
 
       expect(result).to eq(:suppressed)
       expect(sink).not_to have_received(:write)
@@ -25,20 +25,28 @@ RSpec.describe Lba::Internal::CallSiteTracker do
 
     it "stays suppressed and writes nothing through a large burst past the cap",
        :aggregate_failures do
-      5.times { tracker.record(site_key, sink:, cap: 5) }
+      5.times { tracker.record(**site, sink:, cap: 5) }
 
-      results = Array.new(10_000) { tracker.record(site_key, sink:, cap: 5) }
+      results = Array.new(10_000) { tracker.record(**site, sink:, cap: 5) }
 
       expect(results).to all(eq(:suppressed))
       expect(sink).not_to have_received(:write)
     end
 
     it "defaults the cap to 500 records per window" do
-      500.times { tracker.record(site_key, sink:) }
+      500.times { tracker.record(**site, sink:) }
 
-      result = tracker.record(site_key, sink:)
+      result = tracker.record(**site, sink:)
 
       expect(result).to eq(:suppressed)
+    end
+
+    it "caps a ts on the same line separately from a capped val" do
+      6.times { tracker.record(**site, sink:, cap: 5) }
+
+      result = tracker.record(**site, type: "ts", sink:, cap: 5)
+
+      expect(result).to include(site_seq: 1)
     end
   end
 
@@ -52,12 +60,12 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start)
 
-      5.times { tracker.record(site_key, sink:, cap: 5, window: 60) }
-      7.times { tracker.record(site_key, sink:, cap: 5, window: 60) }
+      5.times { tracker.record(**site, sink:, cap: 5, window: 60) }
+      7.times { tracker.record(**site, sink:, cap: 5, window: 60) }
 
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
-      tracker.record(site_key, sink:, cap: 5, window: 60)
+      tracker.record(**site, sink:, cap: 5, window: 60)
 
       lines = sink.string.lines
       expect(lines.size).to eq(1)
@@ -69,17 +77,31 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       )
     end
 
+    it "labels a capped ts site's suppression record with type ts" do
+      sink = StringIO.new
+      window_start = 1_000.0
+      allow(Process).to receive(:clock_gettime)
+        .with(Process::CLOCK_MONOTONIC).and_return(window_start)
+      6.times { tracker.record(**site, type: "ts", sink:, cap: 5, window: 60) }
+      allow(Process).to receive(:clock_gettime)
+        .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
+
+      tracker.record(**site, type: "ts", sink:, cap: 5, window: 60)
+
+      expect(JSON.parse(sink.string)).to include("type" => "ts")
+    end
+
     it "stamps the suppression record like any other record, with the next seq",
        :aggregate_failures do
       sink = StringIO.new
       window_start = 1_000.0
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      6.times { tracker.record(site_key, sink:, cap: 5, window: 60) }
+      6.times { tracker.record(**site, sink:, cap: 5, window: 60) }
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
 
-      next_record = tracker.record(site_key, sink:, cap: 5, window: 60)
+      next_record = tracker.record(**site, sink:, cap: 5, window: 60)
 
       flushed = JSON.parse(sink.string, symbolize_names: true)
       expect(flushed).to include(
@@ -93,11 +115,11 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       window_start = 1_000.0
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      6.times { tracker.record(site_key, sink:, cap: 5, window: 60) }
+      6.times { tracker.record(**site, sink:, cap: 5, window: 60) }
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
 
-      next_window = Array.new(6) { tracker.record(site_key, sink:, cap: 5, window: 60) }
+      next_window = Array.new(6) { tracker.record(**site, sink:, cap: 5, window: 60) }
 
       expect(next_window.first(5)).to all(be_a(Hash))
       expect(next_window.last).to eq(:suppressed)
@@ -107,11 +129,11 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       window_start = 1_000.0
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      6.times { tracker.record(site_key, sink:, cap: 5, window: 60) }
+      6.times { tracker.record(**site, sink:, cap: 5, window: 60) }
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
 
-      result = tracker.record(site_key, sink:, cap: 5, window: 60)
+      result = tracker.record(**site, sink:, cap: 5, window: 60)
 
       expect(result).to include(site_seq: 6)
     end
@@ -120,11 +142,11 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       window_start = 1_000.0
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      9.times { tracker.record(site_key, sink:, cap: 5, window: 60) }
+      9.times { tracker.record(**site, sink:, cap: 5, window: 60) }
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
 
-      result = tracker.record(site_key, sink:, cap: 5, window: 60)
+      result = tracker.record(**site, sink:, cap: 5, window: 60)
 
       # seq 6 went to the suppression record written as the window rolled over.
       expect(result).to include(seq: 7, site_seq: 6)
@@ -136,12 +158,12 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start)
 
-      first = tracker.record(site_key, sink:, cap: 5, window: 60)
-      6.times { tracker.record(site_key, sink:, cap: 5, window: 60) }
+      first = tracker.record(**site, sink:, cap: 5, window: 60)
+      6.times { tracker.record(**site, sink:, cap: 5, window: 60) }
 
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
-      result = tracker.record(site_key, sink:, cap: 5, window: 60)
+      result = tracker.record(**site, sink:, cap: 5, window: 60)
 
       expect(first).to include(diff: nil)
       expect(result).to include(diff: 61.0)

@@ -36,12 +36,19 @@ module Lba
         @global_seq = 0
       end
 
+      # rubocop:disable Metrics/ParameterLists -- a site is a type, file, and line
+
       # Counts one call at a site, unless the site is capped for its current
       # window. A capped site skips calls until the window ends; the next call
       # after that writes one record counting the calls skipped, and the site
       # starts a new window with a fresh cap. Skipped calls take no numbers.
       #
-      # @param site_key [String] the call site, as +"file:line"+
+      # A site is one record type at one file and line, so a +val+ and a +ts+
+      # on the same line are counted and capped separately.
+      #
+      # @param type [String] the kind of record, e.g. +"val"+
+      # @param file [String] the calling file
+      # @param line [Integer] the calling line
       # @param sink [IO, String, nil] where this site's skipped-call record goes
       # @param cap [Integer] records the site may write per window
       # @param window [Numeric] window length, in seconds
@@ -51,8 +58,9 @@ module Lba
       #   * +:site_seq+ [Integer] - its order among the site's records
       #   * +:diff+ [Float, nil] - seconds since the site's previous record, or
       #     +nil+ for its first
-      def record(site_key, sink: nil, cap: DEFAULT_CAP, window: DEFAULT_WINDOW)
+      def record(type:, file:, line:, sink: nil, cap: DEFAULT_CAP, window: DEFAULT_WINDOW)
         now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        site_key = [type, file, line]
         site = site_for(site_key)
         refresh_window!(site_key, site, sink:, window:, now:)
 
@@ -66,6 +74,7 @@ module Lba
 
         { seq: @global_seq, site_seq: site[:site_seq], diff: advance_diff!(site, now) }
       end
+      # rubocop:enable Metrics/ParameterLists
 
     private
 
@@ -149,11 +158,11 @@ module Lba
       end
 
       def suppression_record(site_key, site)
-        file, _, line = site_key.rpartition(":")
+        type, file, line = site_key
         {
-          **RecordStamp.fields(seq: @global_seq, type: "val"),
+          **RecordStamp.fields(seq: @global_seq, type:),
           file:,
-          line: line.to_i,
+          line:,
           suppressed: true,
           suppressed_count: site[:suppressed_count]
         }

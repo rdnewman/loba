@@ -36,7 +36,7 @@ module Lba
         return if settings.disabled?
 
         @caller_binding = CallerBinding.new(depth: DEPTH)
-        @tracked = CallSiteTracker.current.record(site_key, sink: resolved_sink)
+        @tracked = track
         return if tracked == :suppressed
 
         write(build_record)
@@ -48,8 +48,10 @@ module Lba
 
       attr_reader :argument, :label, :inspect, :log, :logger, :sink, :caller_binding, :tracked
 
-      def site_key
-        "#{caller_binding.file}:#{caller_binding.line}"
+      def track
+        CallSiteTracker.current.record(
+          type: "val", file: caller_binding.file, line: caller_binding.line, sink: resolved_sink
+        )
       end
 
       def write(full_record)

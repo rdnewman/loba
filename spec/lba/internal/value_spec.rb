@@ -29,7 +29,7 @@ RSpec.describe Lba::Internal::Value do
         tracker = instance_double(Lba::Internal::CallSiteTracker, record: :suppressed)
         allow(Lba::Internal::CallSiteTracker).to receive(:current).and_return(tracker)
 
-        # Only #file and #line are stubbed, since the site key needs just
+        # Only #file and #line are stubbed, since the call site needs just
         # those. Any other call is the costly work this gate skips; the
         # double raises on it, and the "does not raise" example catches that.
         caller_binding = instance_double(Lba::Internal::CallerBinding, file: "app.rb", line: 10)
@@ -39,11 +39,11 @@ RSpec.describe Lba::Internal::Value do
         allow(Lba::Internal::Writer).to receive(:write)
       end
 
-      it "checks the call site's suppression status via the site key" do
+      it "checks the call site's suppression status as a val site" do
         described_class.record(:foo, sink: StringIO.new)
 
-        expect(Lba::Internal::CallSiteTracker.current)
-          .to have_received(:record).with("app.rb:10", sink: an_instance_of(StringIO))
+        expect(Lba::Internal::CallSiteTracker.current).to have_received(:record)
+          .with(type: "val", file: "app.rb", line: 10, sink: an_instance_of(StringIO))
       end
 
       it "does not serialize the value" do
@@ -58,7 +58,7 @@ RSpec.describe Lba::Internal::Value do
         expect(Lba::Internal::Writer).not_to have_received(:write)
       end
 
-      it "does not evaluate or reflect on the caller beyond the site key" do
+      it "does not evaluate or reflect on the caller beyond its file and line" do
         expect { described_class.record(:foo, sink: StringIO.new) }.not_to raise_error
       end
     end

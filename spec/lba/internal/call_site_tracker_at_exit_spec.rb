@@ -15,31 +15,42 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       it "writes the still-open window's true suppressed count for a capped site" do
         hooks = stub_call_site_tracker_at_exit
         tracker = described_class.current
-        site_key = "app/models/order.rb:10"
+        site = { type: "val", file: "app/models/order.rb", line: 10 }
         sink = StringIO.new
 
-        5.times { tracker.record(site_key, sink:, cap: 5) }
-        8.times { tracker.record(site_key, sink:, cap: 5) }
+        13.times { tracker.record(**site, sink:, cap: 5) }
 
         hooks.first.call
 
         flushed = JSON.parse(sink.string.lines.last)
         expect(flushed).to include(
-          "file" => "app/models/order.rb", "line" => 10,
+          "type" => "val", "file" => "app/models/order.rb", "line" => 10,
           "suppressed" => true, "suppressed_count" => 8
         )
+      end
+
+      it "labels a capped ts site's record with type ts" do
+        hooks = stub_call_site_tracker_at_exit
+        tracker = described_class.current
+        sink = StringIO.new
+
+        6.times { tracker.record(type: "ts", file: "app/models/order.rb", line: 10, sink:, cap: 5) }
+
+        hooks.first.call
+
+        expect(JSON.parse(sink.string.lines.last)).to include("type" => "ts")
       end
 
       it "flushes every capped site independently, to each one's own sink", :aggregate_failures do
         hooks = stub_call_site_tracker_at_exit
         tracker = described_class.current
-        order_key = "app/models/order.rb:10"
-        invoice_key = "app/models/invoice.rb:20"
+        order_site = { type: "val", file: "app/models/order.rb", line: 10 }
+        invoice_site = { type: "val", file: "app/models/invoice.rb", line: 20 }
         order_sink = StringIO.new
         invoice_sink = StringIO.new
 
-        6.times { tracker.record(order_key, sink: order_sink, cap: 5) }
-        9.times { tracker.record(invoice_key, sink: invoice_sink, cap: 5) }
+        6.times { tracker.record(**order_site, sink: order_sink, cap: 5) }
+        9.times { tracker.record(**invoice_site, sink: invoice_sink, cap: 5) }
 
         hooks.first.call
 
@@ -53,11 +64,13 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       it "does not write anything for a site that never crossed its cap" do
         hooks = stub_call_site_tracker_at_exit
         tracker = described_class.current
+        uncapped_site = { type: "val", file: "app/models/order.rb", line: 10 }
+        capped_site = { type: "val", file: "app/models/invoice.rb", line: 20 }
         uncapped_sink = instance_double(IO, write: nil, flush: nil)
         capped_sink = instance_double(IO, write: nil, flush: nil)
 
-        4.times { tracker.record("app/models/order.rb:10", sink: uncapped_sink, cap: 5) }
-        7.times { tracker.record("app/models/invoice.rb:20", sink: capped_sink, cap: 5) }
+        4.times { tracker.record(**uncapped_site, sink: uncapped_sink, cap: 5) }
+        7.times { tracker.record(**capped_site, sink: capped_sink, cap: 5) }
 
         hooks.first.call
 
@@ -69,8 +82,9 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       it "writes nothing when the child runs the hook it inherited" do
         hooks = stub_call_site_tracker_at_exit
         tracker = described_class.current
+        site = { type: "val", file: "app/models/order.rb", line: 10 }
         sink = StringIO.new
-        6.times { tracker.record("app/models/order.rb:10", sink:, cap: 5) }
+        6.times { tracker.record(**site, sink:, cap: 5) }
 
         written_in_child = in_forked_child do
           hooks.first.call
