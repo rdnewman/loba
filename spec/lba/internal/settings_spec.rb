@@ -48,14 +48,6 @@ RSpec.describe Lba::Internal::Settings do
   end
 
   describe "when disabled" do
-    it "reports log? as false regardless of what :log was, since nothing was ever validated" do
-      stub_const("Rails", mock_rails(production: true))
-
-      settings = described_class.new(log: true)
-
-      expect(settings.log?).to be false
-    end
-
     it "does not validate or expose a logger" do
       stub_const("Rails", mock_rails(production: true))
 

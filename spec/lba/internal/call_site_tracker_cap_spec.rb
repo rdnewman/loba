@@ -42,28 +42,6 @@ RSpec.describe Lba::Internal::CallSiteTracker do
     end
   end
 
-  describe "#suppressed?" do
-    it "is false before the cap is reached" do
-      4.times { tracker.record(site_key, sink:, cap: 5) }
-
-      expect(tracker.suppressed?(site_key, sink:)).to be false
-    end
-
-    it "is true once the cap has been crossed" do
-      6.times { tracker.record(site_key, sink:, cap: 5) }
-
-      expect(tracker.suppressed?(site_key, sink:)).to be true
-    end
-
-    it "does not write anything merely by being checked" do
-      6.times { tracker.record(site_key, sink:, cap: 5) }
-
-      tracker.suppressed?(site_key, sink:)
-
-      expect(sink).not_to have_received(:write)
-    end
-  end
-
   describe "flushing a completed window" do
     it "writes exactly one suppression record with the true suppressed count " \
        "once the window resets", :aggregate_failures do
@@ -92,15 +70,40 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       window_start = 1_000.0
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-
       6.times { tracker.record(site_key, sink:, cap: 5, window: 60) }
-
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
+
+      next_window = Array.new(6) { tracker.record(site_key, sink:, cap: 5, window: 60) }
+
+      expect(next_window.first(5)).to all(be_a(Hash))
+      expect(next_window.last).to eq(:suppressed)
+    end
+
+    it "continues the site's numbering into the new window" do
+      window_start = 1_000.0
+      allow(Process).to receive(:clock_gettime)
+        .with(Process::CLOCK_MONOTONIC).and_return(window_start)
+      6.times { tracker.record(site_key, sink:, cap: 5, window: 60) }
+      allow(Process).to receive(:clock_gettime)
+        .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
+
       result = tracker.record(site_key, sink:, cap: 5, window: 60)
 
-      expect(result).not_to eq(:suppressed)
-      expect(result).to include(site_seq: 1)
+      expect(result).to include(site_seq: 6)
+    end
+
+    it "uses up no numbers on skipped calls" do
+      window_start = 1_000.0
+      allow(Process).to receive(:clock_gettime)
+        .with(Process::CLOCK_MONOTONIC).and_return(window_start)
+      9.times { tracker.record(site_key, sink:, cap: 5, window: 60) }
+      allow(Process).to receive(:clock_gettime)
+        .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
+
+      result = tracker.record(site_key, sink:, cap: 5, window: 60)
+
+      expect(result).to include(seq: 6, site_seq: 6)
     end
 
     it "keeps diff timing across a window reset (unaffected by cap bookkeeping)",

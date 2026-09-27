@@ -35,17 +35,10 @@ module Lba
         @global_seq = 0
       end
 
-      def suppressed?(site_key, sink: nil, window: DEFAULT_WINDOW)
-        site = site_for(site_key)
-        refresh_window!(site_key, site, sink:, window:, now: Process.clock_gettime(Process::CLOCK_MONOTONIC))
-
-        site[:suppressed]
-      end
-
       # Counts one call at a site, unless the site is capped for its current
       # window. A capped site skips calls until the window ends; the next call
       # after that writes one record counting the calls skipped, and the site
-      # starts a new window with its numbering back at 1.
+      # starts a new window with a fresh cap. Skipped calls take no numbers.
       #
       # @param site_key [String] the call site, as +"file:line"+
       # @param sink [IO, String, nil] where this site's skipped-call record goes
@@ -54,8 +47,7 @@ module Lba
       # @return [Hash{Symbol => Integer, Float, nil}, :suppressed] +:suppressed+
       #   if the site is capped; otherwise:
       #   * +:seq+ [Integer] - this record's order among all the process's records
-      #   * +:site_seq+ [Integer] - its order among the site's records in the
-      #     current window
+      #   * +:site_seq+ [Integer] - its order among the site's records
       #   * +:diff+ [Float, nil] - seconds since the site's previous record, or
       #     +nil+ for its first
       def record(site_key, sink: nil, cap: DEFAULT_CAP, window: DEFAULT_WINDOW)
@@ -65,9 +57,11 @@ module Lba
 
         return suppress!(site) if site[:suppressed]
 
-        increment!(site)
+        count_in_window!(site)
 
         return suppress!(site) if over_cap?(site, cap)
+
+        increment!(site)
 
         { seq: @global_seq, site_seq: site[:site_seq], diff: advance_diff!(site, now) }
       end
@@ -79,6 +73,7 @@ module Lba
       def site_for(site_key)
         sites[site_key] ||= {
           site_seq: 0,
+          window_count: 0,
           window_start: nil,
           suppressed: false,
           suppressed_count: 0,
@@ -102,9 +97,13 @@ module Lba
 
       def reset_window!(site, now)
         site[:window_start] = now
-        site[:site_seq] = 0
+        site[:window_count] = 0
         site[:suppressed] = false
         site[:suppressed_count] = 0
+      end
+
+      def count_in_window!(site)
+        site[:window_count] += 1
       end
 
       def increment!(site)
@@ -113,7 +112,7 @@ module Lba
       end
 
       def over_cap?(site, cap)
-        site[:site_seq] > cap
+        site[:window_count] > cap
       end
 
       def advance_diff!(site, now)

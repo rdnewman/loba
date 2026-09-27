@@ -14,8 +14,6 @@ module Lba
         @log_mirror = LogMirror.for(log:, logger:)
       end
 
-      def log? = !log_mirror.nil?
-
       # @return [Logger, nil] the Logger to also write to, or +nil+ for none
       def logger = log_mirror&.logger
 

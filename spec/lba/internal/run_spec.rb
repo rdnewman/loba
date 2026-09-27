@@ -22,25 +22,6 @@ RSpec.describe Lba::Internal::Run do
     end
   end
 
-  describe "#started_at" do
-    it "returns the monotonic clock reading taken at construction" do
-      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(12_345.678)
-
-      run = described_class.new
-
-      expect(run.started_at).to eq(12_345.678)
-    end
-
-    it "memoizes started_at across repeated calls" do
-      run = described_class.new
-      first_started_at = run.started_at
-
-      allow(Process).to receive(:clock_gettime).and_return(99_999.0)
-
-      expect(run.started_at).to eq(first_started_at)
-    end
-  end
-
   describe ".current" do
     after { reset_current(described_class) }
 

@@ -25,8 +25,6 @@ module Lba
       #   random hex digits, e.g. +"20260926T210626Z-894825-b10f"+
       attr_reader :id
 
-      attr_reader :started_at
-
       # @return [Integer] the id of the process that started the run
       attr_reader :pid
 
@@ -34,7 +32,6 @@ module Lba
       def initialize
         @pid = Process.pid
         @id = generate_id
-        @started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       end
 
     private
