@@ -31,6 +31,11 @@ Style/FrozenStringLiteralComment:
   Enabled: true
   EnforcedStyle: never
 
+# Conditional modifiers are limited to short, simple cases by judgment; this
+# cop only ever pushes toward more of them.
+Style/IfUnlessModifier:
+  Enabled: false
+
 Style/OptionalBooleanParameter:
   Enabled: false
 

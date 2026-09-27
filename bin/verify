@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Runs every check a change should pass before it's called done.
+# Usage: bin/verify [--performance]
+set -uo pipefail
+cd "$(dirname "$0")/.."
+
+status=0
+run() { echo "== $*"; "$@" || status=1; }
+
+run bundle exec rspec
+if [[ "${1:-}" == "--performance" ]]; then
+  run bundle exec rspec --tag performance
+fi
+run bundle exec rubocop
+run bundle exec ruby bin/yard_check.rb
+
+exit "$status"
