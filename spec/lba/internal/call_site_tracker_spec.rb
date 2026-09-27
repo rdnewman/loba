@@ -81,6 +81,53 @@ RSpec.describe Lba::Internal::CallSiteTracker do
         expect(result).to include(seq: 2)
       end
     end
+
+    describe "since_prev_ts" do
+      def stub_monotonic(time)
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(time)
+      end
+
+      it "is nil on the process's first ts record" do
+        tracker = described_class.new
+
+        result = tracker.record(type: "ts", file: "app/models/order.rb", line: 10)
+
+        expect(result).to include(since_prev_ts: nil)
+      end
+
+      it "is the elapsed time since the previous ts record, at any site" do
+        tracker = described_class.new
+        stub_monotonic(100.0)
+        tracker.record(type: "ts", file: "app/models/order.rb", line: 10)
+
+        stub_monotonic(100.5)
+        result = tracker.record(type: "ts", file: "app/models/invoice.rb", line: 20)
+
+        expect(result).to include(since_prev_ts: 0.5)
+      end
+
+      it "ignores val records between two ts records" do
+        tracker = described_class.new
+        stub_monotonic(100.0)
+        tracker.record(type: "ts", file: "app/models/order.rb", line: 10)
+        stub_monotonic(100.2)
+        tracker.record(type: "val", file: "app/models/order.rb", line: 11)
+
+        stub_monotonic(100.5)
+        result = tracker.record(type: "ts", file: "app/models/order.rb", line: 12)
+
+        expect(result).to include(since_prev_ts: 0.5)
+      end
+
+      it "is left off val records" do
+        tracker = described_class.new
+        tracker.record(type: "ts", file: "app/models/order.rb", line: 10)
+
+        result = tracker.record(type: "val", file: "app/models/order.rb", line: 11)
+
+        expect(result).not_to have_key(:since_prev_ts)
+      end
+    end
   end
 
   describe ".current" do
@@ -108,6 +155,17 @@ RSpec.describe Lba::Internal::CallSiteTracker do
         end
 
         expect(child_result).to include(seq: 1, site_seq: 1)
+      end
+
+      it "gives the child a fresh since_prev_ts instead of timing from the parent's ts" do
+        stub_call_site_tracker_at_exit
+        described_class.current.record(type: "ts", file: "app/models/order.rb", line: 10)
+
+        child_result = in_forked_child do
+          described_class.current.record(type: "ts", file: "app/models/order.rb", line: 10)
+        end
+
+        expect(child_result).to include(since_prev_ts: nil)
       end
     end
   end

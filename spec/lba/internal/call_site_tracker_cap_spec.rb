@@ -169,4 +169,32 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       expect(result).to include(diff: 61.0)
     end
   end
+
+  describe "since_prev_ts at a capped ts site" do
+    def stub_monotonic(time)
+      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(time)
+    end
+
+    it "is not advanced by skipped calls" do
+      stub_monotonic(100.0)
+      tracker.record(**site, type: "ts", sink:, cap: 1)
+      stub_monotonic(100.3)
+      tracker.record(**site, type: "ts", sink:, cap: 1)
+
+      stub_monotonic(100.5)
+      result = tracker.record(**site, type: "ts", line: 20, sink:, cap: 1)
+
+      expect(result).to include(since_prev_ts: 0.5)
+    end
+
+    it "times from the previous checkpoint, not the suppression record written just before it" do
+      stub_monotonic(100.0)
+      2.times { tracker.record(**site, type: "ts", sink: StringIO.new, cap: 1, window: 60) }
+
+      stub_monotonic(170.0)
+      result = tracker.record(**site, type: "ts", sink: StringIO.new, cap: 1, window: 60)
+
+      expect(result).to include(since_prev_ts: 70.0)
+    end
+  end
 end

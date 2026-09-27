@@ -34,6 +34,7 @@ module Lba
         @pid = Process.pid
         @sites = {}
         @global_seq = 0
+        @last_ts_mono_time = nil
       end
 
       # rubocop:disable Metrics/ParameterLists -- a site is a type, file, and line
@@ -58,6 +59,9 @@ module Lba
       #   * +:site_seq+ [Integer] - its order among the site's records
       #   * +:diff+ [Float, nil] - seconds since the site's previous record, or
       #     +nil+ for its first
+      #   * +:since_prev_ts+ [Float, nil] - +ts+ only: seconds since the
+      #     process's previous +ts+ record at any site, or +nil+ for its first.
+      #     Suppression records don't count as a previous +ts+.
       def record(type:, file:, line:, sink: nil, cap: DEFAULT_CAP, window: DEFAULT_WINDOW)
         now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         site_key = [type, file, line]
@@ -72,7 +76,12 @@ module Lba
 
         increment!(site)
 
-        { seq: @global_seq, site_seq: site[:site_seq], diff: advance_diff!(site, now) }
+        {
+          seq: @global_seq,
+          site_seq: site[:site_seq],
+          diff: advance_diff!(site, now),
+          **checkpoint_fields(type, now)
+        }
       end
       # rubocop:enable Metrics/ParameterLists
 
@@ -131,6 +140,22 @@ module Lba
                end
         site[:last_mono_time] = now
         diff
+      end
+
+      def checkpoint_fields(type, now)
+        if type == "ts"
+          { since_prev_ts: advance_since_prev_ts!(now) }
+        else
+          {}
+        end
+      end
+
+      def advance_since_prev_ts!(now)
+        since_prev_ts = if @last_ts_mono_time
+                          now - @last_ts_mono_time
+                        end
+        @last_ts_mono_time = now
+        since_prev_ts
       end
 
       def suppress!(site)
