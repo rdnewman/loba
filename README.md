@@ -34,15 +34,19 @@ end
 HelloWorld.new.hello("Charlie")
 ```
 
-appends a line like this to the run's file (shown here with some fields left out):
+appends a line like this to the run's file (shown here with some fields left
+out; run as `ruby hello_world.rb`, so `file` is the path Ruby loaded it by):
 
 ```json
 {"type":"val","file":"hello_world.rb","line":3,"class_name":"HelloWorld","method_name":"hello","label":"name","value":"Charlie","value_type":"String"}
 ```
 
 A Symbol names something in the caller (a local, an instance variable, a method,
-or an expression); anything else is recorded as given, optionally with
-`label:`. `Lba.value` is an alias.
+or an expression); anything else is recorded as given. `label:` sets the
+record's label either way. `Lba.value` is an alias.
+
+A Symbol is evaluated as code in the caller, so pass only Symbols you wrote,
+never one built from outside input (see [docs/val.md](docs/val.md#caution-what-gets-recorded)).
 
 See [docs/val.md](docs/val.md) for the full record format, options (including
 logging to `Rails.logger` or any `Logger`), where records are written, and

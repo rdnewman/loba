@@ -99,7 +99,7 @@ file.
 | `mono_time` | A monotonic clock reading, unaffected by system clock changes |
 | `site_seq` | Order of this record among records from the same call site (file and line) |
 | `diff` | Seconds since the previous record from the same call site; `null` for the first |
-| `file`, `line` | Where `Lba.val` was called |
+| `file`, `line` | Where `Lba.val` was called; `file` is the path Ruby loaded that file by, usually absolute inside an app |
 | `class_name` | The caller's class, or the class itself inside a class method; `"<anonymous class>"` for an unnamed one |
 | `method_name` | The caller's method; `"<anonymous method>"` outside any method |
 | `method_type` | `"instance"` or `"class"` |
