@@ -25,7 +25,8 @@ RSpec.describe Lba::Internal::CallSiteTracker do
 
         flushed = JSON.parse(sink.string.lines.last)
         expect(flushed).to include(
-          "site" => site_key, "suppressed" => true, "suppressed_count" => 8
+          "file" => "app/models/order.rb", "line" => 10,
+          "suppressed" => true, "suppressed_count" => 8
         )
       end
 
@@ -44,8 +45,9 @@ RSpec.describe Lba::Internal::CallSiteTracker do
 
         order_flushed = JSON.parse(order_sink.string.lines.last)
         invoice_flushed = JSON.parse(invoice_sink.string.lines.last)
-        expect(order_flushed).to include("site" => order_key, "suppressed_count" => 1)
-        expect(invoice_flushed).to include("site" => invoice_key, "suppressed_count" => 4)
+        expect(order_flushed).to include("file" => "app/models/order.rb", "suppressed_count" => 1)
+        expect(invoice_flushed)
+          .to include("file" => "app/models/invoice.rb", "suppressed_count" => 4)
       end
 
       it "does not write anything for a site that never crossed its cap" do

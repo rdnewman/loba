@@ -1,3 +1,4 @@
+require_relative "record_stamp"
 require_relative "writer"
 
 module Lba
@@ -143,15 +144,19 @@ module Lba
       end
 
       def flush!(site_key, site, sink:)
-        Writer.write(
-          {
-            type: "val",
-            site: site_key,
-            suppressed: true,
-            suppressed_count: site[:suppressed_count]
-          },
-          sink:
-        )
+        @global_seq += 1
+        Writer.write(suppression_record(site_key, site), sink:)
+      end
+
+      def suppression_record(site_key, site)
+        file, _, line = site_key.rpartition(":")
+        {
+          **RecordStamp.fields(seq: @global_seq, type: "val"),
+          file:,
+          line: line.to_i,
+          suppressed: true,
+          suppressed_count: site[:suppressed_count]
+        }
       end
     end
   end

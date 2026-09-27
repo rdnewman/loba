@@ -43,6 +43,8 @@ RSpec.describe Lba::Internal::CallSiteTracker do
   end
 
   describe "flushing a completed window" do
+    # rubocop:disable-next RSpec/ExampleLength -- the window setup and the full
+    # record check both need their lines.
     it "writes exactly one suppression record with the true suppressed count " \
        "once the window resets", :aggregate_failures do
       sink = StringIO.new
@@ -62,8 +64,29 @@ RSpec.describe Lba::Internal::CallSiteTracker do
 
       flushed = JSON.parse(lines.first)
       expect(flushed).to include(
-        "type" => "val", "site" => site_key, "suppressed" => true, "suppressed_count" => 7
+        "type" => "val", "file" => "app/models/order.rb", "line" => 10,
+        "suppressed" => true, "suppressed_count" => 7
       )
+    end
+
+    it "stamps the suppression record like any other record, with the next seq",
+       :aggregate_failures do
+      sink = StringIO.new
+      window_start = 1_000.0
+      allow(Process).to receive(:clock_gettime)
+        .with(Process::CLOCK_MONOTONIC).and_return(window_start)
+      6.times { tracker.record(site_key, sink:, cap: 5, window: 60) }
+      allow(Process).to receive(:clock_gettime)
+        .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
+
+      next_record = tracker.record(site_key, sink:, cap: 5, window: 60)
+
+      flushed = JSON.parse(sink.string, symbolize_names: true)
+      expect(flushed).to include(
+        schema: 1, run_id: Lba::Internal::Run.current.id, seq: 6, mono_time: 1_061.0
+      )
+      expect(flushed[:wall_time]).to be_a(Float)
+      expect(next_record).to include(seq: 7)
     end
 
     it "resets the site's cap so the new window starts fresh", :aggregate_failures do
@@ -103,7 +126,8 @@ RSpec.describe Lba::Internal::CallSiteTracker do
 
       result = tracker.record(site_key, sink:, cap: 5, window: 60)
 
-      expect(result).to include(seq: 6, site_seq: 6)
+      # seq 6 went to the suppression record written as the window rolled over.
+      expect(result).to include(seq: 7, site_seq: 6)
     end
 
     it "keeps diff timing across a window reset (unaffected by cap bookkeeping)",

@@ -94,10 +94,10 @@ file.
 | `schema` | Record format version, currently `1` |
 | `run_id` | This process run, e.g. `20260926T210626Z-894825-b10f` |
 | `seq` | Order of this record among all records in the run |
-| `site_seq` | Order of this record among records from the same call site (file and line) |
 | `type` | `"val"` |
 | `wall_time` | Seconds since the epoch, when recorded |
 | `mono_time` | A monotonic clock reading, unaffected by system clock changes |
+| `site_seq` | Order of this record among records from the same call site (file and line) |
 | `diff` | Seconds since the previous record from the same call site; `null` for the first |
 | `file`, `line` | Where `Lba.val` was called |
 | `class_name` | The caller's class, or the class itself inside a class method; `"<anonymous class>"` for an unnamed one |
@@ -154,8 +154,12 @@ To keep a record, and the cost of making it, bounded:
   noting how many calls were skipped:
 
   ```json
-  {"type":"val","site":"app/models/order.rb:55","suppressed":true,"suppressed_count":1250}
+  {"schema":1,"run_id":"20260927T162656Z-1108765-4c1d","seq":501,"type":"val","wall_time":1790526416.5963955,"mono_time":1061.0,"file":"app/models/order.rb","line":55,"suppressed":true,"suppressed_count":1246}
   ```
+
+  It opens with the same fields as every record and takes the next `seq`, but
+  has no `site_seq`, caller details, or value. Skipped calls take no numbers, so
+  `seq` and `site_seq` never skip.
 
   A process killed without running its exit handlers (`kill -9`, or `exit!`)
   loses that last count.

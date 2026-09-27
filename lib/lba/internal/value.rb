@@ -71,13 +71,8 @@ module Lba
 
       def common_fields
         {
-          schema: 1,
-          run_id: Run.current.id,
-          seq: tracked[:seq],
+          **RecordStamp.fields(seq: tracked[:seq], type: "val"),
           site_seq: tracked[:site_seq],
-          type: "val",
-          wall_time: Time.now.to_f,
-          mono_time: Process.clock_gettime(Process::CLOCK_MONOTONIC),
           diff: tracked[:diff]
         }
       end
