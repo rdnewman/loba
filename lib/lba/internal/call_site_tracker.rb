@@ -1,5 +1,4 @@
-require_relative "call_site_tracker/window"
-require_relative "records/suppression"
+require_relative "call_site_tracker/site"
 
 module Lba
   module Internal
@@ -64,21 +63,13 @@ module Lba
       #     Suppression records don't count as a previous +ts+.
       def record(type:, file:, line:, sink: nil, cap: DEFAULT_CAP, window: DEFAULT_WINDOW)
         now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        site_key = [type, file, line]
-        site = site_for(site_key)
-        refresh!(site_key, site, sink:, now:, window:)
+        site = site_for(type:, file:, line:)
+        refresh!(site, sink:, now:, window:)
 
-        site[:window].count_call(cap:)
-        return :suppressed if site[:window].skipping?
+        site.count_call(cap:)
+        return :suppressed if site.skipping?
 
-        increment!(site)
-
-        {
-          seq: @global_seq,
-          site_seq: site[:site_seq],
-          diff: advance_diff!(site, now),
-          **checkpoint_fields(type, now)
-        }
+        { seq: next_seq!, **site.advance(now), **checkpoint_fields(type, now) }
       end
       # rubocop:enable Metrics/ParameterLists
 
@@ -86,33 +77,15 @@ module Lba
 
       attr_reader :sites
 
-      def site_for(site_key)
-        sites[site_key] ||= { site_seq: 0, last_mono_time: nil, sink: nil, window: Window.new }
+      def site_for(type:, file:, line:)
+        sites[[type, file, line]] ||= Site.new(type:, file:, line:)
       end
 
-      # A window that ends here reports its skipped calls before this call counts.
-      def refresh!(site_key, site, sink:, now:, window:)
-        remember_sink!(site, sink)
-        flush!(site_key, site, site[:window].roll(now:, length: window))
-      end
-
-      def remember_sink!(site, sink)
-        return unless sink
-
-        site[:sink] = sink
-      end
-
-      def increment!(site)
-        site[:site_seq] += 1
-        @global_seq += 1
-      end
-
-      def advance_diff!(site, now)
-        diff = if site[:last_mono_time]
-                 now - site[:last_mono_time]
-               end
-        site[:last_mono_time] = now
-        diff
+      # A window that ends here reports its skipped calls, taking the next seq,
+      # before this call counts.
+      def refresh!(site, sink:, now:, window:)
+        site.remember_sink(sink)
+        site.roll(now:, length: window) { next_seq! }
       end
 
       def checkpoint_fields(type, now)
@@ -138,19 +111,13 @@ module Lba
       end
 
       def flush_all!
-        sites.each do |site_key, site|
-          flush!(site_key, site, site[:window].skipped)
+        sites.each_value do |site|
+          site.flush { next_seq! }
         end
       end
 
-      def flush!(site_key, site, suppressed_count)
-        return if suppressed_count.zero?
-
-        type, file, line = site_key
+      def next_seq!
         @global_seq += 1
-        Records::Suppression.write(
-          type:, file:, line:, suppressed_count:, seq: @global_seq, sink: site[:sink]
-        )
       end
     end
   end

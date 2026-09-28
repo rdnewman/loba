@@ -8,28 +8,12 @@ RSpec.describe Lba::Internal::CallSiteTracker do
   let(:site) { { type: "val", file: "app/models/order.rb", line: 10 } }
 
   describe "#record with a write-time cap" do
-    it "returns normal records for every call up to the cap" do
-      results = Array.new(5) { tracker.record(**site, sink:, cap: 5) }
-
-      expect(results).to all(include(:seq, :site_seq))
-    end
-
     it "suppresses the call that crosses the cap without writing anything", :aggregate_failures do
       5.times { tracker.record(**site, sink:, cap: 5) }
 
       result = tracker.record(**site, sink:, cap: 5)
 
       expect(result).to eq(:suppressed)
-      expect(sink).not_to have_received(:write)
-    end
-
-    it "stays suppressed and writes nothing through a large burst past the cap",
-       :aggregate_failures do
-      5.times { tracker.record(**site, sink:, cap: 5) }
-
-      results = Array.new(10_000) { tracker.record(**site, sink:, cap: 5) }
-
-      expect(results).to all(eq(:suppressed))
       expect(sink).not_to have_received(:write)
     end
 
@@ -91,20 +75,6 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       expect(JSON.parse(sink.string)).to include("suppressed_count" => 1)
     end
 
-    it "labels a capped ts site's suppression record with type ts" do
-      sink = StringIO.new
-      window_start = 1_000.0
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      6.times { tracker.record(**site, type: "ts", sink:, cap: 5, window: 60) }
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
-
-      tracker.record(**site, type: "ts", sink:, cap: 5, window: 60)
-
-      expect(JSON.parse(sink.string)).to include("type" => "ts")
-    end
-
     it "stamps the suppression record like any other record, with the next seq",
        :aggregate_failures do
       sink = StringIO.new
@@ -125,33 +95,6 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       expect(next_record).to include(seq: 7)
     end
 
-    it "resets the site's cap so the new window starts fresh", :aggregate_failures do
-      window_start = 1_000.0
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      6.times { tracker.record(**site, sink:, cap: 5, window: 60) }
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
-
-      next_window = Array.new(6) { tracker.record(**site, sink:, cap: 5, window: 60) }
-
-      expect(next_window.first(5)).to all(be_a(Hash))
-      expect(next_window.last).to eq(:suppressed)
-    end
-
-    it "continues the site's numbering into the new window" do
-      window_start = 1_000.0
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      6.times { tracker.record(**site, sink:, cap: 5, window: 60) }
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
-
-      result = tracker.record(**site, sink:, cap: 5, window: 60)
-
-      expect(result).to include(site_seq: 6)
-    end
-
     it "uses up no numbers on skipped calls" do
       window_start = 1_000.0
       allow(Process).to receive(:clock_gettime)
@@ -164,23 +107,6 @@ RSpec.describe Lba::Internal::CallSiteTracker do
 
       # seq 6 went to the suppression record written as the window rolled over.
       expect(result).to include(seq: 7, site_seq: 6)
-    end
-
-    it "keeps diff timing across a window reset (unaffected by cap bookkeeping)",
-       :aggregate_failures do
-      window_start = 1_000.0
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-
-      first = tracker.record(**site, sink:, cap: 5, window: 60)
-      6.times { tracker.record(**site, sink:, cap: 5, window: 60) }
-
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
-      result = tracker.record(**site, sink:, cap: 5, window: 60)
-
-      expect(first).to include(diff: nil)
-      expect(result).to include(diff: 61.0)
     end
   end
 

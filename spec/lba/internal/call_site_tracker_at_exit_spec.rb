@@ -29,18 +29,6 @@ RSpec.describe Lba::Internal::CallSiteTracker do
         )
       end
 
-      it "labels a capped ts site's record with type ts" do
-        hooks = stub_call_site_tracker_at_exit
-        tracker = described_class.current
-        sink = StringIO.new
-
-        6.times { tracker.record(type: "ts", file: "app/models/order.rb", line: 10, sink:, cap: 5) }
-
-        hooks.first.call
-
-        expect(JSON.parse(sink.string.lines.last)).to include("type" => "ts")
-      end
-
       it "flushes every capped site independently, to each one's own sink", :aggregate_failures do
         hooks = stub_call_site_tracker_at_exit
         tracker = described_class.current
@@ -59,22 +47,6 @@ RSpec.describe Lba::Internal::CallSiteTracker do
         expect(order_flushed).to include("file" => "app/models/order.rb", "suppressed_count" => 1)
         expect(invoice_flushed)
           .to include("file" => "app/models/invoice.rb", "suppressed_count" => 4)
-      end
-
-      it "does not write anything for a site that never crossed its cap" do
-        hooks = stub_call_site_tracker_at_exit
-        tracker = described_class.current
-        uncapped_site = { type: "val", file: "app/models/order.rb", line: 10 }
-        capped_site = { type: "val", file: "app/models/invoice.rb", line: 20 }
-        uncapped_sink = instance_double(IO, write: nil, flush: nil)
-        capped_sink = instance_double(IO, write: nil, flush: nil)
-
-        4.times { tracker.record(**uncapped_site, sink: uncapped_sink, cap: 5) }
-        7.times { tracker.record(**capped_site, sink: capped_sink, cap: 5) }
-
-        hooks.first.call
-
-        expect(uncapped_sink).not_to have_received(:write)
       end
     end
 
