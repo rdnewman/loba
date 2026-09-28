@@ -1,3 +1,4 @@
+require_relative "call_site_tracker/window"
 require_relative "records/suppression"
 
 module Lba
@@ -65,13 +66,10 @@ module Lba
         now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         site_key = [type, file, line]
         site = site_for(site_key)
-        refresh_window!(site_key, site, sink:, window:, now:)
+        refresh!(site_key, site, sink:, now:, window:)
 
-        return suppress!(site) if site[:suppressed]
-
-        count_in_window!(site)
-
-        return suppress!(site) if over_cap?(site, cap)
+        site[:window].count_call(cap:)
+        return :suppressed if site[:window].skipping?
 
         increment!(site)
 
@@ -89,48 +87,24 @@ module Lba
       attr_reader :sites
 
       def site_for(site_key)
-        sites[site_key] ||= {
-          site_seq: 0,
-          window_count: 0,
-          window_start: nil,
-          suppressed: false,
-          suppressed_count: 0,
-          last_mono_time: nil
-        }
+        sites[site_key] ||= { site_seq: 0, last_mono_time: nil, sink: nil, window: Window.new }
       end
 
-      def refresh_window!(site_key, site, sink:, window:, now:)
-        site[:sink] = sink if sink
-        site[:window_start] ||= now
-
-        return unless window_expired?(site, now, window)
-
-        flush!(site_key, site, sink:) if site[:suppressed]
-        reset_window!(site, now)
+      # A window that ends here reports its skipped calls before this call counts.
+      def refresh!(site_key, site, sink:, now:, window:)
+        remember_sink!(site, sink)
+        flush!(site_key, site, site[:window].roll(now:, length: window))
       end
 
-      def window_expired?(site, now, window)
-        now - site[:window_start] >= window
-      end
+      def remember_sink!(site, sink)
+        return unless sink
 
-      def reset_window!(site, now)
-        site[:window_start] = now
-        site[:window_count] = 0
-        site[:suppressed] = false
-        site[:suppressed_count] = 0
-      end
-
-      def count_in_window!(site)
-        site[:window_count] += 1
+        site[:sink] = sink
       end
 
       def increment!(site)
         site[:site_seq] += 1
         @global_seq += 1
-      end
-
-      def over_cap?(site, cap)
-        site[:window_count] > cap
       end
 
       def advance_diff!(site, now)
@@ -157,13 +131,6 @@ module Lba
         since_prev_ts
       end
 
-      def suppress!(site)
-        site[:suppressed] = true
-        site[:suppressed_count] += 1
-
-        :suppressed
-      end
-
       # Forked children inherit this hook; the pid check keeps them from
       # re-flushing the parent's suppressed sites.
       def register_at_exit!
@@ -172,15 +139,17 @@ module Lba
 
       def flush_all!
         sites.each do |site_key, site|
-          flush!(site_key, site, sink: site[:sink]) if site[:suppressed]
+          flush!(site_key, site, site[:window].skipped)
         end
       end
 
-      def flush!(site_key, site, sink:)
+      def flush!(site_key, site, suppressed_count)
+        return if suppressed_count.zero?
+
         type, file, line = site_key
         @global_seq += 1
         Records::Suppression.write(
-          type:, file:, line:, suppressed_count: site[:suppressed_count], seq: @global_seq, sink:
+          type:, file:, line:, suppressed_count:, seq: @global_seq, sink: site[:sink]
         )
       end
     end

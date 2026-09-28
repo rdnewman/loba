@@ -77,6 +77,20 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       )
     end
 
+    it "writes to the site's sink even when the call that ends the window passes none" do
+      sink = StringIO.new
+      window_start = 1_000.0
+      allow(Process).to receive(:clock_gettime)
+        .with(Process::CLOCK_MONOTONIC).and_return(window_start)
+      6.times { tracker.record(**site, sink:, cap: 5, window: 60) }
+      allow(Process).to receive(:clock_gettime)
+        .with(Process::CLOCK_MONOTONIC).and_return(window_start + 61)
+
+      tracker.record(**site, cap: 5, window: 60)
+
+      expect(JSON.parse(sink.string)).to include("suppressed_count" => 1)
+    end
+
     it "labels a capped ts site's suppression record with type ts" do
       sink = StringIO.new
       window_start = 1_000.0
