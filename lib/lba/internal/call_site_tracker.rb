@@ -64,12 +64,12 @@ module Lba
       def record(type:, file:, line:, sink: nil, cap: DEFAULT_CAP, window: DEFAULT_WINDOW)
         now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         site = site_for(type:, file:, line:)
-        refresh!(site, sink:, now:, window:)
+        # A record counting the site's skipped calls takes its seq, through the
+        # block, before this call takes the next one.
+        numbered = site.record_call(now:, cap:, window_length: window, sink:) { next_seq! }
+        return :suppressed if numbered == :suppressed
 
-        site.count_call(cap:)
-        return :suppressed if site.skipping?
-
-        { seq: next_seq!, **site.advance(now), **checkpoint_fields(type, now) }
+        { seq: next_seq!, **numbered, **checkpoint_fields(type, now) }
       end
       # rubocop:enable Metrics/ParameterLists
 
@@ -79,13 +79,6 @@ module Lba
 
       def site_for(type:, file:, line:)
         sites[[type, file, line]] ||= Site.new(type:, file:, line:)
-      end
-
-      # A window that ends here reports its skipped calls, taking the next seq,
-      # before this call counts.
-      def refresh!(site, sink:, now:, window:)
-        site.remember_sink(sink)
-        site.roll(now:, length: window) { next_seq! }
       end
 
       def checkpoint_fields(type, now)

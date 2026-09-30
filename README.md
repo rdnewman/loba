@@ -104,6 +104,10 @@ Then run `bundle install`. Lba needs Ruby 3.2 or newer.
 
 After checking out the repo, run `bundle install`. Then:
 
+- `bin/verify` runs every check a change should pass: the specs, rubocop, and a
+  check that every public object has YARD docs with no rubocop directive leaked
+  into them. Add `--performance` to include the timing checks. It runs them all
+  even if one fails, and exits nonzero if any did.
 - `bundle exec rspec` runs the specs.
 - `bundle exec rspec --tag performance` runs the timing checks, which are left
   out of the default run because their results depend on the machine.

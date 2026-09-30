@@ -8,19 +8,6 @@ module Lba
       # times the site's records, remembers where they go, caps them through
       # its own Window, and writes the record counting any calls it skipped.
       class Site
-        # @return [String] the kind of record, e.g. +"val"+
-        attr_reader :type
-
-        # @return [String] the calling file
-        attr_reader :file
-
-        # @return [Integer] the calling line
-        attr_reader :line
-
-        # @return [IO, String, nil] where the site's records go; +nil+ until
-        #   a sink is given
-        attr_reader :sink
-
         # @param type [String] the kind of record, e.g. +"val"+
         # @param file [String] the calling file
         # @param line [Integer] the calling line
@@ -34,57 +21,58 @@ module Lba
           @window = Window.new
         end
 
-        # Numbers one more of the site's records.
+        # Handles one call at the site. If the call ends a window that
+        # skipped calls, first writes a record counting them. Then counts the
+        # call against the cap and, unless it's skipped, numbers it.
         #
         # @param now [Float] a monotonic clock reading
-        # @return [Hash{Symbol => Integer, Float, nil}]
-        #   * +:site_seq+ [Integer] - the record's order among the site's records
+        # @param cap [Integer] calls the site may number per window
+        # @param window_length [Numeric] window length, in seconds
+        # @param sink [IO, String, nil] where the site's records go; +nil+ keeps
+        #   the last sink given
+        # @yieldreturn [Integer] the +seq+ for a record counting skipped calls;
+        #   asked for only when one is written
+        # @return [Hash{Symbol => Integer, Float, nil}, :suppressed] +:suppressed+
+        #   if the call is skipped; otherwise:
+        #   * +:site_seq+ [Integer] - the call's order among the site's records
         #   * +:diff+ [Float, nil] - seconds since the site's previous record, or
         #     +nil+ for its first
-        def advance(now)
-          @site_seq += 1
-          { site_seq: @site_seq, diff: advance_diff!(now) }
+        def record_call(now:, cap:, window_length:, sink:, &)
+          remember_sink(sink)
+          roll(now:, length: window_length, &)
+          window.count_call(cap:)
+          return :suppressed if window.skipping?
+
+          advance(now)
         end
 
-        # @param sink [IO, String, nil] where the site's records go; +nil+
-        #   keeps the current sink
+        # Writes a record counting the calls the open window has skipped, if
+        # any; for when the process exits.
+        #
+        # @yieldreturn (see #record_call)
         # @return [void]
+        def flush(&)
+          write_suppression(window.skipped, &)
+        end
+
+      private
+
+        attr_reader :type, :file, :line, :sink, :window
+
         def remember_sink(sink)
           return unless sink
 
           @sink = sink
         end
 
-        # Rolls the site's window (see Window#roll). If that ends a window
-        # that skipped calls, writes a suppression record counting them.
-        #
-        # @param now [Float] a monotonic clock reading
-        # @param length [Numeric] window length, in seconds
-        # @yieldreturn [Integer] the suppression record's +seq+; asked for only
-        #   when one is written
-        # @return [void]
         def roll(now:, length:, &)
           write_suppression(window.roll(now:, length:), &)
         end
 
-        # Writes a suppression record for calls the open window has skipped,
-        # if any; for when the process exits.
-        #
-        # @yieldreturn (see #roll)
-        # @return [void]
-        def flush(&)
-          write_suppression(window.skipped, &)
+        def advance(now)
+          @site_seq += 1
+          { site_seq: @site_seq, diff: advance_diff!(now) }
         end
-
-        # @return (see Window#count_call)
-        def count_call(...) = window.count_call(...)
-
-        # @return (see Window#skipping?)
-        def skipping? = window.skipping?
-
-      private
-
-        attr_reader :window
 
         def write_suppression(suppressed_count)
           return if suppressed_count.zero?
