@@ -1,3 +1,5 @@
+require "stringio"
+
 RSpec.describe Lba::Internal::Settings do
   describe "#enabled?" do
     context "when in Rails and not in a production environment" do
@@ -47,6 +49,36 @@ RSpec.describe Lba::Internal::Settings do
     end
   end
 
+  describe "#sink" do
+    it "is the IO given" do
+      hide_const("Rails")
+      sink = StringIO.new
+
+      settings = described_class.new(sink:)
+
+      expect(settings.sink).to equal(sink)
+    end
+
+    it "is resolved from the sink given, or from none" do
+      hide_const("Rails")
+      allow(Lba::Internal::SinkResolver).to receive(:resolve).and_return("resolved.jsonl")
+
+      settings = described_class.new
+
+      expect(settings.sink).to eq("resolved.jsonl")
+    end
+
+    it "is resolved once, however often it's asked for" do
+      hide_const("Rails")
+      allow(Lba::Internal::SinkResolver).to receive(:resolve).and_return("resolved.jsonl")
+      settings = described_class.new
+
+      2.times { settings.sink }
+
+      expect(Lba::Internal::SinkResolver).to have_received(:resolve).once
+    end
+  end
+
   describe "when disabled" do
     it "does not validate or expose a logger" do
       stub_const("Rails", mock_rails(production: true))
@@ -54,6 +86,17 @@ RSpec.describe Lba::Internal::Settings do
       settings = described_class.new(logger: "not a logger")
 
       expect(settings.logger).to be_nil
+    end
+
+    it "does not resolve or expose a sink, so it never touches the filesystem",
+       :aggregate_failures do
+      stub_const("Rails", mock_rails(production: true))
+      allow(Lba::Internal::SinkResolver).to receive(:resolve)
+
+      settings = described_class.new(sink: "anywhere.jsonl")
+
+      expect(settings.sink).to be_nil
+      expect(Lba::Internal::SinkResolver).not_to have_received(:resolve)
     end
   end
 end

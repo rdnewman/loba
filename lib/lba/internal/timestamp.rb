@@ -45,21 +45,17 @@ module Lba
 
       def track
         CallSiteTracker.current.record(
-          type: "ts", file: caller_binding.file, line: caller_binding.line, sink: resolved_sink
+          type: "ts", file: caller_binding.file, line: caller_binding.line, sink: settings.sink
         )
       end
 
       def write(full_record)
-        Writer.write(full_record, sink: resolved_sink)
+        Writer.write(full_record, sink: settings.sink)
         settings.logger&.debug(JSON.generate(full_record))
       end
 
       def settings
-        @settings ||= Settings.new(log:, logger:)
-      end
-
-      def resolved_sink
-        @resolved_sink ||= SinkResolver.resolve(sink:)
+        @settings ||= Settings.new(log:, logger:, sink:)
       end
 
       def build_record
