@@ -1,13 +1,13 @@
 require "stringio"
 
-# Keeps the full Lba.val path cheap enough not to change the code it traces.
+# Keeps the full Lba.value path cheap enough not to change the code it traces.
 #
 # Timing checks vary by machine, so they're tagged :performance and run only
 # with `--tag performance`. Memory checks don't, so they run by default.
 #
 # Each example stays under CallSiteTracker's cap of 500 calls per site per
 # minute. Past it, calls take the cheaper suppressed path and skew the result.
-RSpec.describe Lba, ".val" do
+RSpec.describe Lba, ".value" do
   after { reset_current(Lba::Internal::CallSiteTracker) }
 
   def elapsed
@@ -31,7 +31,7 @@ RSpec.describe Lba, ".val" do
     sink = StringIO.new
 
     baseline = elapsed { iterations.times { Process.clock_gettime(Process::CLOCK_MONOTONIC) } }
-    measured = elapsed { iterations.times { described_class.val(42, sink:) } }
+    measured = elapsed { iterations.times { described_class.value(42, sink:) } }
 
     overhead_per_call = (measured - baseline) / iterations
 
@@ -40,7 +40,7 @@ RSpec.describe Lba, ".val" do
     expect(overhead_per_call).to be < 0.005
   end
 
-  # Bounds the noise Lba.val adds to an elapsed-time diff, which Lba.ts
+  # Bounds the noise Lba.value adds to an elapsed-time diff, which Lba.timestamp
   # reports. GC pauses set the tail and cost the same wall time on any
   # machine, so the bound is absolute and loose, not a multiple of the mean.
   it "keeps the 99th-percentile call under 10ms", :performance do
@@ -48,7 +48,7 @@ RSpec.describe Lba, ".val" do
     iterations = 300
     sink = StringIO.new
 
-    timings = Array.new(iterations) { elapsed { described_class.val(42, sink:) } }.sort
+    timings = Array.new(iterations) { elapsed { described_class.value(42, sink:) } }.sort
 
     p99 = timings[(iterations * 0.99).to_i]
     expect(p99).to be < 0.010
@@ -77,7 +77,7 @@ RSpec.describe Lba, ".val" do
   end
 
   # RubyVM::DebugInspector.open snapshots the whole stack, so its cost grows
-  # with depth, and Rails stacks run deep. Lba.val should pay that about once
+  # with depth, and Rails stacks run deep. Lba.value should pay that about once
   # per call, not once per field it reads.
   it "grows with stack depth about as much as one stack snapshot", :performance do
     stub_call_site_tracker_at_exit
@@ -87,7 +87,7 @@ RSpec.describe Lba, ".val" do
     one_snapshot = added_cost_at_depth(depth) do
       RubyVM::DebugInspector.open(&:backtrace_locations)
     end
-    one_val = added_cost_at_depth(depth) { described_class.val(42, sink:) }
+    one_val = added_cost_at_depth(depth) { described_class.value(42, sink:) }
 
     expect(one_val / one_snapshot).to be < 2.0
   end
@@ -100,7 +100,7 @@ RSpec.describe Lba, ".val" do
     iterations = 300
     sink = StringIO.new
 
-    allocations = allocations_during { iterations.times { described_class.val(42, sink:) } }
+    allocations = allocations_during { iterations.times { described_class.value(42, sink:) } }
 
     expect(allocations / iterations.to_f).to be < 500
   end
@@ -115,13 +115,13 @@ RSpec.describe Lba, ".val" do
     batch_size = 300
     sink = StringIO.new
 
-    batch_size.times { described_class.val(42, sink:) }
+    batch_size.times { described_class.value(42, sink:) }
     after_first_batch = clear_and_collect(sink)
-    batch_size.times { described_class.val(42, sink:) }
+    batch_size.times { described_class.value(42, sink:) }
     clear_and_collect(sink)
-    batch_size.times { described_class.val(42, sink:) }
+    batch_size.times { described_class.value(42, sink:) }
     clear_and_collect(sink)
-    batch_size.times { described_class.val(42, sink:) }
+    batch_size.times { described_class.value(42, sink:) }
     after_later_batches = clear_and_collect(sink)
 
     # Growth across batches would mean something holds references it should

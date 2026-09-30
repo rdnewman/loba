@@ -1,0 +1,135 @@
+# Timestamp records: `Lba.ts`
+
+`Lba.ts` records a checkpoint: that a line of code was reached, with the class,
+method, file, and line it was called from, and the seconds since the previous
+checkpoint, as one JSON object per line in the current run's sink.
+
+```ruby
+Lba.ts                          # a checkpoint
+Lba.ts label: "card charged"    # a checkpoint with a name
+```
+
+`Lba.ts` is shorthand for `Lba.timestamp`.
+
+## Examples
+
+Each example shows the fields that matter to it; every record also carries the
+fields listed under [The record](#the-record).
+
+### Example 1: timing a stretch of code
+
+```ruby
+class Cart
+  def checkout
+Lba.ts              # put Lba statements at the far left to help remember to remove them
+    charge_card
+Lba.ts label: "card charged"
+  end
+end
+```
+
+```json
+{"seq":1,"type":"ts","site_seq":1,"since_prev_ts":null,"line":3,"class_name":"Cart","method_name":"checkout","label":null}
+{"seq":2,"type":"ts","site_seq":1,"since_prev_ts":0.25351782900543185,"line":5,"class_name":"Cart","method_name":"checkout","label":"card charged"}
+```
+
+The first checkpoint of a run has no previous one, so its `since_prev_ts` is
+`null`. The second shows `charge_card` took about a quarter of a second.
+
+### Example 2: counting how often a line is reached
+
+```ruby
+def import(rows)
+  rows.each do |row|
+Lba.ts
+  end
+end
+```
+
+Each pass writes a record from the same line, and `site_seq` counts them: 1, 2,
+3, and so on. A checkpoint inside a block reports the method around it.
+
+## Where records go
+
+The same place as `Lba.val`'s records: this run's file, `LBA_SINK`, or the
+`sink:` option (see [Where records go](val.md#where-records-go)). Unless a
+`sink:` sends them elsewhere, checkpoints and values from one run share one
+file, and they always share one `seq`.
+
+## The record
+
+| Field | Meaning |
+|---|---|
+| `schema` | Record format version, currently `1` |
+| `run_id` | This process run, e.g. `20260930T135402Z-5-39e8` |
+| `seq` | Order of this record among all records in the run, values included |
+| `type` | `"ts"` |
+| `wall_time` | Seconds since the epoch, when recorded |
+| `mono_time` | A monotonic clock reading, unaffected by system clock changes |
+| `site_seq` | Order of this record among checkpoints from the same call site (file and line) |
+| `since_prev_ts` | Seconds since the previous checkpoint anywhere in the run; `null` for the first |
+| `file`, `line` | Where `Lba.ts` was called; `file` is the path Ruby loaded that file by, usually absolute inside an app |
+| `class_name` | The caller's class, or the class itself inside a class method; `"<anonymous class>"` for an unnamed one |
+| `method_name` | The caller's method; `"<anonymous method>"` outside any method |
+| `method_type` | `"instance"` or `"class"` |
+| `label` | The given label, or `null` |
+
+### How `since_prev_ts` is measured
+
+- It counts from the previous **checkpoint**, from any line. A `Lba.val`
+  between two checkpoints doesn't change it.
+- It's measured on the monotonic clock, so a system clock change can't make it
+  wrong or negative. On Linux that clock doesn't advance while the machine is
+  suspended: across a sleep, `since_prev_ts` shows only the time awake, and the
+  two records' `wall_time` show the full gap.
+- Calls skipped by the [limit](#limits), and the record counting them, don't
+  count as a previous checkpoint. `since_prev_ts` always measures from a
+  checkpoint record you can find in the file.
+
+A value record's `diff` is different: it measures from the previous record at
+the *same* call site. Checkpoint records have no `diff`.
+
+## Options
+
+| Option | Default | Effect |
+|---|---|---|
+| `label:` | none | A name for the checkpoint. A String or Symbol, stripped of surrounding spaces; anything else gives no label. |
+| `log:` | `false`, or `true` if `logger:` is given | `true` also writes the record to `Rails.logger` (or `logger:`). `false` never logs, even if `logger:` is given. |
+| `logger:` | none | A `Logger` to also write the record to. Anything other than a `Logger` raises `Lba::InvalidLoggerOptionError`. |
+| `sink:` | this run's file | A path or IO to write to instead. |
+
+```ruby
+Lba.ts label: "reached step A"
+Lba.ts log: true
+Lba.ts logger: Logger.new($stderr)
+```
+
+Logging works as it does for `Lba.val`: the same JSON, at `debug` level, in
+addition to the sink. Outside Rails, `log: true` logs nothing unless `logger:`
+is also given.
+
+An unknown option raises Ruby's `ArgumentError` at the call.
+
+## Limits
+
+Each call site writes at most 500 checkpoints a minute, as with `Lba.val`.
+Calls past that write nothing; the first call to that site after the minute, or
+the process exiting normally, writes one record noting how many were skipped:
+
+```json
+{"schema":1,"run_id":"20260930T135416Z-5-e790","seq":501,"type":"ts","wall_time":1790776456.2902832,"mono_time":47675.468684261,"file":"app/models/cart.rb","line":10,"suppressed":true,"suppressed_count":3}
+```
+
+A `Lba.ts` and a `Lba.val` on the same line are separate call sites, each with
+its own `site_seq` and its own limit.
+
+## Errors
+
+`Lba.ts` runs none of the caller's code, so it has nothing to record as an
+error. An error raised from inside lba itself is a bug in lba, and is raised
+at the call.
+
+## Environment notes
+
+`Lba.ts` does nothing inside a Rails production environment, and there is no
+override.

@@ -1,8 +1,6 @@
 require "securerandom"
 
 module Lba
-  # lba's implementation, behind the public +Lba.val+. Not part of the public
-  # API; any of it may change.
   module Internal
     # One process's run: every record it writes carries the run's id, and its
     # records share one sink file.

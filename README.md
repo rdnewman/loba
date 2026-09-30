@@ -2,9 +2,8 @@
 
 Structured, AI-consumable trace-debugging.
 
-Lba is a successor to [loba](https://github.com/rdnewman/loba), rebuilt for a
-different primary reader: an AI coding agent (or a human pairing alongside one)
-rather than a human eyeballing colorized `$stdout` scrollback.
+Lba's primary reader is an AI coding agent (or a human pairing alongside one),
+not a human scanning terminal output.
 
 Status: early build, not yet released.
 
@@ -13,10 +12,9 @@ _This documentation was drafted with AI assistance and reviewed by the author._
 ## Overview
 
 Lba statements (`Lba.val`, `Lba.ts`) are terse, minimally-invasive, and meant to be
-removed when you're done — same ethos as loba. Where loba writes a single
-colorized text line, Lba appends one structured JSON record per line to a
-per-run log file, so the trace can be aggregated, diffed across runs, and queried
-by the `lba` CLI (planned) instead of read raw.
+removed when you're done. Each one appends a structured JSON record, one per
+line, to a per-run log file, so the trace can be aggregated, diffed across runs,
+and queried by the `lba` CLI (planned) instead of read raw.
 
 ## Usage
 
@@ -43,7 +41,7 @@ out; run as `ruby hello_world.rb`, so `file` is the path Ruby loaded it by):
 
 A Symbol names something in the caller (a local, an instance variable, a method,
 or an expression); anything else is recorded as given. `label:` sets the
-record's label either way. `Lba.value` is an alias.
+record's label either way. `Lba.val` is shorthand for `Lba.value`.
 
 A Symbol is evaluated as code in the caller, so pass only Symbols you wrote,
 never one built from outside input (see [docs/val.md](docs/val.md#caution-what-gets-recorded)).
@@ -54,15 +52,38 @@ limits.
 
 ### Timestamp records: `Lba.ts`
 
-Not built yet.
+Records a checkpoint: that a line was reached, with the same caller details and
+the seconds since the previous checkpoint:
+
+```ruby
+class Cart
+  def checkout
+Lba.ts
+    charge_card
+Lba.ts label: "card charged"
+  end
+end
+```
+
+appends two lines like these (again with some fields left out):
+
+```json
+{"type":"ts","line":3,"class_name":"Cart","method_name":"checkout","site_seq":1,"since_prev_ts":null,"label":null}
+{"type":"ts","line":5,"class_name":"Cart","method_name":"checkout","site_seq":1,"since_prev_ts":0.25351782900543185,"label":"card charged"}
+```
+
+`since_prev_ts` is `null` for a run's first checkpoint; `site_seq` counts how
+many times each line has been reached. `label:` names a checkpoint. `Lba.ts` is
+shorthand for `Lba.timestamp`.
+
+See [docs/ts.md](docs/ts.md) for the full record format, options, and limits.
 
 ## Environment notes
 
 Lba statements are meant for development and test. Inside a Rails production
-environment they do nothing, and unlike loba there is no `production: true`
-override: records are written to files meant to be read later, and captured
-values are stored as-is, so leaving tracing on in production could persist
-secrets or personal data indefinitely.
+environment they do nothing, and there is no override: records are written to
+files meant to be read later, and captured values are stored as-is, so leaving
+tracing on in production could persist secrets or personal data indefinitely.
 
 Records go to `tmp/lba/runs/` under `Rails.root` in Rails, or `.lba/runs/` under
 the current directory otherwise. Add that directory to `.gitignore`.

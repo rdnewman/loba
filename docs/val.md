@@ -9,7 +9,7 @@ Lba.val some_value                   # anything else is recorded as given
 Lba.val some_value, label: "Name"    # a label for a value that can't name itself
 ```
 
-`Lba.value` is an alias for `Lba.val`.
+`Lba.val` is shorthand for `Lba.value`.
 
 ## Examples
 
@@ -136,8 +136,7 @@ level. The sink is always written; logging is an addition, not a replacement.
 Outside Rails there is no default logger, so `log: true` logs nothing unless
 `logger:` is also given.
 
-An unknown option, including loba's `production:`, `logdev:`, and `out:`, raises
-Ruby's `ArgumentError` at the call.
+An unknown option raises Ruby's `ArgumentError` at the call.
 
 ## Limits
 
@@ -181,9 +180,8 @@ Exceptions outside `StandardError`, such as `Interrupt`, are not caught.
 ## Environment notes
 
 `Lba.val` does nothing inside a Rails production environment, and there is no
-override. Unlike loba's `$stdout` line, a record is written to a file meant to
-be read later, so in production it could persist secrets or personal data
-indefinitely.
+override. A record is written to a file meant to be read later, so in
+production it could persist secrets or personal data indefinitely.
 
 ## Caution: what gets recorded
 
@@ -192,12 +190,3 @@ indefinitely.
   sink.
 - A Symbol argument is evaluated as code in the caller. Pass Symbols you wrote,
   never one built from outside input.
-
-## Differences from loba
-
-- Records are JSON lines in a file, not colored text on `$stdout`.
-- There is no `production:` override, and no `logdev:` or `out:`.
-- `inspect:` only affects values with no JSON form; loba applied it to every
-  value.
-- A value given without a label records `label: null`, where loba printed
-  `[unknown value]`.

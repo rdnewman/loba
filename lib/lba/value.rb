@@ -22,8 +22,7 @@ module Lba
   # @param sink [IO, String] where to write instead of the default: an IO, or a
   #   file path (see the +LBA_SINK+ environment variable for a process-wide override)
   # @return [void]
-  # @raise [ArgumentError] for an unknown keyword, such as loba's removed
-  #   +production:+, +logdev:+, or +out:+
+  # @raise [ArgumentError] for an unknown keyword, such as +production:+
   # @raise [InvalidLoggerOptionError] if +logger+ is not a +Logger+
   #
   # @example Using a Symbol as the argument
@@ -40,7 +39,7 @@ module Lba
   #   Lba.val order.total, label: "Order total"
   # @example Also writing to Rails.logger
   #   Lba.val :name, log: true
-  def self.val(argument, label: nil, inspect: true, log: nil, logger: nil, sink: nil)
+  def self.value(argument, label: nil, inspect: true, log: nil, logger: nil, sink: nil)
     Internal::Value.record(argument, label:, inspect:, log:, logger:, sink:)
   end
   # rubocop:enable Metrics/ParameterLists

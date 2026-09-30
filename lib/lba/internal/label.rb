@@ -8,7 +8,7 @@ module Lba
       # @return (see #infer)
       def self.infer(...) = new(...).infer
 
-      # @param argument [Symbol, Object] the argument given to +Lba.val+
+      # @param argument [Symbol, Object] the argument given to +Lba.value+
       # @param label [String, Symbol, Object, nil] the explicit label given, if any
       def initialize(argument:, label: nil)
         @argument = argument

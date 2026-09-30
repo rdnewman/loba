@@ -418,7 +418,8 @@ RSpec.describe Lba::Internal::CallerBinding do
       end
     end
 
-    # loba documents this form for expressions a bare Symbol can't spell.
+    # The documented form (docs/val.md, Example 2) for expressions a bare
+    # Symbol can't spell.
     context "when given an expression cast to a Symbol" do
       it "evaluates the expression in the frame it was built in" do
         caller_binding = PlainOldRubyObject.new.caller_binding_with_hash_local

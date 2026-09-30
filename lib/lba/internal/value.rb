@@ -2,10 +2,10 @@ require "json"
 
 module Lba
   module Internal
-    # Carries out one +Lba.val+ call: checks it's enabled and not capped,
+    # Carries out one +Lba.value+ call: checks it's enabled and not capped,
     # captures the caller and the value, and writes the record.
     class Value
-      # The frames between the caller and #record: .val, Value.record, and
+      # The frames between the caller and #record: .value, Value.record, and
       # #record itself. Depth counts from where the CallerBinding is built, so
       # it must be built directly in #record.
       DEPTH = 3
@@ -15,9 +15,9 @@ module Lba
       # @return (see #record)
       def self.record(...) = new(...).record
 
-      # rubocop:disable Metrics/ParameterLists -- matches Lba.val's public kwarg surface
+      # rubocop:disable Metrics/ParameterLists -- matches Lba.value's public kwarg surface
 
-      # @param (see Lba.val)
+      # @param (see Lba.value)
       def initialize(argument, label: nil, inspect: true, log: nil, logger: nil, sink: nil)
         @argument = argument
         @label = label

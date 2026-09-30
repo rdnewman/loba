@@ -4,50 +4,50 @@ require "stringio"
 
 class LbaValIntegrationTestCase
   def call_val(**)
-    lba_local_var = "traced value" # rubocop:disable Lint/UselessAssignment -- read via Lba.val's eval
-    Lba.val(:lba_local_var, **)
+    lba_local_var = "traced value" # rubocop:disable Lint/UselessAssignment -- read via Lba.value's eval
+    Lba.value(:lba_local_var, **)
   end
 
   LINE_OF_VAL_CALL = instance_method(:call_val).source_location[1] + 2
 end
 
-# One call site per caller context Lba.val has to reflect on correctly.
-# Symbol arguments name locals that only Lba.val reads, through the caller's
+# One call site per caller context Lba.value has to reflect on correctly.
+# Symbol arguments name locals that only Lba.value reads, through the caller's
 # binding.
 class LbaValCallerContexts
   def self.from_class_method(sink:)
-    class_local = 7 # rubocop:disable Lint/UselessAssignment -- read via Lba.val's eval
-    Lba.val(:class_local, sink:)
+    class_local = 7 # rubocop:disable Lint/UselessAssignment -- read via Lba.value's eval
+    Lba.value(:class_local, sink:)
   end
 
   FROM_CLASS_METHOD_LINE = method(:from_class_method).source_location[1] + 2
 
   def with_instance_variable(sink:)
     @traced = "ivar value"
-    Lba.val(:@traced, sink:)
+    Lba.value(:@traced, sink:)
   end
 
   def with_non_symbol(sink:)
-    Lba.val("direct value", sink:)
+    Lba.value("direct value", sink:)
   end
 
   def with_explicit_label(sink:)
-    labeled_local = "labeled value" # rubocop:disable Lint/UselessAssignment -- read via Lba.val's eval
-    Lba.val(:labeled_local, label: "Custom label", sink:)
+    labeled_local = "labeled value" # rubocop:disable Lint/UselessAssignment -- read via Lba.value's eval
+    Lba.value(:labeled_local, label: "Custom label", sink:)
   end
 
   def with_inspect_disabled(sink:)
     @traced = "ivar value"
-    Lba.val(:self, inspect: false, sink:)
+    Lba.value(:self, inspect: false, sink:)
   end
 
   def through_alias(sink:)
-    Lba.value("aliased value", sink:)
+    Lba.val("aliased value", sink:)
   end
 
   def within_block(sink:)
-    [1].each do |item| # rubocop:disable Lint/UnusedBlockArgument -- read via Lba.val's eval
-      Lba.val(:item, sink:)
+    [1].each do |item| # rubocop:disable Lint/UnusedBlockArgument -- read via Lba.value's eval
+      Lba.value(:item, sink:)
     end
   end
 
@@ -55,8 +55,8 @@ class LbaValCallerContexts
 
   def within_lambda(sink:)
     tracer = lambda do
-      lambda_local = "lambda value" # rubocop:disable Lint/UselessAssignment -- read via Lba.val's eval
-      Lba.val(:lambda_local, sink:)
+      lambda_local = "lambda value" # rubocop:disable Lint/UselessAssignment -- read via Lba.value's eval
+      Lba.value(:lambda_local, sink:)
     end
     tracer.call
   end
@@ -64,15 +64,15 @@ class LbaValCallerContexts
   WITHIN_LAMBDA_LINE = instance_method(:within_lambda).source_location[1] + 3
 
   def with_undefined_name(sink:)
-    Lba.val(:undefined_name, sink:)
+    Lba.value(:undefined_name, sink:)
   end
 
   def with_raising_method(sink:)
-    Lba.val(:raising_method, sink:)
+    Lba.value(:raising_method, sink:)
   end
 
   def with_interrupting_method(sink:)
-    Lba.val(:interrupting_method, sink:)
+    Lba.value(:interrupting_method, sink:)
   end
 
   def raising_method
@@ -86,7 +86,7 @@ end
 
 class LbaValCallerContextsSubclass < LbaValCallerContexts; end
 
-RSpec.describe Lba, ".val" do
+RSpec.describe Lba, ".value" do
   # The real .current memoizes a process-wide tracker; reset it so other
   # specs start fresh.
   after do
@@ -137,12 +137,12 @@ RSpec.describe Lba, ".val" do
     it "writes the child's records under its own run and sequence", :aggregate_failures do
       stub_call_site_tracker_at_exit
       parent_sink = StringIO.new
-      described_class.val("from parent", sink: parent_sink)
+      described_class.value("from parent", sink: parent_sink)
       parent_run_id = written_record(parent_sink)[:run_id]
 
       child_record = in_forked_child do
         child_sink = StringIO.new
-        described_class.val("from child", sink: child_sink)
+        described_class.value("from child", sink: child_sink)
         written_record(child_sink)
       end
 
@@ -166,8 +166,8 @@ RSpec.describe Lba, ".val" do
     end
   end
 
-  context "when called by its alias, Lba.value" do
-    it "writes the same kind of record as Lba.val" do
+  context "when called by its alias, Lba.val" do
+    it "writes the same kind of record as Lba.value" do
       stub_call_site_tracker_at_exit
       sink = StringIO.new
 

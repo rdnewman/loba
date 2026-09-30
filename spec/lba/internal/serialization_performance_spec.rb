@@ -1,4 +1,4 @@
-# Serialization's own cost, apart from the rest of Lba.val.
+# Serialization's own cost, apart from the rest of Lba.value.
 #
 # Timing checks vary by machine, so they're tagged :performance and run only
 # with `--tag performance`. The allocation check doesn't, so it runs by default.
