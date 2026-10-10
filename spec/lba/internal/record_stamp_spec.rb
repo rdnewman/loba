@@ -17,11 +17,10 @@ RSpec.describe Lba::Internal::RecordStamp do
       expect(stamp[:wall_time]).to be_within(5).of(Time.now.to_f)
     end
 
-    # Records are read raw as well as parsed, so every record opens the same way.
-    it "puts its fields in a fixed order" do
+    it "has only those fields" do
       stamp = described_class.fields(seq: 1, type: "val")
 
-      expect(stamp.keys).to eq([:schema, :run_id, :seq, :type, :wall_time, :mono_time])
+      expect(stamp.keys).to contain_exactly(:schema, :run_id, :seq, :type, :wall_time, :mono_time)
     end
   end
 end

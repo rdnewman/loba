@@ -45,7 +45,8 @@ module Lba
 
       def track
         CallSiteTracker.current.record(
-          type: "ts", file: caller_binding.file, line: caller_binding.line, sink: settings.sink
+          type: Records::Timestamp::TYPE, file: caller_binding.file, line: caller_binding.line,
+          sink: settings.sink
         )
       end
 
@@ -59,25 +60,7 @@ module Lba
       end
 
       def build_record
-        { **common_fields, **caller_fields, label: Label.infer(argument: nil, label:) }
-      end
-
-      def common_fields
-        {
-          **RecordStamp.fields(seq: tracked[:seq], type: "ts"),
-          site_seq: tracked[:site_seq],
-          since_prev_ts: tracked[:since_prev_ts]
-        }
-      end
-
-      def caller_fields
-        {
-          file: caller_binding.file,
-          line: caller_binding.line,
-          class_name: caller_binding.class_name,
-          method_name: caller_binding.method_name,
-          method_type: caller_binding.method_type
-        }
+        Records::Timestamp.new(caller_binding:, tracked:, label:).fields
       end
     end
   end

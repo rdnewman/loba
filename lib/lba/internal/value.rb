@@ -50,7 +50,8 @@ module Lba
 
       def track
         CallSiteTracker.current.record(
-          type: "val", file: caller_binding.file, line: caller_binding.line, sink: settings.sink
+          type: Records::Value::TYPE, file: caller_binding.file, line: caller_binding.line,
+          sink: settings.sink
         )
       end
 
@@ -64,40 +65,7 @@ module Lba
       end
 
       def build_record
-        { **common_fields, **caller_fields, **value_fields }
-      end
-
-      def common_fields
-        {
-          **RecordStamp.fields(seq: tracked[:seq], type: "val"),
-          site_seq: tracked[:site_seq],
-          diff: tracked[:diff]
-        }
-      end
-
-      def caller_fields
-        {
-          file: caller_binding.file,
-          line: caller_binding.line,
-          class_name: caller_binding.class_name,
-          method_name: caller_binding.method_name,
-          method_type: caller_binding.method_type
-        }
-      end
-
-      def value_fields
-        { label: Label.infer(argument:, label:), **evaluated_fields }
-      end
-
-      # Evaluating a Symbol runs the caller's code, which can raise; that is
-      # recorded rather than raised, so tracing never breaks the traced code.
-      # Only evaluation is rescued, so lba's own bugs still surface.
-      def evaluated_fields
-        evaluated = caller_binding.evaluate(argument)
-      rescue StandardError => e
-        { error: "#{e.class}: #{e.message}" }
-      else
-        Serialization.serialize(value: evaluated, inspect:)
+        Records::Value.new(caller_binding:, tracked:, argument:, label:, inspect:).fields
       end
     end
   end

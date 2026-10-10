@@ -61,6 +61,8 @@ RSpec.describe Lba, ".timestamp" do
     LbaTsCallerContexts.new.checkpoint(sink:)
 
     record = written_record(sink)
+    # The written line is also read raw (tail, grep, truncated output), so its
+    # fields come in the same order on every line.
     expect(record.keys).to eq(
       [:schema, :run_id, :seq, :type, :wall_time, :mono_time, :site_seq, :since_prev_ts,
        :file, :line, :class_name, :method_name, :method_type, :label]

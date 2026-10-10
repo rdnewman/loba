@@ -113,6 +113,13 @@ RSpec.describe Lba, ".value" do
     LbaValIntegrationTestCase.new.call_val(sink:)
 
     record = written_record(sink)
+    # The written line is also read raw (tail, grep, truncated output), so its
+    # fields come in the same order on every line.
+    expect(record.keys).to eq(
+      [:schema, :run_id, :seq, :type, :wall_time, :mono_time, :site_seq, :diff,
+       :file, :line, :class_name, :method_name, :method_type,
+       :label, :value, :value_type, :inspected, :truncated]
+    )
     expect(record[:file]).to end_with("value_spec.rb")
     expect(record[:line]).to eq(LbaValIntegrationTestCase::LINE_OF_VAL_CALL)
     expect(record[:class_name]).to eq("LbaValIntegrationTestCase")
