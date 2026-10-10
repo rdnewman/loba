@@ -12,7 +12,7 @@ RSpec.describe Lba::Internal::Writer do
 
       described_class.write({ "type" => "val", "label" => "foo" }, sink:)
 
-      expect(sink.string).to eq(%({"type":"val","label":"foo"}\n))
+      expect(sink.string).to eq("{\"type\":\"val\",\"label\":\"foo\"}\n")
     end
 
     it "flushes an IO sink after writing so a follower sees the record immediately" do
@@ -25,11 +25,11 @@ RSpec.describe Lba::Internal::Writer do
 
     it "appends to a path sink without truncating existing content" do
       path = File.join(tmp_dir, "sink.jsonl")
-      File.write(path, %({"seq":1}\n))
+      File.write(path, "{\"seq\":1}\n")
 
       described_class.write({ "seq" => 2 }, sink: path)
 
-      expect(File.read(path)).to eq(%({"seq":1}\n{"seq":2}\n))
+      expect(File.read(path)).to eq("{\"seq\":1}\n{\"seq\":2}\n")
     end
   end
 end

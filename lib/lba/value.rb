@@ -1,5 +1,5 @@
 module Lba
-  # rubocop:disable Metrics/ParameterLists -- matches Internal::Value's public kwarg surface
+  # rubocop:disable Metrics/ParameterLists -- one keyword per public option
 
   # Records a value, with the class, method, file, and line it was called from,
   # as one JSON line in this run's sink.
@@ -40,7 +40,9 @@ module Lba
   # @example Also writing to Rails.logger
   #   Lba.val :name, log: true
   def self.value(argument, label: nil, inspect: true, log: nil, logger: nil, sink: nil)
-    Internal::Value.record(argument, label:, inspect:, log:, logger:, sink:)
+    Internal::Trace.record(
+      Internal::Records::Value, options: { argument:, label:, inspect: }, log:, logger:, sink:
+    )
   end
   # rubocop:enable Metrics/ParameterLists
 end

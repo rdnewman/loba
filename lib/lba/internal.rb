@@ -13,8 +13,7 @@ require_relative "internal/records/value"
 require_relative "internal/records/timestamp"
 require_relative "internal/sink_resolver"
 require_relative "internal/writer"
-require_relative "internal/value"
-require_relative "internal/timestamp"
+require_relative "internal/trace"
 
 module Lba
   # lba's implementation, behind the public +Lba.value+ and +Lba.timestamp+.

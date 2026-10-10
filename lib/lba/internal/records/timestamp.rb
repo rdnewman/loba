@@ -10,6 +10,11 @@ module Lba
         # The record type.
         TYPE = "ts".freeze
 
+        # Builds the record's fields; shorthand for +new(...).fields+.
+        #
+        # @return (see #fields)
+        def self.fields(...) = new(...).fields
+
         # @param caller_binding [CallerBinding] the calling frame
         # @param tracked [Hash{Symbol => Integer, Float, nil}] the call's numbers
         #   and timing (see CallSiteTracker#record)

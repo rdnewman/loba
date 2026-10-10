@@ -13,11 +13,11 @@ RSpec.describe Lba::Internal::Records::Value do
     expect(described_class::TYPE).to eq("val")
   end
 
-  describe "#fields" do
+  describe ".fields" do
     it "has the stamp, the site's number and diff, the caller, a label, and the value" do
-      fields = described_class.new(
+      fields = described_class.fields(
         caller_binding:, tracked:, argument: :subtotal, label: nil, inspect: true
-      ).fields
+      )
 
       expect(fields.keys).to contain_exactly(
         :schema, :run_id, :seq, :type, :wall_time, :mono_time, :site_seq, :diff,
@@ -27,17 +27,17 @@ RSpec.describe Lba::Internal::Records::Value do
     end
 
     it "takes its numbers and timing from the tracker" do
-      fields = described_class.new(
+      fields = described_class.fields(
         caller_binding:, tracked:, argument: :subtotal, label: nil, inspect: true
-      ).fields
+      )
 
       expect(fields).to include(seq: 7, type: "val", site_seq: 2, diff: 0.4)
     end
 
     it "records the value the argument evaluates to in the caller, labeled by the Symbol" do
-      fields = described_class.new(
+      fields = described_class.fields(
         caller_binding:, tracked:, argument: :subtotal, label: nil, inspect: true
-      ).fields
+      )
 
       expect(fields).to include(label: "subtotal", value: 129.5, value_type: "Float")
     end
@@ -46,13 +46,13 @@ RSpec.describe Lba::Internal::Records::Value do
       unrepresentable = Object.new
       def unrepresentable.to_s = "as text"
 
-      fields = described_class.new(
+      fields = described_class.fields(
         caller_binding: caller_binding(evaluates_to: unrepresentable),
         tracked:,
         argument: :thing,
         label: nil,
         inspect: false
-      ).fields
+      )
 
       expect(fields).to include(value: "as text", inspected: true)
     end
@@ -62,9 +62,9 @@ RSpec.describe Lba::Internal::Records::Value do
         failing_binding = caller_binding
         allow(failing_binding).to receive(:evaluate).and_raise(NameError, "undefined name")
 
-        fields = described_class.new(
+        fields = described_class.fields(
           caller_binding: failing_binding, tracked:, argument: :usr, label: nil, inspect: true
-        ).fields
+        )
 
         expect(fields).to include(label: "usr", error: "NameError: undefined name")
         expect(fields.keys).not_to include(:value, :value_type, :inspected, :truncated)
@@ -74,11 +74,12 @@ RSpec.describe Lba::Internal::Records::Value do
         interrupting_binding = caller_binding
         allow(interrupting_binding).to receive(:evaluate).and_raise(Interrupt)
 
-        record = described_class.new(
-          caller_binding: interrupting_binding, tracked:, argument: :usr, label: nil, inspect: true
-        )
-
-        expect { record.fields }.to raise_error(Interrupt)
+        expect do
+          described_class.fields(
+            caller_binding: interrupting_binding, tracked:,
+            argument: :usr, label: nil, inspect: true
+          )
+        end.to raise_error(Interrupt)
       end
     end
   end
