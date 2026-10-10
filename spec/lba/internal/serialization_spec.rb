@@ -128,5 +128,32 @@ RSpec.describe Lba::Internal::Serialization do
         expect(result[:value]).to eq(nested_mixed(max_depth, leaf: collapsed.inspect))
       end
     end
+
+    # A failure is always reported in :errors; :value is kept when part of the
+    # value could still be recorded.
+    context "when the value can't be rendered" do
+      it "reports only the errors, for the whole value" do
+        result = described_class.serialize(value: object_whose_inspect_raises)
+
+        expect(result).to eq(errors: [{ path: [], message: "ArgumentError: boom" }])
+      end
+    end
+
+    context "when part of the value can't be rendered" do
+      it "keeps the rest of the value and reports each failure by path" do
+        bad = object_whose_inspect_raises
+
+        result = described_class.serialize(value: { "items" => [bad, 1, bad] })
+
+        expect(result).to eq(
+          value: { "items" => ["(unrenderable)", 1, "(unrenderable)"] }, value_type: "Hash",
+          inspected: true, truncated: false,
+          errors: [
+            { path: ["items", 0], message: "ArgumentError: boom" },
+            { path: ["items", 2], message: "ArgumentError: boom" }
+          ]
+        )
+      end
+    end
   end
 end

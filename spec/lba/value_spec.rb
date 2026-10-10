@@ -75,6 +75,26 @@ class LbaValCallerContexts
     Lba.value(:interrupting_method, sink:)
   end
 
+  def with_binary_string(sink:)
+    payload = "\xFF\xFE".b # rubocop:disable Lint/UselessAssignment -- read via Lba.value's eval
+    Lba.value(:payload, sink:)
+  end
+
+  def with_nan(sink:)
+    ratio = 0.0 / 0.0 # rubocop:disable Lint/UselessAssignment -- read via Lba.value's eval
+    Lba.value(:ratio, sink:)
+  end
+
+  def with_basic_object(sink:)
+    proxy = BasicObject.new # rubocop:disable Lint/UselessAssignment -- read via Lba.value's eval
+    Lba.value(:proxy, sink:)
+  end
+
+  def with_partly_unrenderable(sink:)
+    items = [1, BasicObject.new, 3] # rubocop:disable Lint/UselessAssignment -- read via Lba.value's eval
+    Lba.value(:items, sink:)
+  end
+
   def raising_method
     raise ArgumentError, "boom"
   end
@@ -346,7 +366,9 @@ RSpec.describe Lba, ".value" do
 
       record = written_record(sink)
       expect(record).to include(label: "undefined_name", method_name: "with_undefined_name")
-      expect(record[:error]).to start_with("NameError: ").and include("undefined_name")
+      expect(record[:errors]).to contain_exactly(
+        { path: [], message: start_with("NameError: ").and(include("undefined_name")) }
+      )
       expect(record.keys).not_to include(:value, :value_type, :inspected, :truncated)
     end
 
@@ -356,7 +378,8 @@ RSpec.describe Lba, ".value" do
 
       LbaValCallerContexts.new.with_raising_method(sink:)
 
-      expect(written_record(sink)).to include(error: "ArgumentError: boom")
+      expect(written_record(sink))
+        .to include(errors: [{ path: [], message: "ArgumentError: boom" }])
     end
 
     it "lets exceptions outside StandardError, such as Interrupt, through" do
@@ -364,6 +387,51 @@ RSpec.describe Lba, ".value" do
       sink = StringIO.new
 
       expect { LbaValCallerContexts.new.with_interrupting_method(sink:) }.to raise_error(Interrupt)
+    end
+  end
+
+  # Each of these once raised while writing the record's JSON line.
+  context "when the value has no exact JSON form" do
+    it "records binary data as its #inspect text" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContexts.new.with_binary_string(sink:)
+
+      expect(written_record(sink)).to include(value: "\"\\xFF\\xFE\"", inspected: true)
+    end
+
+    it "records NaN as text" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContexts.new.with_nan(sink:)
+
+      expect(written_record(sink)).to include(value: "NaN", value_type: "Float", inspected: true)
+    end
+
+    it "records an object that can't be rendered as an error" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContexts.new.with_basic_object(sink:)
+
+      expect(written_record(sink)).to include(
+        label: "proxy",
+        errors: [{ path: [], message: start_with("NoMethodError: undefined method 'inspect'") }]
+      )
+    end
+
+    it "keeps what it can of a container and reports the part it couldn't" do
+      stub_call_site_tracker_at_exit
+      sink = StringIO.new
+
+      LbaValCallerContexts.new.with_partly_unrenderable(sink:)
+
+      expect(written_record(sink)).to include(
+        value: [1, "(unrenderable)", 3],
+        errors: [{ path: [1], message: start_with("NoMethodError: undefined method 'inspect'") }]
+      )
     end
   end
 end

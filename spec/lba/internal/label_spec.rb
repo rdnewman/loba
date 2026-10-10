@@ -12,6 +12,12 @@ RSpec.describe Lba::Internal::Label do
 
         expect(result).to be_nil
       end
+
+      it "returns nil for a BasicObject argument, which has no #is_a?" do
+        result = described_class.infer(argument: BasicObject.new, label: nil)
+
+        expect(result).to be_nil
+      end
     end
 
     context "when an explicit String label is given" do

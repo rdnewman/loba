@@ -1,4 +1,5 @@
 require_relative "native_node"
+require_relative "float_node"
 require_relative "string_node"
 require_relative "array_node"
 require_relative "hash_node"
@@ -32,8 +33,10 @@ module Lba
           case value
           when String
             StringNode
-          when Integer, Float, TrueClass, FalseClass, NilClass, Symbol
+          when Integer, TrueClass, FalseClass, NilClass, Symbol
             NativeNode
+          when Float
+            FloatNode
           when Array
             ArrayNode
           when Hash

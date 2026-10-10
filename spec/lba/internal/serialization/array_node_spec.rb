@@ -19,5 +19,28 @@ RSpec.describe Lba::Internal::Serialization::ArrayNode do
         expect(result[:value]).to eq(kept + ["[+7 more entries]"])
       end
     end
+
+    context "when an entry can't be rendered" do
+      it "keeps the other entries and reports the failure by index" do
+        result = described_class.serialize(value: [1, object_whose_inspect_raises, 3])
+
+        expect(result).to eq(
+          value: [1, "(unrenderable)", 3], value_type: "Array", inspected: true, truncated: false,
+          errors: [{ path: [1], message: "ArgumentError: boom" }]
+        )
+      end
+
+      it "reports a failure nested deeper by its full path" do
+        result = described_class.serialize(value: [[0, object_whose_inspect_raises]])
+
+        expect(result[:errors]).to eq([{ path: [0, 1], message: "ArgumentError: boom" }])
+      end
+    end
+
+    it "reports no errors key when every entry renders" do
+      result = described_class.serialize(value: [1, 2])
+
+      expect(result).not_to have_key(:errors)
+    end
   end
 end

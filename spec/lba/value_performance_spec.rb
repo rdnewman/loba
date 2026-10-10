@@ -128,4 +128,35 @@ RSpec.describe Lba, ".value" do
     # let go.
     expect(after_later_batches - after_first_batch).to be < 500
   end
+
+  # A Symbol that names nothing records an error instead of a value, which
+  # raises and rescues an exception on every call.
+  context "when evaluating the argument fails" do
+    it "adds only a small, explicit amount of overhead over a no-op baseline", :performance do
+      stub_call_site_tracker_at_exit
+      iterations = 300
+      sink = StringIO.new
+
+      baseline = elapsed { iterations.times { Process.clock_gettime(Process::CLOCK_MONOTONIC) } }
+      measured = elapsed { iterations.times { described_class.value(:undefined_name, sink:) } }
+
+      # The same tripwire as a successful call.
+      expect((measured - baseline) / iterations).to be < 0.005
+    end
+
+    it "does not retain memory across repeated batches of calls" do
+      stub_call_site_tracker_at_exit
+      batch_size = 300
+      sink = StringIO.new
+
+      batch_size.times { described_class.value(:undefined_name, sink:) }
+      after_first_batch = clear_and_collect(sink)
+      batch_size.times { described_class.value(:undefined_name, sink:) }
+      clear_and_collect(sink)
+      batch_size.times { described_class.value(:undefined_name, sink:) }
+      after_later_batches = clear_and_collect(sink)
+
+      expect(after_later_batches - after_first_batch).to be < 500
+    end
+  end
 end

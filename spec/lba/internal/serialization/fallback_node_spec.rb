@@ -70,5 +70,38 @@ RSpec.describe Lba::Internal::Serialization::FallbackNode do
         expect(result[:truncated]).to be false
       end
     end
+
+    # Rendering runs the traced program's code, which can raise; the failure
+    # is reported rather than raised.
+    context "when the value can't be rendered" do
+      it "marks it unrenderable and reports the error" do
+        result = described_class.serialize(value: object_whose_inspect_raises)
+
+        expect(result).to eq(
+          value: "(unrenderable)", value_type: nil, inspected: true, truncated: false,
+          errors: [{ path: [], message: "ArgumentError: boom" }]
+        )
+      end
+
+      it "does not fall back to #to_s when #inspect raises" do
+        result = described_class.serialize(value: object_whose_inspect_raises)
+
+        expect(result[:value]).to eq("(unrenderable)")
+      end
+
+      it "reports a #to_s that raises when use_inspect is false" do
+        result = described_class.serialize(value: BasicObject.new, use_inspect: false)
+
+        expect(result[:errors].first[:message])
+          .to start_with("NoMethodError: undefined method 'to_s'")
+      end
+
+      it "reports a BasicObject, which has no #inspect" do
+        result = described_class.serialize(value: BasicObject.new)
+
+        expect(result[:errors].first[:message])
+          .to start_with("NoMethodError: undefined method 'inspect'")
+      end
+    end
   end
 end

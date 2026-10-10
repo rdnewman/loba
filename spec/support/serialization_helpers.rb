@@ -6,4 +6,12 @@ module SerializationHelpers
     object.instance_variable_set(:@x, 1)
     object
   end
+
+  # Has a working #to_s, but an #inspect that raises ArgumentError "boom".
+  def object_whose_inspect_raises
+    object = Object.new
+    def object.inspect = raise(ArgumentError, "boom")
+    def object.to_s = "fine as text"
+    object
+  end
 end

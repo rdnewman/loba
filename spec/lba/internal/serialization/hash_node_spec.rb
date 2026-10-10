@@ -50,5 +50,17 @@ RSpec.describe Lba::Internal::Serialization::HashNode do
         expect(result[:value]).to eq(kept.merge("[+7 more keys]" => true))
       end
     end
+
+    context "when a value can't be rendered" do
+      it "keeps the other pairs and reports the failure by key, as JSON writes the key" do
+        result = described_class.serialize(value: { ok: 1, broken: object_whose_inspect_raises })
+
+        expect(result).to eq(
+          value: { ok: 1, broken: "(unrenderable)" }, value_type: "Hash",
+          inspected: true, truncated: false,
+          errors: [{ path: ["broken"], message: "ArgumentError: boom" }]
+        )
+      end
+    end
   end
 end

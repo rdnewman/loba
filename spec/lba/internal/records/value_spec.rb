@@ -66,7 +66,9 @@ RSpec.describe Lba::Internal::Records::Value do
           caller_binding: failing_binding, tracked:, argument: :usr, label: nil, inspect: true
         )
 
-        expect(fields).to include(label: "usr", error: "NameError: undefined name")
+        expect(fields).to include(
+          label: "usr", errors: [{ path: [], message: "NameError: undefined name" }]
+        )
         expect(fields.keys).not_to include(:value, :value_type, :inspected, :truncated)
       end
 
@@ -80,6 +82,20 @@ RSpec.describe Lba::Internal::Records::Value do
             argument: :usr, label: nil, inspect: true
           )
         end.to raise_error(Interrupt)
+      end
+    end
+
+    context "when the value can't be rendered" do
+      it "records the error in place of the value, keeping the label", :aggregate_failures do
+        fields = described_class.fields(
+          caller_binding: caller_binding(evaluates_to: object_whose_inspect_raises), tracked:,
+          argument: :invoice, label: nil, inspect: true
+        )
+
+        expect(fields).to include(
+          label: "invoice", errors: [{ path: [], message: "ArgumentError: boom" }]
+        )
+        expect(fields.keys).not_to include(:value, :value_type, :inspected, :truncated)
       end
     end
   end

@@ -11,6 +11,12 @@ RSpec.describe Lba::Internal::Serialization::UnknownNode do
       end
     end
 
+    it "dispatches a Float to FloatNode, NaN handling included" do
+      result = described_class.serialize(value: Float::NAN)
+
+      expect(result).to include(value: "NaN", inspected: true)
+    end
+
     it "dispatches a String to StringNode, truncation included" do
       max_length = Lba::Internal::Serialization::StringNode::MAX_LENGTH
       long_string = "a" * (max_length + 3)

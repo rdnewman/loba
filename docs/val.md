@@ -110,14 +110,22 @@ file.
 | `label` | The given or inferred label, or `null` |
 | `value` | The value, as JSON (see below) |
 | `value_type` | The value's class name |
-| `inspected` | `true` if any part of the value had no JSON form and was rendered as text |
+| `inspected` | `true` if any part of the value was recorded as text instead of as itself (see below) |
 | `truncated` | `true` if any part of the value was cut short (see [Limits](#limits)) |
-| `error` | Present instead of `value` and its flags when evaluating the Symbol raised (see [Errors](#errors)) |
+| `errors` | Present only when evaluating the Symbol, or rendering any part of the value, raised: one `{"path", "message"}` per failure. Without `value`, nothing could be recorded; with it, only part couldn't (see [Errors](#errors)) |
 
 Strings, numbers, `true`, `false`, `nil`, Arrays, and Hashes are recorded as
 JSON, including inside each other; Symbols are recorded as JSON strings, and
 Hash keys always become JSON strings. Anything else is rendered as text with
 `#inspect` (or `#to_s`, with `inspect: false`), and `inspected` is `true`.
+
+JSON can't hold some values exactly, so these are recorded as text too, with
+`inspected` set:
+
+- A String that isn't text (binary data, or invalid UTF-8) is recorded as its
+  `#inspect` text, e.g. `"\"\\xFF\\xFE\""`. A String in another encoding that
+  converts to UTF-8 is recorded converted.
+- `NaN` and `Infinity` are recorded as `"NaN"`, `"Infinity"`, and `"-Infinity"`.
 
 ## Options
 
@@ -173,13 +181,33 @@ To keep a record, and the cost of making it, bounded:
 
 A Symbol that names nothing, or names a method that raises, doesn't break the
 code being traced. The record keeps its call-site fields and label and records
-the error instead of a value:
+the error in `errors` instead of a value. A `path` of `[]` means the whole
+value:
 
 ```json
-{"label":"usr","error":"NameError: undefined local variable or method 'usr' for main"}
+{"label":"usr","errors":[{"path":[],"message":"NameError: undefined local variable or method 'usr' for main"}]}
 ```
 
-Exceptions outside `StandardError`, such as `Interrupt`, are not caught.
+The same happens when the value can't be rendered as text: its `#inspect` (or
+`#to_s`, with `inspect: false`) raises, or it has none, like a `BasicObject`.
+There is no fallback from one to the other.
+
+```json
+{"label":"invoice","errors":[{"path":[],"message":"NoMethodError: undefined method 'name' for nil"}]}
+```
+
+When only part of an Array or Hash can't be rendered, the rest is kept. Each
+part that couldn't be is recorded as `"(unrenderable)"`, and has its own entry
+in `errors`, whose `path` gives its position: Array indexes and Hash keys, from
+the outside in.
+
+```json
+{"label":"items","value":["(unrenderable)",1,"(unrenderable)"],"value_type":"Array","inspected":true,"truncated":false,"errors":[{"path":[0],"message":"NoMethodError: undefined method 'inspect' for an instance of BasicObject"},{"path":[2],"message":"ArgumentError: boom"}]}
+```
+
+So `errors` is always the sign that something couldn't be recorded; a record
+without it was recorded in full. Exceptions outside `StandardError`, such as
+`Interrupt`, are not caught.
 
 ## Environment notes
 

@@ -52,7 +52,7 @@ module Lba
         def evaluated_fields
           evaluated = caller_binding.evaluate(argument)
         rescue StandardError => e
-          { error: "#{e.class}: #{e.message}" }
+          { errors: [{ path: [], message: "#{e.class}: #{e.message}" }] }
         else
           Serialization.serialize(value: evaluated, inspect:)
         end

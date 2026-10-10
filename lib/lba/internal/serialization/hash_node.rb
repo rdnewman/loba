@@ -25,6 +25,13 @@ module Lba
             [key[:value], entry[:value]]
           end
         end
+
+        # A child's position is its pair's key, as JSON writes keys: as text.
+        # Keys sit at even indexes, each followed by its value.
+        def position(index)
+          key_index = index - (index % 2)
+          children[key_index][:value].to_s
+        end
       end
     end
   end

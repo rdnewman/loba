@@ -19,6 +19,8 @@ module Lba
         end
 
         def items = children.map { _1[:value] }
+
+        def position(index) = index
       end
     end
   end

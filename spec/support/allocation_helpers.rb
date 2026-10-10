@@ -4,7 +4,9 @@ module AllocationHelpers
   def allocations_during
     GC.disable
     allocated_before = GC.stat[:total_allocated_objects]
+
     yield
+
     GC.stat[:total_allocated_objects] - allocated_before
   ensure
     GC.enable

@@ -30,8 +30,9 @@ module Lba
 
       attr_reader :argument, :label
 
+      # Module#=== rather than #is_a?, which a BasicObject argument lacks.
       def infer_from_argument
-        return nil unless argument.is_a?(Symbol)
+        return nil unless Symbol === argument # rubocop:disable Style/CaseEquality
 
         normalize(argument)
       end
