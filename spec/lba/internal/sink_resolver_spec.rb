@@ -1,4 +1,5 @@
 require "fileutils"
+require "pathname"
 require "stringio"
 
 RSpec.describe Lba::Internal::SinkResolver, :aggregate_failures do
@@ -30,6 +31,14 @@ RSpec.describe Lba::Internal::SinkResolver, :aggregate_failures do
       expect(Dir.exist?(File.dirname(path))).to be true
     end
 
+    it "returns a Pathname sink as its path, so it's appended to like any path" do
+      path = File.join(tmp_dir, "explicit", "sink.jsonl")
+
+      resolved = described_class.resolve(sink: Pathname(path), run:)
+
+      expect(resolved).to eq(path)
+    end
+
     it "prefers the explicit sink kwarg over LBA_SINK" do
       ENV["LBA_SINK"] = File.join(tmp_dir, "env", "sink.jsonl")
       path = File.join(tmp_dir, "explicit", "sink.jsonl")
@@ -47,6 +56,15 @@ RSpec.describe Lba::Internal::SinkResolver, :aggregate_failures do
       expect(Dir.exist?(File.dirname(env_path))).to be true
     end
 
+    it "ignores an empty LBA_SINK" do
+      ENV["LBA_SINK"] = ""
+      allow(Dir).to receive(:pwd).and_return(tmp_dir)
+
+      resolved = described_class.resolve(run:)
+
+      expect(resolved).to eq(File.join(tmp_dir, ".lba", "runs", "#{run.id}.jsonl"))
+    end
+
     it "defaults to tmp/lba/runs/<run_id>.jsonl under Rails.root when within Rails" do
       stub_const("Rails", double(root: tmp_dir))
 
@@ -54,6 +72,15 @@ RSpec.describe Lba::Internal::SinkResolver, :aggregate_failures do
 
       expect(resolved).to eq(File.join(tmp_dir, "tmp", "lba", "runs", "#{run.id}.jsonl"))
       expect(Dir.exist?(File.dirname(resolved))).to be true
+    end
+
+    it "defaults to the working directory when Rails has no root (no app booted)" do
+      stub_const("Rails", double(root: nil))
+      allow(Dir).to receive(:pwd).and_return(tmp_dir)
+
+      resolved = described_class.resolve(run:)
+
+      expect(resolved).to eq(File.join(tmp_dir, ".lba", "runs", "#{run.id}.jsonl"))
     end
 
     it "defaults to .lba/runs/<run_id>.jsonl under the working directory outside Rails" do

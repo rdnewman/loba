@@ -11,4 +11,8 @@ leaked = YARD::Registry.all.select { |object| object.docstring.include?("rubocop
 
 undocumented.each { |object| puts "undocumented: #{object.path}" }
 leaked.each { |object| puts "rubocop directive in docstring: #{object.path}" }
-exit(undocumented.empty? && leaked.empty? ? 0 : 1)
+if undocumented.empty? && leaked.empty?
+  exit 0
+else
+  exit 1
+end

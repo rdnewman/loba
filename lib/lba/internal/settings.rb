@@ -7,7 +7,7 @@ module Lba
       #
       # @param log [Object] the +log:+ option given (see LogMirror.for)
       # @param logger [Logger, nil] the +logger:+ option given
-      # @param sink [IO, String, nil] the +sink:+ option given
+      # @param sink [IO, String, Pathname, nil] the +sink:+ option given
       # @raise [InvalidLoggerOptionError] if enabled and +logger+ isn't a +Logger+
       def initialize(log: nil, logger: nil, sink: nil)
         @sink_option = sink

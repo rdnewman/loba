@@ -11,7 +11,7 @@ module Lba
         def resolve(...) = new(...).resolve
       end
 
-      # @param sink [IO, String, nil] an explicit sink, if one was given
+      # @param sink [IO, String, Pathname, nil] an explicit sink, if one was given
       # @param run [Run] the run whose file is the default sink
       def initialize(sink: nil, run: Run.current)
         @sink = sink
@@ -25,9 +25,9 @@ module Lba
       #
       # @return [IO, String] an IO, or a file path to append to
       def resolve
-        return sink if sink.respond_to?(:write)
+        return sink if io?
 
-        candidate = sink || ENV["LBA_SINK"] || default_path
+        candidate = explicit_path || env_path || default_path
 
         if ensure_writable(candidate)
           candidate
@@ -40,6 +40,29 @@ module Lba
 
       attr_reader :sink, :run
 
+      # A Pathname responds to #write too, but by rewriting its file, so it's
+      # treated as the path it names.
+      def io?
+        sink.respond_to?(:write) && !pathname?
+      end
+
+      def pathname?
+        defined?(::Pathname) && sink.is_a?(::Pathname)
+      end
+
+      def explicit_path
+        if pathname?
+          sink.to_s
+        else
+          sink
+        end
+      end
+
+      def env_path
+        path = ENV.fetch("LBA_SINK", nil)
+        path unless path.to_s.empty?
+      end
+
       def default_path
         if within_rails?
           File.join(::Rails.root, "tmp", "lba", "runs", "#{run.id}.jsonl")
@@ -49,7 +72,7 @@ module Lba
       end
 
       def within_rails?
-        defined?(::Rails) && ::Rails.respond_to?(:root)
+        defined?(::Rails) && ::Rails.respond_to?(:root) && ::Rails.root
       end
 
       def ensure_writable(path)

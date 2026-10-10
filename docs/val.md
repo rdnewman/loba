@@ -79,10 +79,14 @@ Each process run writes to its own file, named for its run id:
 - inside Rails: `tmp/lba/runs/<run_id>.jsonl` under `Rails.root`
 - otherwise: `.lba/runs/<run_id>.jsonl` under the current directory
 
-The `LBA_SINK` environment variable overrides that path for the whole process,
-and the `sink:` option overrides it for one call, with a path or any IO (such as
-`$stdout` or a `StringIO`). If the directory can't be created or written to,
-records go to `$stdout` instead.
+The `LBA_SINK` environment variable overrides that path for the whole process
+(an empty `LBA_SINK` is ignored), and the `sink:` option overrides it for one
+call, with a path (a String or `Pathname`) or any IO (such as `$stdout` or a
+`StringIO`). If the directory can't be created or written to, records go to
+`$stdout` instead.
+
+Inside Rails, the default is used only once the app has booted (`Rails.root` is
+set); before that, records go under the current directory.
 
 A forked child process, such as a Puma or Unicorn worker, starts its own run and
 file.
@@ -123,7 +127,7 @@ Hash keys always become JSON strings. Anything else is rendered as text with
 | `inspect:` | `true` | For a value with no JSON form, `true` renders it with `#inspect`, `false` with `#to_s`. JSON-native values are unaffected. |
 | `log:` | `false`, or `true` if `logger:` is given | `true` also writes the record to `Rails.logger` (or `logger:`). `false` never logs, even if `logger:` is given. |
 | `logger:` | none | A `Logger` to also write the record to. Anything other than a `Logger` raises `Lba::InvalidLoggerOptionError`. |
-| `sink:` | this run's file | A path or IO to write to instead. |
+| `sink:` | this run's file | A path (String or `Pathname`) or IO to write to instead. |
 
 ```ruby
 Lba.val name, label: "Name", inspect: false

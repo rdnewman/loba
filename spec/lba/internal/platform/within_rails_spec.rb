@@ -21,6 +21,15 @@ RSpec.describe Lba::Internal::Platform::WithinRails do
         expect(described_class.logger?).to be false
       end
     end
+
+    # Gems such as rails-html-sanitizer define a Rails namespace without Rails.
+    context "when only a Rails namespace is defined" do
+      it "returns false" do
+        stub_const("Rails", Module.new)
+
+        expect(described_class.logger?).to be false
+      end
+    end
   end
 
   describe ".production?" do
@@ -41,6 +50,14 @@ RSpec.describe Lba::Internal::Platform::WithinRails do
 
       it "returns false when Rails.env.production? is false" do
         stub_const("Rails", mock_rails(production: false))
+
+        expect(described_class.production?).to be false
+      end
+    end
+
+    context "when only a Rails namespace is defined" do
+      it "returns false" do
+        stub_const("Rails", Module.new)
 
         expect(described_class.production?).to be false
       end

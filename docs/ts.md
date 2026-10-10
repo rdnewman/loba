@@ -96,7 +96,7 @@ the *same* call site. Checkpoint records have no `diff`.
 | `label:` | none | A name for the checkpoint. A String or Symbol, stripped of surrounding spaces; anything else gives no label. |
 | `log:` | `false`, or `true` if `logger:` is given | `true` also writes the record to `Rails.logger` (or `logger:`). `false` never logs, even if `logger:` is given. |
 | `logger:` | none | A `Logger` to also write the record to. Anything other than a `Logger` raises `Lba::InvalidLoggerOptionError`. |
-| `sink:` | this run's file | A path or IO to write to instead. |
+| `sink:` | this run's file | A path (String or `Pathname`) or IO to write to instead. |
 
 ```ruby
 Lba.ts label: "reached step A"

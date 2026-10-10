@@ -12,8 +12,9 @@ module Lba
   #   [default: +false+, unless +logger+ is given]
   # @param logger [Logger] a +Logger+ to also write the record to; implies
   #   +log: true+ unless +log: false+ is given
-  # @param sink [IO, String] where to write instead of the default: an IO, or a
-  #   file path (see the +LBA_SINK+ environment variable for a process-wide override)
+  # @param sink [IO, String, Pathname] where to write instead of the default: an IO, or a
+  #   file path (see the +LBA_SINK+ environment variable for a process-wide
+  #   override)
   # @return [void]
   # @raise [ArgumentError] for an unknown keyword, such as +production:+
   # @raise [InvalidLoggerOptionError] if +logger+ is not a +Logger+
