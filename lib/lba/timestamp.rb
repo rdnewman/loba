@@ -3,7 +3,9 @@ module Lba
   # file, and line it was called from, and the seconds since the previous
   # checkpoint, as one JSON line in this run's sink.
   #
-  # Does nothing inside a Rails production environment; there is no override.
+  # Does nothing in a production environment (Rails production, or +RACK_ENV+,
+  # +APP_ENV+, or +RAILS_ENV+ set to +production+ outside Rails); there is no
+  # override.
   #
   # @param label [String, Symbol] a name for the checkpoint, e.g. +"reached step A"+;
   #   recorded as +label+, or +null+ when not given

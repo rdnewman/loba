@@ -131,5 +131,5 @@ at the call.
 
 ## Environment notes
 
-`Lba.ts` does nothing inside a Rails production environment, and there is no
-override.
+`Lba.ts` does nothing in a production environment, and there is no override
+(see [Environment notes](val.md#environment-notes) for what counts as one).

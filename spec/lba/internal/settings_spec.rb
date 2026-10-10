@@ -37,6 +37,24 @@ RSpec.describe Lba::Internal::Settings do
         expect(settings.enabled?).to be true
       end
     end
+
+    context "without Rails, in a production environment" do
+      around do |example|
+        saved = ENV.delete("RACK_ENV")
+        ENV["RACK_ENV"] = "production"
+        example.run
+      ensure
+        ENV["RACK_ENV"] = saved
+      end
+
+      it "is false" do
+        hide_const("Rails")
+
+        settings = described_class.new
+
+        expect(settings.enabled?).to be false
+      end
+    end
   end
 
   describe "#disabled?" do

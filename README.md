@@ -80,10 +80,12 @@ See [docs/ts.md](docs/ts.md) for the full record format, options, and limits.
 
 ## Environment notes
 
-Lba statements are meant for development and test. Inside a Rails production
-environment they do nothing, and there is no override: records are written to
-files meant to be read later, and captured values are stored as-is, so leaving
-tracing on in production could persist secrets or personal data indefinitely.
+Lba statements are meant for development and test. In a production environment
+they do nothing (inside Rails, `Rails.env.production?`; outside it, `RACK_ENV`,
+`APP_ENV`, or `RAILS_ENV` set to `production`), and there is no override:
+records are written to files meant to be read later, and captured values are
+stored as-is, so leaving tracing on in production could persist secrets or
+personal data indefinitely.
 
 Records go to `tmp/lba/runs/` under `Rails.root` in Rails, or `.lba/runs/` under
 the current directory otherwise. Add that directory to `.gitignore`.

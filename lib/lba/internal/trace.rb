@@ -30,7 +30,7 @@ module Lba
       end
 
       # Writes the record to the sink, and to the logger if logging. Does
-      # nothing inside Rails production, or once this call site is capped.
+      # nothing in a production environment, or once this call site is capped.
       #
       # @return [void]
       def record

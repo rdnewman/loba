@@ -48,3 +48,6 @@ Style/StringLiterals:
 
 Style/SymbolArray:
   EnforcedStyle: brackets
+
+Style/WordArray:
+  EnforcedStyle: brackets

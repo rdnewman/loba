@@ -4,7 +4,9 @@ module Lba
   # Records a value, with the class, method, file, and line it was called from,
   # as one JSON line in this run's sink.
   #
-  # Does nothing inside a Rails production environment; there is no override.
+  # Does nothing in a production environment (Rails production, or +RACK_ENV+,
+  # +APP_ENV+, or +RAILS_ENV+ set to +production+ outside Rails); there is no
+  # override.
   #
   # @param argument [Symbol, Object] (required) a +Symbol+ names a local variable,
   #   instance variable, method, or expression in the caller, which is evaluated

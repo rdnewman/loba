@@ -183,9 +183,11 @@ Exceptions outside `StandardError`, such as `Interrupt`, are not caught.
 
 ## Environment notes
 
-`Lba.val` does nothing inside a Rails production environment, and there is no
-override. A record is written to a file meant to be read later, so in
-production it could persist secrets or personal data indefinitely.
+`Lba.val` does nothing in a production environment, and there is no override.
+Inside Rails, that means `Rails.env.production?`; outside Rails, any of
+`RACK_ENV`, `APP_ENV`, or `RAILS_ENV` set to `production`. A record is written
+to a file meant to be read later, so in production it could persist secrets or
+personal data indefinitely.
 
 ## Caution: what gets recorded
 

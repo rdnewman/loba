@@ -21,8 +21,7 @@ module Lba
 
       # Where the record goes, resolved on first use (see SinkResolver#resolve),
       # which can create the default sink's directory. Never resolved when
-      # disabled, so a Rails production environment never touches the
-      # filesystem.
+      # disabled, so a production environment never touches the filesystem.
       #
       # @return [IO, String, nil] an IO, or a file path to append to; +nil+
       #   when disabled
@@ -32,12 +31,12 @@ module Lba
         @sink ||= SinkResolver.resolve(sink: sink_option)
       end
 
-      # @return [Boolean] +false+ inside a Rails production environment;
-      #   otherwise +true+
-      def enabled? = !Internal::Platform::WithinRails.production?
+      # @return [Boolean] +false+ in a production environment (see
+      #   Platform::Environment.production?); otherwise +true+
+      def enabled? = !Internal::Platform::Environment.production?
 
-      # @return [Boolean] +true+ inside a Rails production environment;
-      #   otherwise +false+
+      # @return [Boolean] +true+ in a production environment (see
+      #   Platform::Environment.production?); otherwise +false+
       def disabled? = !enabled?
 
     private
