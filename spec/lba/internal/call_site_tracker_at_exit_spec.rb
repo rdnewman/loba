@@ -1,5 +1,7 @@
 RSpec.describe Lba::Internal::CallSiteTracker do
   describe ".current" do
+    let(:cap) { 500 }
+
     after { reset_current(described_class) }
 
     it "registers the shutdown flush exactly once, the first time it's created" do
@@ -18,7 +20,7 @@ RSpec.describe Lba::Internal::CallSiteTracker do
         site = { type: "val", file: "app/models/order.rb", line: 10 }
         sink = StringIO.new
 
-        13.times { tracker.record(**site, sink:, cap: 5) }
+        (cap + 8).times { tracker.record(**site, sink:) }
 
         hooks.first.call
 
@@ -37,8 +39,8 @@ RSpec.describe Lba::Internal::CallSiteTracker do
         order_sink = StringIO.new
         invoice_sink = StringIO.new
 
-        6.times { tracker.record(**order_site, sink: order_sink, cap: 5) }
-        9.times { tracker.record(**invoice_site, sink: invoice_sink, cap: 5) }
+        (cap + 1).times { tracker.record(**order_site, sink: order_sink) }
+        (cap + 4).times { tracker.record(**invoice_site, sink: invoice_sink) }
 
         hooks.first.call
 
@@ -55,7 +57,7 @@ RSpec.describe Lba::Internal::CallSiteTracker do
         tracker = described_class.current
         site = { type: "val", file: "app/models/order.rb", line: 10 }
         sink = StringIO.new
-        6.times { tracker.record(**site, sink:, cap: 5) }
+        (cap + 1).times { tracker.record(**site, sink:) }
         sink.close
 
         expect { hooks.first.call }.to output(/lba: couldn't write a record/).to_stderr
@@ -70,7 +72,7 @@ RSpec.describe Lba::Internal::CallSiteTracker do
         tracker = described_class.current
         site = { type: "val", file: "app/models/order.rb", line: 10 }
         sink = StringIO.new
-        6.times { tracker.record(**site, sink:, cap: 5) }
+        (cap + 1).times { tracker.record(**site, sink:) }
 
         written_in_child = in_forked_child do
           hooks.first.call

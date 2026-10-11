@@ -6,10 +6,12 @@ module Lba
     # records one call site writes per window of time.
     class CallSiteTracker
       # Records one call site may write per window.
-      DEFAULT_CAP = 500
+      CAP = 500
 
       # Length of a window, in seconds.
-      DEFAULT_WINDOW = 60
+      WINDOW = 60
+
+      private_constant :CAP, :WINDOW
 
       class << self
         # This process's tracker. On first use it registers an +at_exit+ hook
@@ -36,8 +38,6 @@ module Lba
         @last_ts_mono_time = nil
       end
 
-      # rubocop:disable Metrics/ParameterLists -- a site is a type, file, and line
-
       # Counts one call at a site, unless the site is capped for its current
       # window. A capped site skips calls until the window ends; the next call
       # after that writes one record counting the calls skipped, and the site
@@ -50,8 +50,6 @@ module Lba
       # @param file [String] the calling file
       # @param line [Integer] the calling line
       # @param sink [IO, String, nil] where this site's skipped-call record goes
-      # @param cap [Integer] records the site may write per window
-      # @param window [Numeric] window length, in seconds
       # @return [Hash{Symbol => Integer, Float, nil}, :suppressed] +:suppressed+
       #   if the site is capped; otherwise:
       #   * +:seq+ [Integer] - this record's order among all the process's records
@@ -64,17 +62,16 @@ module Lba
       #   * +:since_prev_ts+ [Float, nil] - +ts+ only: seconds since the
       #     process's previous +ts+ record at any site, or +nil+ for its first.
       #     Suppression records don't count as a previous +ts+.
-      def record(type:, file:, line:, sink: nil, cap: DEFAULT_CAP, window: DEFAULT_WINDOW)
+      def record(type:, file:, line:, sink: nil)
         now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         site = site_for(type:, file:, line:)
         # A record counting the site's skipped calls takes its seq, through the
         # block, before this call takes the next one.
-        numbered = site.record_call(now:, cap:, window_length: window, sink:) { next_seq! }
+        numbered = site.record_call(now:, cap: CAP, window_length: WINDOW, sink:) { next_seq! }
         return :suppressed if numbered == :suppressed
 
         { seq: next_seq!, mono_time: now, **numbered, **checkpoint_fields(type, now) }
       end
-      # rubocop:enable Metrics/ParameterLists
 
     private
 
