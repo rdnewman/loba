@@ -19,8 +19,9 @@ RSpec.describe Lba::Internal::Tracker do
         tracker = described_class.current
         site = Lba::Internal::Site.new(type: "val", file: "app/models/order.rb", line: 10)
         sink = StringIO.new
+        destination = destination_to(sink)
 
-        (cap + 8).times { tracker.record(site, sink:) }
+        (cap + 8).times { tracker.record(site, destination:) }
 
         hooks.first.call
 
@@ -39,8 +40,8 @@ RSpec.describe Lba::Internal::Tracker do
         order_sink = StringIO.new
         invoice_sink = StringIO.new
 
-        (cap + 1).times { tracker.record(order_site, sink: order_sink) }
-        (cap + 4).times { tracker.record(invoice_site, sink: invoice_sink) }
+        (cap + 1).times { tracker.record(order_site, destination: destination_to(order_sink)) }
+        (cap + 4).times { tracker.record(invoice_site, destination: destination_to(invoice_sink)) }
 
         hooks.first.call
 
@@ -57,7 +58,8 @@ RSpec.describe Lba::Internal::Tracker do
         tracker = described_class.current
         site = Lba::Internal::Site.new(type: "val", file: "app/models/order.rb", line: 10)
         sink = StringIO.new
-        (cap + 1).times { tracker.record(site, sink:) }
+        destination = destination_to(sink)
+        (cap + 1).times { tracker.record(site, destination:) }
         sink.close
 
         expect { hooks.first.call }.to output(/lba: couldn't write a record/).to_stderr
@@ -72,7 +74,8 @@ RSpec.describe Lba::Internal::Tracker do
         tracker = described_class.current
         site = Lba::Internal::Site.new(type: "val", file: "app/models/order.rb", line: 10)
         sink = StringIO.new
-        (cap + 1).times { tracker.record(site, sink:) }
+        destination = destination_to(sink)
+        (cap + 1).times { tracker.record(site, destination:) }
 
         written_in_child = in_forked_child do
           hooks.first.call

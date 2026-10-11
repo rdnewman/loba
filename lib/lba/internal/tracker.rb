@@ -39,7 +39,8 @@ module Lba
       # on the same line are counted and capped separately.
       #
       # @param site [Site] the call site
-      # @param sink [IO, String, nil] where this site's skipped-call record goes
+      # @param destination [Destination, nil] where this site's skipped-call
+      #   record goes; +nil+ keeps the site's last destination
       # @param checkpoint [Boolean] whether the call is a checkpoint, timed
       #   from the previous one
       # @return [Hash{Symbol => Integer, Float, nil}, :suppressed] +:suppressed+
@@ -54,11 +55,11 @@ module Lba
       #   * +:since_prev_ts+ [Float, nil] - checkpoints only: seconds since the
       #     process's previous checkpoint at any site, or +nil+ for its first.
       #     Suppression records don't count as a previous checkpoint.
-      def record(site, sink: nil, checkpoint: false)
+      def record(site, destination: nil, checkpoint: false)
         now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         # A record counting the site's skipped calls takes its seq, through the
         # block, before this call takes the next one.
-        numbered = site_tracker_for(site).record_call(now:, sink:) { next_seq! }
+        numbered = site_tracker_for(site).record_call(now:, destination:) { next_seq! }
         return :suppressed if numbered == :suppressed
 
         { seq: next_seq!, mono_time: now, **numbered, **checkpoint_fields(checkpoint, now) }

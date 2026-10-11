@@ -7,12 +7,13 @@ module Lba
     module Records
       # The record a capped call site writes to count the calls it skipped.
       class Suppression
-        # Writes one suppression record; shorthand for +new(**fields).write(sink:)+.
+        # Writes one suppression record; shorthand for
+        # +new(**fields).write(destination:)+.
         #
-        # @param sink (see #write)
+        # @param destination (see #write)
         # @param fields [Hash] the keywords of #initialize
         # @return (see #write)
-        def self.write(sink:, **fields) = new(**fields).write(sink:)
+        def self.write(destination:, **fields) = new(**fields).write(destination:)
 
         # @param site [Site] the call site that skipped the calls
         # @param suppressed_count [Integer] calls the site skipped
@@ -23,10 +24,10 @@ module Lba
           @seq = seq
         end
 
-        # @param sink [IO, String, nil] where to write
+        # @param destination [Destination] where to write, and log
         # @return [void]
-        def write(sink:)
-          Writer.write(fields, sink:)
+        def write(destination:)
+          destination.write(fields)
         end
 
       private

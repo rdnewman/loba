@@ -10,25 +10,27 @@ RSpec.describe Lba::Internal::Tracker::SiteTracker do
 
   describe "#record_call" do
     it "numbers the site's first call 1, with no diff" do
-      result = site_tracker.record_call(now: 100.0, sink: StringIO.new) { 1 }
+      result = site_tracker.record_call(now: 100.0, destination: destination_to(StringIO.new)) { 1 }
 
       expect(result).to eq(site_seq: 1, diff: nil)
     end
 
     it "numbers each later call in turn, with the time since the previous one" do
-      site_tracker.record_call(now: 100.0, sink: StringIO.new) { 1 }
+      destination = destination_to(StringIO.new)
+      site_tracker.record_call(now: 100.0, destination:) { 1 }
 
-      result = site_tracker.record_call(now: 100.25, sink: StringIO.new) { 1 }
+      result = site_tracker.record_call(now: 100.25, destination:) { 1 }
 
       expect(result).to eq(site_seq: 2, diff: 0.25)
     end
 
     it "suppresses a call past the cap, asking for no number", :aggregate_failures do
       sink = StringIO.new
-      cap.times { site_tracker.record_call(now: 100.0, sink:) { 1 } }
+      destination = destination_to(sink)
+      cap.times { site_tracker.record_call(now: 100.0, destination:) { 1 } }
       asked = false
 
-      result = site_tracker.record_call(now: 100.0, sink:) { asked = true }
+      result = site_tracker.record_call(now: 100.0, destination:) { asked = true }
 
       expect(result).to eq(:suppressed)
       expect(asked).to be(false)
@@ -36,15 +38,16 @@ RSpec.describe Lba::Internal::Tracker::SiteTracker do
     end
 
     context "when the call ends a window that skipped calls" do
-      it "first writes a record counting them, numbered on request, to the site's sink",
+      it "first writes a record counting them, numbered on request, to the site's destination",
          :aggregate_failures do
         site_tracker = described_class.new(
           Lba::Internal::Site.new(type: "ts", file: "app/models/order.rb", line: 10)
         )
         sink = StringIO.new
-        (cap + 2).times { site_tracker.record_call(now: 100.0, sink:) { 1 } }
+        destination = destination_to(sink)
+        (cap + 2).times { site_tracker.record_call(now: 100.0, destination:) { 1 } }
 
-        result = site_tracker.record_call(now: 160.0, sink:) { 42 }
+        result = site_tracker.record_call(now: 160.0, destination:) { 42 }
 
         expect(JSON.parse(sink.string, symbolize_names: true)).to include(
           seq: 42, type: "ts", file: "app/models/order.rb", line: 10,
@@ -55,22 +58,23 @@ RSpec.describe Lba::Internal::Tracker::SiteTracker do
 
       it "keeps numbering and timing from the site's last counted call" do
         sink = StringIO.new
-        (cap - 1).times { site_tracker.record_call(now: 100.0, sink:) { 1 } }
-        site_tracker.record_call(now: 101.0, sink:) { 1 }
-        site_tracker.record_call(now: 102.0, sink:) { 1 }
+        destination = destination_to(sink)
+        (cap - 1).times { site_tracker.record_call(now: 100.0, destination:) { 1 } }
+        site_tracker.record_call(now: 101.0, destination:) { 1 }
+        site_tracker.record_call(now: 102.0, destination:) { 1 }
 
-        result = site_tracker.record_call(now: 161.0, sink:) { 1 }
+        result = site_tracker.record_call(now: 161.0, destination:) { 1 }
 
         expect(result).to eq(site_seq: cap + 1, diff: 60.0)
       end
 
-      it "writes the record to the latest sink given, even if this call gives none" do
-        first_sink = StringIO.new
+      it "writes the record to the latest destination given, even if this call gives none" do
+        first_destination = destination_to(StringIO.new)
         latest_sink = StringIO.new
-        cap.times { site_tracker.record_call(now: 100.0, sink: first_sink) { 1 } }
-        site_tracker.record_call(now: 100.0, sink: latest_sink) { 1 }
+        cap.times { site_tracker.record_call(now: 100.0, destination: first_destination) { 1 } }
+        site_tracker.record_call(now: 100.0, destination: destination_to(latest_sink)) { 1 }
 
-        site_tracker.record_call(now: 160.0, sink: nil) { 1 }
+        site_tracker.record_call(now: 160.0, destination: nil) { 1 }
 
         expect(JSON.parse(latest_sink.string)).to include("suppressed_count" => 1)
       end
@@ -79,10 +83,11 @@ RSpec.describe Lba::Internal::Tracker::SiteTracker do
     context "when the call ends a window that skipped none" do
       it "writes nothing and asks for no number", :aggregate_failures do
         sink = StringIO.new
-        site_tracker.record_call(now: 100.0, sink:) { 1 }
+        destination = destination_to(sink)
+        site_tracker.record_call(now: 100.0, destination:) { 1 }
         asked = false
 
-        site_tracker.record_call(now: 160.0, sink:) { asked = true }
+        site_tracker.record_call(now: 160.0, destination:) { asked = true }
 
         expect(sink.string).to be_empty
         expect(asked).to be(false)
@@ -93,7 +98,8 @@ RSpec.describe Lba::Internal::Tracker::SiteTracker do
   describe "#flush" do
     it "writes a record counting the open window's skipped calls, numbered on request" do
       sink = StringIO.new
-      (cap + 1).times { site_tracker.record_call(now: 100.0, sink:) { 1 } }
+      destination = destination_to(sink)
+      (cap + 1).times { site_tracker.record_call(now: 100.0, destination:) { 1 } }
 
       site_tracker.flush { 7 }
 
@@ -104,7 +110,8 @@ RSpec.describe Lba::Internal::Tracker::SiteTracker do
     it "writes nothing, and asks for no number, when the open window skipped none",
        :aggregate_failures do
       sink = StringIO.new
-      site_tracker.record_call(now: 100.0, sink:) { 1 }
+      destination = destination_to(sink)
+      site_tracker.record_call(now: 100.0, destination:) { 1 }
       asked = false
 
       site_tracker.flush { asked = true }

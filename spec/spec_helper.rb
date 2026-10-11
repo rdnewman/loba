@@ -14,6 +14,7 @@ RSpec.configure do |config|
   config.include AllocationHelpers
   config.include AtExitHelpers
   config.include TrackerHelpers
+  config.include DestinationHelpers
   config.include ForkHelpers
   config.include MemoizedCurrentHelpers
   config.include SerializationHelpers

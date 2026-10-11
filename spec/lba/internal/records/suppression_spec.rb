@@ -1,14 +1,16 @@
 require "json"
+require "logger"
 require "stringio"
 
 RSpec.describe Lba::Internal::Records::Suppression do
   describe ".write" do
     it "writes one JSON line counting the site's skipped calls", :aggregate_failures do
       sink = StringIO.new
+      destination = destination_to(sink)
 
       described_class.write(
         site: Lba::Internal::Site.new(type: "ts", file: "app/models/order.rb", line: 10),
-        suppressed_count: 7, seq: 42, sink:
+        suppressed_count: 7, seq: 42, destination:
       )
 
       lines = sink.string.lines
@@ -19,12 +21,26 @@ RSpec.describe Lba::Internal::Records::Suppression do
       )
     end
 
-    it "opens with the same stamp as every record, then the site and count" do
+    it "mirrors the record to the destination's logger, like any record" do
       sink = StringIO.new
+      log_output = StringIO.new
+      destination = destination_to(sink, logger: Logger.new(log_output))
 
       described_class.write(
         site: Lba::Internal::Site.new(type: "val", file: "app/models/order.rb", line: 10),
-        suppressed_count: 1, seq: 1, sink:
+        suppressed_count: 3, seq: 9, destination:
+      )
+
+      expect(log_output.string).to include(sink.string.chomp)
+    end
+
+    it "opens with the same stamp as every record, then the site and count" do
+      sink = StringIO.new
+      destination = destination_to(sink)
+
+      described_class.write(
+        site: Lba::Internal::Site.new(type: "val", file: "app/models/order.rb", line: 10),
+        suppressed_count: 1, seq: 1, destination:
       )
 
       keys = JSON.parse(sink.string, symbolize_names: true).keys

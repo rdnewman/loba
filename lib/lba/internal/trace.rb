@@ -1,5 +1,3 @@
-require "json"
-
 module Lba
   module Internal
     # Carries out one +Lba.value+ or +Lba.timestamp+ call: checks it's enabled
@@ -40,7 +38,7 @@ module Lba
         @tracked = track
         return if tracked == :suppressed
 
-        write(
+        destination.write(
           record_class.fields(caller_binding:, tracked:, **options)
         )
 
@@ -52,16 +50,15 @@ module Lba
       attr_reader :record_class, :options, :log, :logger, :sink, :caller_binding, :tracked
 
       def track
-        Tracker.current.record(site, sink: settings.sink, checkpoint: record_class::CHECKPOINT)
+        Tracker.current.record(site, destination:, checkpoint: record_class::CHECKPOINT)
       end
 
       def site
         Site.new(type: record_class::TYPE, file: caller_binding.file, line: caller_binding.line)
       end
 
-      def write(fields)
-        Writer.write(fields, sink: settings.sink)
-        settings.logger&.debug(JSON.generate(fields))
+      def destination
+        @destination ||= Destination.new(sink: settings.sink, logger: settings.logger)
       end
 
       def settings

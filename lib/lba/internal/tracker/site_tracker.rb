@@ -11,7 +11,7 @@ module Lba
         # @param site [Site] the call site
         def initialize(site)
           @site = site
-          @sink = nil
+          @destination = nil
           @site_seq = 0
           @last_mono_time = nil
           @window = Window.new
@@ -22,8 +22,8 @@ module Lba
         # call against the cap and, unless it's skipped, numbers it.
         #
         # @param now [Float] a monotonic clock reading
-        # @param sink [IO, String, nil] where the site's records go; +nil+ keeps
-        #   the last sink given
+        # @param destination [Destination, nil] where the site's records go;
+        #   +nil+ keeps the last destination given
         # @yieldreturn [Integer] the +seq+ for a record counting skipped calls;
         #   asked for only when one is written
         # @return [Hash{Symbol => Integer, Float, nil}, :suppressed] +:suppressed+
@@ -31,8 +31,8 @@ module Lba
         #   * +:site_seq+ [Integer] - the call's order among the site's records
         #   * +:diff+ [Float, nil] - seconds since the site's previous record, or
         #     +nil+ for its first
-        def record_call(now:, sink:, &)
-          remember_sink(sink)
+        def record_call(now:, destination:, &)
+          remember_destination(destination)
           roll(now:, &)
           window.count_call
           return :suppressed if window.skipping?
@@ -51,12 +51,12 @@ module Lba
 
       private
 
-        attr_reader :site, :sink, :window
+        attr_reader :site, :destination, :window
 
-        def remember_sink(sink)
-          return unless sink
+        def remember_destination(destination)
+          return unless destination
 
-          @sink = sink
+          @destination = destination
         end
 
         def roll(now:, &)
@@ -71,7 +71,7 @@ module Lba
         def write_suppression(suppressed_count)
           return if suppressed_count.zero?
 
-          Records::Suppression.write(site:, suppressed_count:, seq: yield, sink:)
+          Records::Suppression.write(site:, suppressed_count:, seq: yield, destination:)
         end
 
         def advance_diff!(now)

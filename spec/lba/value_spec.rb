@@ -336,6 +336,21 @@ RSpec.describe Lba, ".value" do
       expect(logged_record(log_output)).to eq(written_record(sink))
     end
 
+    # Otherwise a log reader would see a capped loop's records stop, as if the
+    # loop had ended.
+    it "also logs the record counting a capped site's skipped calls" do
+      hooks = stub_tracker_at_exit
+      sink = StringIO.new
+      log_output = StringIO.new
+      logger = Logger.new(log_output)
+      501.times { described_class.value("looped", sink:, logger:) }
+
+      hooks.first.call
+
+      last_logged = JSON.parse(log_output.string.lines.last[/\{.*\}/], symbolize_names: true)
+      expect(last_logged).to include(suppressed: true, suppressed_count: 1)
+    end
+
     it "writes to the sink and to Rails.logger when log: true inside Rails" do
       stub_tracker_at_exit
       sink = StringIO.new

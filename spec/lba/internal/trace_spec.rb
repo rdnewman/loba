@@ -53,7 +53,7 @@ RSpec.describe Lba::Internal::Trace do
         expect(Lba::Internal::Tracker.current).to have_received(:record)
           .with(
             Lba::Internal::Site.new(type: "ts", file: "app.rb", line: 10),
-            sink: an_instance_of(StringIO), checkpoint: true
+            destination: having_attributes(sink: an_instance_of(StringIO)), checkpoint: true
           )
       end
 
@@ -65,7 +65,7 @@ RSpec.describe Lba::Internal::Trace do
         expect(Lba::Internal::Tracker.current).to have_received(:record)
           .with(
             Lba::Internal::Site.new(type: "val", file: "app.rb", line: 10),
-            sink: an_instance_of(StringIO), checkpoint: false
+            destination: having_attributes(sink: an_instance_of(StringIO)), checkpoint: false
           )
       end
 

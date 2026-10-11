@@ -16,6 +16,7 @@ require_relative "internal/records/timestamp"
 require_relative "internal/sink_resolver"
 require_relative "internal/write_failures"
 require_relative "internal/writer"
+require_relative "internal/destination"
 require_relative "internal/trace"
 
 module Lba

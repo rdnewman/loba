@@ -170,7 +170,8 @@ Lba.val :name, logger: Logger.new($stderr)
 
 A logged record is the same JSON as the one written to the sink, at `debug`
 level. The sink is always written; logging is an addition, not a replacement.
-Outside Rails there is no default logger, so `log: true` logs nothing unless
+The record counting a capped site's skipped calls (see [Limits](#limits)) is
+logged too, with the logging options of that site's latest call. Outside Rails there is no default logger, so `log: true` logs nothing unless
 `logger:` is also given.
 
 An unknown option raises Ruby's `ArgumentError` at the call.
