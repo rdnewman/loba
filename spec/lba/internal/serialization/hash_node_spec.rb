@@ -62,5 +62,14 @@ RSpec.describe Lba::Internal::Serialization::HashNode do
         )
       end
     end
+
+    context "when a key can't be rendered" do
+      it "reports the failure at the pair's path, marked key: true" do
+        result = described_class.serialize(value: { object_whose_inspect_raises => 1 })
+
+        expect(result[:errors])
+          .to eq([{ path: ["(unrenderable)"], message: "ArgumentError: boom", key: true }])
+      end
+    end
   end
 end

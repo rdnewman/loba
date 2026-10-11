@@ -56,6 +56,20 @@ RSpec.describe Lba::Internal::Serialization do
         expect(rendered({ total: Float::NAN })).to eq([{ path: ["total"], as: "non_finite" }])
       end
 
+      # Otherwise a rendered key and a rendered value under it would read the
+      # same, and a real String value could be taken for rendered text.
+      it "is the pair's path, marked key: true, for a key" do
+        expect(rendered({ object_rendering => "hello" }))
+          .to eq([{ path: ["#<Thing inspected>"], as: "inspect", key: true }])
+      end
+
+      # JSON holds a key only as text, so a path into a key's insides would
+      # lead nowhere.
+      it "is one entry for a container key, rendered whole" do
+        expect(rendered({ [1, object_rendering] => "v" }))
+          .to eq([{ path: ["[1, #<Thing inspected>]"], as: "inspect", key: true }])
+      end
+
       it "is every key and index down to it, when nested" do
         expect(rendered({ items: [1, object_rendering] }))
           .to eq([{ path: ["items", 1], as: "inspect" }])

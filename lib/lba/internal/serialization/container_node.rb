@@ -36,8 +36,8 @@ module Lba
           @use_inspect = use_inspect
           return if depth >= MAX_DEPTH
 
-          @children = children_of(value.first(MAX_ENTRIES)).map do |child|
-            UnknownNode.serialize(value: child, depth: depth + 1, use_inspect:)
+          @children = children_of(value.first(MAX_ENTRIES)).each_with_index.map do |child, index|
+            serialize_child(child, index)
           end
         end
 
@@ -70,6 +70,14 @@ module Lba
           raise NotImplementedError
         end
 
+        # Whether the child at +index+ is a key. A Hash's keys are children
+        # too, so their entries say so.
+        def key_child?(_index) = false
+
+        def serialize_child(child, _index)
+          UnknownNode.serialize(value: child, depth: depth + 1, use_inspect:)
+        end
+
         # The children's entries in +list+ (+:rendered+ or +:errors+), keyed
         # by +list+, or nothing if none has any.
         def listed(list)
@@ -84,12 +92,23 @@ module Lba
           end
         end
 
-        # A child's entries, with its position put in front of their paths.
-        # The position is worked out only for a child that has entries.
+        # A child's entries, with its position put in front of their paths,
+        # and marked if the child is a key. The position is worked out only
+        # for a child that has entries.
         def prefixed(entries, index)
           return NONE unless entries
 
-          entries.map { |entry| entry.merge(path: [position(index), *entry[:path]]) }
+          entries.map do |entry|
+            entry.merge(path: [position(index), *entry[:path]], **key_mark(index))
+          end
+        end
+
+        def key_mark(index)
+          if key_child?(index)
+            { key: true }
+          else
+            {}
+          end
         end
 
         def truncated

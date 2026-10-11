@@ -28,6 +28,22 @@ module Lba
 
         # A child's position is its pair's key, as JSON writes keys: as text.
         # Keys sit at even indexes, each followed by its value.
+        def key_child?(index) = index.even?
+
+        # JSON holds a key only as text, so a container key is rendered whole
+        # rather than walked: a path into it would lead nowhere.
+        def serialize_child(child, index)
+          if key_child?(index) && container?(child)
+            FallbackNode.serialize(value: child, use_inspect:)
+          else
+            super
+          end
+        end
+
+        def container?(child)
+          child.is_a?(Array) || child.is_a?(Hash)
+        end
+
         def position(index)
           key_index = index - (index % 2)
           children[key_index][:value].to_s

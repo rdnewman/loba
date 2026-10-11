@@ -136,7 +136,7 @@ bookkeeping that repeats from line to line.
 | `value_type` | The value's class name |
 | `rendered` | Present only when some part of the value is recorded as text instead of as itself: one `{"path", "as"}` per part, where `as` says why (see below). The text can look exactly like a real String; this says which parts aren't |
 | `truncated` | `true` if any part of the value was cut short (see [Limits](#limits)) |
-| `errors` | Present only when evaluating the Symbol, or rendering any part of the value, raised: one `{"path", "message"}` per failure. Without `value`, nothing could be recorded; with it, only part couldn't (see [Errors](#errors)). A `path`, here and in `rendered`, is the part's Array indexes and Hash keys from the top; `[]` is the whole value |
+| `errors` | Present only when evaluating the Symbol, or rendering any part of the value, raised: one `{"path", "message"}` per failure. Without `value`, nothing could be recorded; with it, only part couldn't (see [Errors](#errors)). A `path`, here and in `rendered`, is the part's Array indexes and Hash keys from the top; `[]` is the whole value. An entry about a Hash key itself, not the value under it, also has `"key": true` |
 | `value` | The value, as JSON (see below) |
 | `wall_time` | Seconds since the epoch, when recorded |
 | `mono_time` | A monotonic clock reading, unaffected by system clock changes |
@@ -147,7 +147,8 @@ Strings, numbers, `true`, `false`, `nil`, Arrays, and Hashes are recorded as
 JSON, including inside each other; Symbols are recorded as JSON strings, and
 Hash keys always become JSON strings. Anything else is rendered as text with
 `#inspect` (or `#to_s`, with `inspect: false`), and `rendered` names it with
-`as` `"inspect"` (or `"to_s"`).
+`as` `"inspect"` (or `"to_s"`). A key that is an Array or Hash is rendered
+whole the same way, since JSON can hold a key only as text.
 
 JSON can't hold some values exactly, so these are recorded as text too, and
 named in `rendered`:
