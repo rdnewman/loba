@@ -97,45 +97,69 @@ RSpec.describe Lba::Internal::Tracker do
         allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(time)
       end
 
-      it "is nil on the process's first ts record" do
+      it "is nil on the process's first checkpoint" do
         tracker = described_class.new
 
-        result = tracker.record(site(type: "ts"))
+        result = tracker.record(site(type: "ts"), checkpoint: true)
 
         expect(result).to include(since_prev_ts: nil)
       end
 
-      it "is the elapsed time since the previous ts record, at any site" do
+      it "is the time since the previous checkpoint, at any site" do
         tracker = described_class.new
         stub_monotonic(100.0)
-        tracker.record(site(type: "ts"))
+        tracker.record(site(type: "ts"), checkpoint: true)
 
         stub_monotonic(100.5)
-        result = tracker.record(site(type: "ts", file: "app/models/invoice.rb", line: 20))
+        result = tracker.record(site(type: "ts", file: "app/models/invoice.rb"), checkpoint: true)
 
         expect(result).to include(since_prev_ts: 0.5)
       end
 
-      it "ignores val records between two ts records" do
+      it "ignores calls that aren't checkpoints between two checkpoints" do
         tracker = described_class.new
         stub_monotonic(100.0)
-        tracker.record(site(type: "ts"))
+        tracker.record(site(type: "ts"), checkpoint: true)
         stub_monotonic(100.2)
         tracker.record(site(line: 11))
 
         stub_monotonic(100.5)
-        result = tracker.record(site(type: "ts", line: 12))
+        result = tracker.record(site(type: "ts", line: 12), checkpoint: true)
 
         expect(result).to include(since_prev_ts: 0.5)
       end
 
-      it "is left off val records" do
+      it "is left off calls that aren't checkpoints" do
         tracker = described_class.new
-        tracker.record(site(type: "ts"))
+        tracker.record(site(type: "ts"), checkpoint: true)
 
         result = tracker.record(site(line: 11))
 
         expect(result).not_to have_key(:since_prev_ts)
+      end
+
+      it "doesn't count a call as a checkpoint for its site's type" do
+        tracker = described_class.new
+        stub_monotonic(100.0)
+        tracker.record(site(type: "ts"), checkpoint: true)
+        stub_monotonic(100.2)
+        tracker.record(site(type: "ts", line: 11))
+
+        stub_monotonic(100.5)
+        result = tracker.record(site(type: "ts", line: 12), checkpoint: true)
+
+        expect(result).to include(since_prev_ts: 0.5)
+      end
+
+      it "counts a call the caller says is a checkpoint, whatever its site's type" do
+        tracker = described_class.new
+        stub_monotonic(100.0)
+        tracker.record(site(type: "ts"), checkpoint: true)
+
+        stub_monotonic(100.5)
+        result = tracker.record(site(type: "val"), checkpoint: true)
+
+        expect(result).to include(since_prev_ts: 0.5)
       end
     end
   end
@@ -167,12 +191,12 @@ RSpec.describe Lba::Internal::Tracker do
         expect(child_result).to include(seq: 1, site_seq: 1)
       end
 
-      it "gives the child a fresh since_prev_ts instead of timing from the parent's ts" do
+      it "gives the child a fresh since_prev_ts instead of timing from the parent's checkpoint" do
         stub_tracker_at_exit
-        described_class.current.record(site(type: "ts"))
+        described_class.current.record(site(type: "ts"), checkpoint: true)
 
         child_result = in_forked_child do
-          described_class.current.record(site(type: "ts"))
+          described_class.current.record(site(type: "ts"), checkpoint: true)
         end
 
         expect(child_result).to include(since_prev_ts: nil)

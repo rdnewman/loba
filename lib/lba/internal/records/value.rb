@@ -11,6 +11,9 @@ module Lba
         # The record type.
         TYPE = "val".freeze
 
+        # Calls aren't checkpoints.
+        CHECKPOINT = false
+
         # Builds the record's fields; shorthand for +new(...).fields+.
         #
         # @return (see #fields)

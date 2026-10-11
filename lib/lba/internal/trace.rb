@@ -52,7 +52,7 @@ module Lba
       attr_reader :record_class, :options, :log, :logger, :sink, :caller_binding, :tracked
 
       def track
-        Tracker.current.record(site, sink: settings.sink)
+        Tracker.current.record(site, sink: settings.sink, checkpoint: record_class::CHECKPOINT)
       end
 
       def site

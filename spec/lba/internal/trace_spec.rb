@@ -47,13 +47,25 @@ RSpec.describe Lba::Internal::Trace do
         allow(Lba::Internal::Records::Timestamp).to receive(:fields)
       end
 
-      it "asks the tracker about the site, by the record's type" do
+      it "tells the tracker a timestamp call is a checkpoint" do
         described_class.record(Lba::Internal::Records::Timestamp, sink: StringIO.new)
 
         expect(Lba::Internal::Tracker.current).to have_received(:record)
           .with(
             Lba::Internal::Site.new(type: "ts", file: "app.rb", line: 10),
-            sink: an_instance_of(StringIO)
+            sink: an_instance_of(StringIO), checkpoint: true
+          )
+      end
+
+      it "tells the tracker a value call isn't a checkpoint" do
+        options = { argument: :total, label: nil, inspect: true }
+
+        described_class.record(Lba::Internal::Records::Value, options:, sink: StringIO.new)
+
+        expect(Lba::Internal::Tracker.current).to have_received(:record)
+          .with(
+            Lba::Internal::Site.new(type: "val", file: "app.rb", line: 10),
+            sink: an_instance_of(StringIO), checkpoint: false
           )
       end
 

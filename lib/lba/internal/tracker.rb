@@ -40,6 +40,8 @@ module Lba
       #
       # @param site [Site] the call site
       # @param sink [IO, String, nil] where this site's skipped-call record goes
+      # @param checkpoint [Boolean] whether the call is a checkpoint, timed
+      #   from the previous one
       # @return [Hash{Symbol => Integer, Float, nil}, :suppressed] +:suppressed+
       #   if the site is capped; otherwise:
       #   * +:seq+ [Integer] - this record's order among all the process's records
@@ -49,17 +51,17 @@ module Lba
       #   * +:site_seq+ [Integer] - its order among the site's records
       #   * +:diff+ [Float, nil] - seconds since the site's previous record, or
       #     +nil+ for its first
-      #   * +:since_prev_ts+ [Float, nil] - +ts+ only: seconds since the
-      #     process's previous +ts+ record at any site, or +nil+ for its first.
-      #     Suppression records don't count as a previous +ts+.
-      def record(site, sink: nil)
+      #   * +:since_prev_ts+ [Float, nil] - checkpoints only: seconds since the
+      #     process's previous checkpoint at any site, or +nil+ for its first.
+      #     Suppression records don't count as a previous checkpoint.
+      def record(site, sink: nil, checkpoint: false)
         now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         # A record counting the site's skipped calls takes its seq, through the
         # block, before this call takes the next one.
         numbered = site_tracker_for(site).record_call(now:, sink:) { next_seq! }
         return :suppressed if numbered == :suppressed
 
-        { seq: next_seq!, mono_time: now, **numbered, **checkpoint_fields(site.type, now) }
+        { seq: next_seq!, mono_time: now, **numbered, **checkpoint_fields(checkpoint, now) }
       end
 
     private
@@ -70,8 +72,8 @@ module Lba
         site_trackers[site] ||= SiteTracker.new(site)
       end
 
-      def checkpoint_fields(type, now)
-        if type == "ts"
+      def checkpoint_fields(checkpoint, now)
+        if checkpoint
           { since_prev_ts: advance_since_prev_ts!(now) }
         else
           {}

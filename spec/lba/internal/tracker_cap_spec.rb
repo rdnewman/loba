@@ -118,29 +118,31 @@ RSpec.describe Lba::Internal::Tracker do
     end
   end
 
-  describe "since_prev_ts at a capped ts site" do
+  describe "since_prev_ts at a capped checkpoint site" do
     def stub_monotonic(time)
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(time)
     end
 
     it "is not advanced by skipped calls" do
+      checkpoint_site = site.with(type: "ts")
       stub_monotonic(100.0)
-      cap.times { tracker.record(site.with(type: "ts"), sink:) }
+      cap.times { tracker.record(checkpoint_site, sink:, checkpoint: true) }
       stub_monotonic(100.3)
-      tracker.record(site.with(type: "ts"), sink:)
+      tracker.record(checkpoint_site, sink:, checkpoint: true)
 
       stub_monotonic(100.5)
-      result = tracker.record(site.with(type: "ts", line: 20), sink:)
+      result = tracker.record(checkpoint_site.with(line: 20), sink:, checkpoint: true)
 
       expect(result).to include(since_prev_ts: 0.5)
     end
 
     it "times from the previous checkpoint, not the suppression record written just before it" do
+      checkpoint_site = site.with(type: "ts")
       stub_monotonic(100.0)
-      (cap + 1).times { tracker.record(site.with(type: "ts"), sink: StringIO.new) }
+      (cap + 1).times { tracker.record(checkpoint_site, sink: StringIO.new, checkpoint: true) }
 
       stub_monotonic(170.0)
-      result = tracker.record(site.with(type: "ts"), sink: StringIO.new)
+      result = tracker.record(checkpoint_site, sink: StringIO.new, checkpoint: true)
 
       expect(result).to include(since_prev_ts: 70.0)
     end

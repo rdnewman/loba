@@ -13,6 +13,10 @@ RSpec.describe Lba::Internal::Records::Value do
     expect(described_class::TYPE).to eq("val")
   end
 
+  it "doesn't mark its calls as checkpoints" do
+    expect(described_class::CHECKPOINT).to be(false)
+  end
+
   describe ".fields" do
     it "has the stamp, the site's number and diff, the caller, a label, and the value" do
       fields = described_class.fields(

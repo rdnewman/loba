@@ -11,6 +11,10 @@ RSpec.describe Lba::Internal::Records::Timestamp do
     expect(described_class::TYPE).to eq("ts")
   end
 
+  it "marks its calls as checkpoints" do
+    expect(described_class::CHECKPOINT).to be(true)
+  end
+
   describe ".fields" do
     it "has the stamp, the site's number, the timing since the previous ts, the caller, " \
        "and a label, with no site diff" do

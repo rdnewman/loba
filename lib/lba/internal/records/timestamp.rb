@@ -10,6 +10,9 @@ module Lba
         # The record type.
         TYPE = "ts".freeze
 
+        # Each call is a checkpoint, timed from the previous one.
+        CHECKPOINT = true
+
         # Builds the record's fields; shorthand for +new(...).fields+.
         #
         # @return (see #fields)
