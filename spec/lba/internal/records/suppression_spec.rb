@@ -7,7 +7,8 @@ RSpec.describe Lba::Internal::Records::Suppression do
       sink = StringIO.new
 
       described_class.write(
-        type: "ts", file: "app/models/order.rb", line: 10, suppressed_count: 7, seq: 42, sink:
+        site: Lba::Internal::Site.new(type: "ts", file: "app/models/order.rb", line: 10),
+        suppressed_count: 7, seq: 42, sink:
       )
 
       lines = sink.string.lines
@@ -22,7 +23,8 @@ RSpec.describe Lba::Internal::Records::Suppression do
       sink = StringIO.new
 
       described_class.write(
-        type: "val", file: "app/models/order.rb", line: 10, suppressed_count: 1, seq: 1, sink:
+        site: Lba::Internal::Site.new(type: "val", file: "app/models/order.rb", line: 10),
+        suppressed_count: 1, seq: 1, sink:
       )
 
       keys = JSON.parse(sink.string, symbolize_names: true).keys

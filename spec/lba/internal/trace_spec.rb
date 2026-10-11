@@ -51,7 +51,10 @@ RSpec.describe Lba::Internal::Trace do
         described_class.record(Lba::Internal::Records::Timestamp, sink: StringIO.new)
 
         expect(Lba::Internal::Tracker.current).to have_received(:record)
-          .with(type: "ts", file: "app.rb", line: 10, sink: an_instance_of(StringIO))
+          .with(
+            Lba::Internal::Site.new(type: "ts", file: "app.rb", line: 10),
+            sink: an_instance_of(StringIO)
+          )
       end
 
       it "does not build the record" do

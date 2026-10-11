@@ -4,17 +4,13 @@ require_relative "../records/suppression"
 module Lba
   module Internal
     class Tracker
-      # One call site: one record type at one file and line. Numbers and
-      # times the site's records, remembers where they go, caps them through
-      # its own Window, and writes the record counting any calls it skipped.
-      class Site
-        # @param type [String] the kind of record, e.g. +"val"+
-        # @param file [String] the calling file
-        # @param line [Integer] the calling line
-        def initialize(type:, file:, line:)
-          @type = type
-          @file = file
-          @line = line
+      # What the tracker keeps about one call site. Numbers and times the
+      # site's records, remembers where they go, caps them through its own
+      # Window, and writes the record counting any calls it skipped.
+      class SiteTracker
+        # @param site [Site] the call site
+        def initialize(site)
+          @site = site
           @sink = nil
           @site_seq = 0
           @last_mono_time = nil
@@ -55,7 +51,7 @@ module Lba
 
       private
 
-        attr_reader :type, :file, :line, :sink, :window
+        attr_reader :site, :sink, :window
 
         def remember_sink(sink)
           return unless sink
@@ -75,7 +71,7 @@ module Lba
         def write_suppression(suppressed_count)
           return if suppressed_count.zero?
 
-          Records::Suppression.write(type:, file:, line:, suppressed_count:, seq: yield, sink:)
+          Records::Suppression.write(site:, suppressed_count:, seq: yield, sink:)
         end
 
         def advance_diff!(now)

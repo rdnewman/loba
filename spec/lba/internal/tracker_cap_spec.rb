@@ -5,14 +5,14 @@ RSpec.describe Lba::Internal::Tracker do
   subject(:tracker) { described_class.new }
 
   let(:sink) { instance_double(IO, write: nil, flush: nil) }
-  let(:site) { { type: "val", file: "app/models/order.rb", line: 10 } }
+  let(:site) { Lba::Internal::Site.new(type: "val", file: "app/models/order.rb", line: 10) }
   let(:cap) { 500 }
 
   describe "#record with a write-time cap" do
     it "suppresses the call that crosses the cap without writing anything", :aggregate_failures do
-      cap.times { tracker.record(**site, sink:) }
+      cap.times { tracker.record(site, sink:) }
 
-      result = tracker.record(**site, sink:)
+      result = tracker.record(site, sink:)
 
       expect(result).to eq(:suppressed)
       expect(sink).not_to have_received(:write)
@@ -22,19 +22,19 @@ RSpec.describe Lba::Internal::Tracker do
       window_start = 1_000.0
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      (cap + 1).times { tracker.record(**site, sink:) }
+      (cap + 1).times { tracker.record(site, sink:) }
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start + 59.9)
 
-      result = tracker.record(**site, sink:)
+      result = tracker.record(site, sink:)
 
       expect(result).to eq(:suppressed)
     end
 
     it "caps a ts on the same line separately from a capped val" do
-      (cap + 1).times { tracker.record(**site, sink:) }
+      (cap + 1).times { tracker.record(site, sink:) }
 
-      result = tracker.record(**site, type: "ts", sink:)
+      result = tracker.record(site.with(type: "ts"), sink:)
 
       expect(result).to include(site_seq: 1)
     end
@@ -50,12 +50,12 @@ RSpec.describe Lba::Internal::Tracker do
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start)
 
-      cap.times { tracker.record(**site, sink:) }
-      7.times { tracker.record(**site, sink:) }
+      cap.times { tracker.record(site, sink:) }
+      7.times { tracker.record(site, sink:) }
 
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start + 60)
-      tracker.record(**site, sink:)
+      tracker.record(site, sink:)
 
       lines = sink.string.lines
       expect(lines.size).to eq(1)
@@ -72,11 +72,11 @@ RSpec.describe Lba::Internal::Tracker do
       window_start = 1_000.0
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      (cap + 1).times { tracker.record(**site, sink:) }
+      (cap + 1).times { tracker.record(site, sink:) }
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start + 60)
 
-      tracker.record(**site)
+      tracker.record(site)
 
       expect(JSON.parse(sink.string)).to include("suppressed_count" => 1)
     end
@@ -87,11 +87,11 @@ RSpec.describe Lba::Internal::Tracker do
       window_start = 1_000.0
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      (cap + 1).times { tracker.record(**site, sink:) }
+      (cap + 1).times { tracker.record(site, sink:) }
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start + 60)
 
-      next_record = tracker.record(**site, sink:)
+      next_record = tracker.record(site, sink:)
 
       flushed = JSON.parse(sink.string, symbolize_names: true)
       expect(flushed).to include(
@@ -106,11 +106,11 @@ RSpec.describe Lba::Internal::Tracker do
       window_start = 1_000.0
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      (cap + 4).times { tracker.record(**site, sink:) }
+      (cap + 4).times { tracker.record(site, sink:) }
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start + 60)
 
-      result = tracker.record(**site, sink:)
+      result = tracker.record(site, sink:)
 
       # The suppression record written as the window rolled over took the seq
       # just before this one.
@@ -125,22 +125,22 @@ RSpec.describe Lba::Internal::Tracker do
 
     it "is not advanced by skipped calls" do
       stub_monotonic(100.0)
-      cap.times { tracker.record(**site, type: "ts", sink:) }
+      cap.times { tracker.record(site.with(type: "ts"), sink:) }
       stub_monotonic(100.3)
-      tracker.record(**site, type: "ts", sink:)
+      tracker.record(site.with(type: "ts"), sink:)
 
       stub_monotonic(100.5)
-      result = tracker.record(**site, type: "ts", line: 20, sink:)
+      result = tracker.record(site.with(type: "ts", line: 20), sink:)
 
       expect(result).to include(since_prev_ts: 0.5)
     end
 
     it "times from the previous checkpoint, not the suppression record written just before it" do
       stub_monotonic(100.0)
-      (cap + 1).times { tracker.record(**site, type: "ts", sink: StringIO.new) }
+      (cap + 1).times { tracker.record(site.with(type: "ts"), sink: StringIO.new) }
 
       stub_monotonic(170.0)
-      result = tracker.record(**site, type: "ts", sink: StringIO.new)
+      result = tracker.record(site.with(type: "ts"), sink: StringIO.new)
 
       expect(result).to include(since_prev_ts: 70.0)
     end

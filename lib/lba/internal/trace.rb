@@ -52,12 +52,11 @@ module Lba
       attr_reader :record_class, :options, :log, :logger, :sink, :caller_binding, :tracked
 
       def track
-        Tracker.current.record(
-          type: record_class::TYPE,
-          file: caller_binding.file,
-          line: caller_binding.line,
-          sink: settings.sink
-        )
+        Tracker.current.record(site, sink: settings.sink)
+      end
+
+      def site
+        Site.new(type: record_class::TYPE, file: caller_binding.file, line: caller_binding.line)
       end
 
       def write(fields)

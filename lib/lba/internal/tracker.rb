@@ -1,4 +1,4 @@
-require_relative "tracker/site"
+require_relative "tracker/site_tracker"
 
 module Lba
   module Internal
@@ -25,7 +25,7 @@ module Lba
       # Starts with no call sites seen.
       def initialize
         @pid = Process.pid
-        @sites = {}
+        @site_trackers = {}
         @global_seq = 0
         @last_ts_mono_time = nil
       end
@@ -38,9 +38,7 @@ module Lba
       # A site is one record type at one file and line, so a +val+ and a +ts+
       # on the same line are counted and capped separately.
       #
-      # @param type [String] the kind of record, e.g. +"val"+
-      # @param file [String] the calling file
-      # @param line [Integer] the calling line
+      # @param site [Site] the call site
       # @param sink [IO, String, nil] where this site's skipped-call record goes
       # @return [Hash{Symbol => Integer, Float, nil}, :suppressed] +:suppressed+
       #   if the site is capped; otherwise:
@@ -54,23 +52,22 @@ module Lba
       #   * +:since_prev_ts+ [Float, nil] - +ts+ only: seconds since the
       #     process's previous +ts+ record at any site, or +nil+ for its first.
       #     Suppression records don't count as a previous +ts+.
-      def record(type:, file:, line:, sink: nil)
+      def record(site, sink: nil)
         now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        site = site_for(type:, file:, line:)
         # A record counting the site's skipped calls takes its seq, through the
         # block, before this call takes the next one.
-        numbered = site.record_call(now:, sink:) { next_seq! }
+        numbered = site_tracker_for(site).record_call(now:, sink:) { next_seq! }
         return :suppressed if numbered == :suppressed
 
-        { seq: next_seq!, mono_time: now, **numbered, **checkpoint_fields(type, now) }
+        { seq: next_seq!, mono_time: now, **numbered, **checkpoint_fields(site.type, now) }
       end
 
     private
 
-      attr_reader :sites
+      attr_reader :site_trackers
 
-      def site_for(type:, file:, line:)
-        sites[[type, file, line]] ||= Site.new(type:, file:, line:)
+      def site_tracker_for(site)
+        site_trackers[site] ||= SiteTracker.new(site)
       end
 
       def checkpoint_fields(type, now)
@@ -96,8 +93,8 @@ module Lba
       end
 
       def flush_all!
-        sites.each_value do |site|
-          site.flush { next_seq! }
+        site_trackers.each_value do |site_tracker|
+          site_tracker.flush { next_seq! }
         end
       end
 

@@ -1,6 +1,7 @@
 require_relative "internal/serialization"
 require_relative "internal/caller_binding"
 require_relative "internal/label"
+require_relative "internal/site"
 require_relative "internal/tracker"
 require_relative "internal/platform/within_rails"
 require_relative "internal/platform/environment"

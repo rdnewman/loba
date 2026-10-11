@@ -14,15 +14,11 @@ module Lba
         # @return (see #write)
         def self.write(sink:, **fields) = new(**fields).write(sink:)
 
-        # @param type [String] the kind of record the site writes, e.g. +"val"+
-        # @param file [String] the site's file
-        # @param line [Integer] the site's line
+        # @param site [Site] the call site that skipped the calls
         # @param suppressed_count [Integer] calls the site skipped
         # @param seq [Integer] this record's order among all the process's records
-        def initialize(type:, file:, line:, suppressed_count:, seq:)
-          @type = type
-          @file = file
-          @line = line
+        def initialize(site:, suppressed_count:, seq:)
+          @site = site
           @suppressed_count = suppressed_count
           @seq = seq
         end
@@ -35,13 +31,13 @@ module Lba
 
       private
 
-        attr_reader :type, :file, :line, :suppressed_count, :seq
+        attr_reader :site, :suppressed_count, :seq
 
         def fields
           {
-            **RecordStamp.fields(seq:, type:),
-            file:,
-            line:,
+            **RecordStamp.fields(seq:, type: site.type),
+            file: site.file,
+            line: site.line,
             suppressed: true,
             suppressed_count:
           }
