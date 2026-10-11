@@ -47,7 +47,9 @@ module Lba
 
       def with_gap(gap)
         if gap
-          record.merge(unwritten: gap)
+          # The gap qualifies the record's place in the run, so it goes right
+          # after the record's seq and type.
+          { **record.slice(:seq, :type), unwritten: gap, **record.except(:seq, :type) }
         else
           record
         end

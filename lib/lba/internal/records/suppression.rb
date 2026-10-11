@@ -36,11 +36,13 @@ module Lba
 
         def fields
           {
-            **RecordStamp.fields(seq:, type: site.type),
+            seq:,
+            type: site.type,
             file: site.file,
             line: site.line,
             suppressed: true,
-            suppressed_count:
+            suppressed_count:,
+            **RecordStamp.fields
           }
         end
       end

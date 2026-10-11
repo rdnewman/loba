@@ -29,7 +29,7 @@ HelloWorld.new.hello("Charlie")
 ```
 
 ```json
-{"type":"val","file":"hello_world.rb","line":3,"class_name":"HelloWorld","method_name":"hello","method_type":"instance","label":"name","value":"Charlie","value_type":"String","inspected":false,"truncated":false}
+{"type":"val","label":"name","file":"hello_world.rb","line":3,"class_name":"HelloWorld","method_name":"hello","method_type":"instance","value_type":"String","inspected":false,"truncated":false,"value":"Charlie"}
 ```
 
 The label comes from the Symbol. A Symbol can also name an instance variable
@@ -57,7 +57,7 @@ Lba.val name
 ```
 
 ```json
-{"label":null,"value":"Charlie","value_type":"String"}
+{"label":null,"value_type":"String","value":"Charlie"}
 ```
 
 A value given directly can't name itself, so `label` is `null`.
@@ -69,7 +69,7 @@ Lba.val name, label: "Name"
 ```
 
 ```json
-{"label":"Name","value":"Charlie","value_type":"String"}
+{"label":"Name","value_type":"String","value":"Charlie"}
 ```
 
 ## Where records go
@@ -99,7 +99,7 @@ A skipped record shouldn't look like code that never ran, so the next record
 that is written to the same sink notes what was missed, in `unwritten`:
 
 ```json
-{"seq":4,"type":"ts","label":"after recovery","unwritten":{"count":2,"first_seq":2,"last_seq":3,"error":"Errno::EACCES: Permission denied @ rb_sysopen - log/trace.jsonl"}}
+{"seq":4,"type":"ts","unwritten":{"count":2,"first_seq":2,"last_seq":3,"error":"Errno::EACCES: Permission denied @ rb_sysopen - log/trace.jsonl"},"label":"after recovery"}
 ```
 
 If no later record reaches that sink, the process reports the loss when it
@@ -117,27 +117,31 @@ file.
 
 ## The record
 
+Fields come in this order on every line: what and where first, then what
+describes the value, then the value (the one field with no size limit), then
+bookkeeping that repeats from line to line.
+
 | Field | Meaning |
 |---|---|
-| `schema` | Record format version, currently `1` |
-| `run_id` | This process run, e.g. `20260926T210626Z-894825-b10f3e7a` |
 | `seq` | Order of this record among all records in the run |
 | `type` | `"val"` |
-| `wall_time` | Seconds since the epoch, when recorded |
-| `mono_time` | A monotonic clock reading, unaffected by system clock changes |
-| `site_seq` | Order of this record among records from the same call site (file and line) |
-| `diff` | Seconds since the previous record from the same call site, exactly the difference between their `mono_time` values; `null` for the first |
+| `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `first_seq` and `last_seq` they fell between, and the first `error` (see [Where records go](#where-records-go)) |
+| `label` | The given or inferred label, or `null` |
 | `file`, `line` | Where `Lba.val` was called; `file` is the path Ruby loaded that file by, usually absolute inside an app |
 | `class_name` | The caller's class, or the class itself inside a class method; `"<anonymous class>"` for an unnamed one |
 | `method_name` | The caller's method; `"<anonymous method>"` outside any method |
 | `method_type` | `"instance"` or `"class"` |
-| `label` | The given or inferred label, or `null` |
-| `value` | The value, as JSON (see below) |
+| `site_seq` | Order of this record among records from the same call site (file and line) |
+| `diff` | Seconds since the previous record from the same call site, exactly the difference between their `mono_time` values; `null` for the first |
 | `value_type` | The value's class name |
 | `inspected` | `true` if any part of the value was recorded as text instead of as itself (see below) |
 | `truncated` | `true` if any part of the value was cut short (see [Limits](#limits)) |
 | `errors` | Present only when evaluating the Symbol, or rendering any part of the value, raised: one `{"path", "message"}` per failure. Without `value`, nothing could be recorded; with it, only part couldn't (see [Errors](#errors)) |
-| `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `first_seq` and `last_seq` they fell between, and the first `error` (see [Where records go](#where-records-go)) |
+| `value` | The value, as JSON (see below) |
+| `wall_time` | Seconds since the epoch, when recorded |
+| `mono_time` | A monotonic clock reading, unaffected by system clock changes |
+| `run_id` | This process run, e.g. `20260926T210626Z-894825-b10f3e7a` |
+| `schema` | Record format version, currently `1` |
 
 Strings, numbers, `true`, `false`, `nil`, Arrays, and Hashes are recorded as
 JSON, including inside each other; Symbols are recorded as JSON strings, and
@@ -171,8 +175,9 @@ Lba.val :name, logger: Logger.new($stderr)
 A logged record is the same JSON as the one written to the sink, at `debug`
 level. The sink is always written; logging is an addition, not a replacement.
 The record counting a capped site's skipped calls (see [Limits](#limits)) is
-logged too, with the logging options of that site's latest call. Outside Rails there is no default logger, so `log: true` logs nothing unless
-`logger:` is also given.
+logged too, with the logging options of that site's latest call. Outside Rails
+there is no default logger, so `log: true` logs nothing unless `logger:` is
+also given.
 
 An unknown option raises Ruby's `ArgumentError` at the call.
 
@@ -191,12 +196,12 @@ To keep a record, and the cost of making it, bounded:
   noting how many calls were skipped:
 
   ```json
-  {"schema":1,"run_id":"20260927T162656Z-1108765-4c1d93a0","seq":501,"type":"val","wall_time":1790526416.5963955,"mono_time":1061.0,"file":"app/models/order.rb","line":55,"suppressed":true,"suppressed_count":1246}
+  {"seq":501,"type":"val","file":"app/models/order.rb","line":55,"suppressed":true,"suppressed_count":1246,"wall_time":1790526416.5963955,"mono_time":1061.0,"run_id":"20260927T162656Z-1108765-4c1d93a0","schema":1}
   ```
 
-  It opens with the same fields as every record and takes the next `seq`, but
-  has no `site_seq`, caller details, or value. Skipped calls take no numbers, so
-  `seq` and `site_seq` never skip.
+  It has the same `seq`, `type`, and closing fields as every record and takes
+  the next `seq`, but has no `site_seq`, caller details, or value. Skipped calls
+  take no numbers, so `seq` and `site_seq` never skip.
 
   A process killed without running its exit handlers (`kill -9`, or `exit!`)
   loses that last count.
@@ -228,7 +233,7 @@ in `errors`, whose `path` gives its position: Array indexes and Hash keys, from
 the outside in.
 
 ```json
-{"label":"items","value":["(unrenderable)",1,"(unrenderable)"],"value_type":"Array","inspected":true,"truncated":false,"errors":[{"path":[0],"message":"NoMethodError: undefined method 'inspect' for an instance of BasicObject"},{"path":[2],"message":"ArgumentError: boom"}]}
+{"label":"items","value_type":"Array","inspected":true,"truncated":false,"errors":[{"path":[0],"message":"NoMethodError: undefined method 'inspect' for an instance of BasicObject"},{"path":[2],"message":"ArgumentError: boom"}],"value":["(unrenderable)",1,"(unrenderable)"]}
 ```
 
 So `errors` is always the sign that something couldn't be recorded; a record

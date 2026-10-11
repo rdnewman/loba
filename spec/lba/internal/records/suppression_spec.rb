@@ -34,7 +34,7 @@ RSpec.describe Lba::Internal::Records::Suppression do
       expect(log_output.string).to include(sink.string.chomp)
     end
 
-    it "opens with the same stamp as every record, then the site and count" do
+    it "has the order and site first, then the count, then the same stamp as every record" do
       sink = StringIO.new
       destination = destination_to(sink)
 
@@ -45,8 +45,8 @@ RSpec.describe Lba::Internal::Records::Suppression do
 
       keys = JSON.parse(sink.string, symbolize_names: true).keys
       expect(keys).to eq(
-        [:schema, :run_id, :seq, :type, :wall_time, :mono_time,
-         :file, :line, :suppressed, :suppressed_count]
+        [:seq, :type, :file, :line, :suppressed, :suppressed_count,
+         :wall_time, :mono_time, :run_id, :schema]
       )
     end
   end

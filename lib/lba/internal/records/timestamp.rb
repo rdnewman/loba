@@ -31,11 +31,13 @@ module Lba
         # @return [Hash{Symbol => Object}] the record's fields, in order
         def fields
           {
-            **RecordStamp.fields(seq: tracked[:seq], type: TYPE, mono_time: tracked[:mono_time]),
+            seq: tracked[:seq],
+            type: TYPE,
+            label: Label.infer(argument: nil, label:),
+            **Caller.fields(caller_binding),
             site_seq: tracked[:site_seq],
             since_prev_ts: tracked[:since_prev_ts],
-            **Caller.fields(caller_binding),
-            label: Label.infer(argument: nil, label:)
+            **RecordStamp.fields(mono_time: tracked[:mono_time])
           }
         end
 

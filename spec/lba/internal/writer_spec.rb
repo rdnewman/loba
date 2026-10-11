@@ -131,6 +131,16 @@ RSpec.describe Lba::Internal::Writer do
         )
       end
 
+      # A gap qualifies the record's place in the run, so it comes right after
+      # the record's seq and type, before anything that could make a line long.
+      it "notes them right after the record's seq and type" do
+        sink = flaky_sink(1)
+
+        [3, 4].each { |seq| described_class.write({ seq:, type: "ts", label: "after" }, sink:) }
+
+        expect(written_lines(sink).last.keys).to eq(["seq", "type", "unwritten", "label"])
+      end
+
       it "notes them only once" do
         sink = flaky_sink(1)
 

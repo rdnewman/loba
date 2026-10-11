@@ -64,8 +64,8 @@ RSpec.describe Lba, ".timestamp" do
     # The written line is also read raw (tail, grep, truncated output), so its
     # fields come in the same order on every line.
     expect(record.keys).to eq(
-      [:schema, :run_id, :seq, :type, :wall_time, :mono_time, :site_seq, :since_prev_ts,
-       :file, :line, :class_name, :method_name, :method_type, :label]
+      [:seq, :type, :label, :file, :line, :class_name, :method_name, :method_type,
+       :site_seq, :since_prev_ts, :wall_time, :mono_time, :run_id, :schema]
     )
     expect(record).to include(
       schema: 1, run_id: Lba::Internal::Run.current.id, seq: 1, type: "ts",

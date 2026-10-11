@@ -29,8 +29,8 @@ end
 ```
 
 ```json
-{"seq":1,"type":"ts","site_seq":1,"since_prev_ts":null,"line":3,"class_name":"Cart","method_name":"checkout","label":null}
-{"seq":2,"type":"ts","site_seq":1,"since_prev_ts":0.25351782900543185,"line":5,"class_name":"Cart","method_name":"checkout","label":"card charged"}
+{"seq":1,"type":"ts","label":null,"line":3,"class_name":"Cart","method_name":"checkout","site_seq":1,"since_prev_ts":null}
+{"seq":2,"type":"ts","label":"card charged","line":5,"class_name":"Cart","method_name":"checkout","site_seq":1,"since_prev_ts":0.25351782900543185}
 ```
 
 The first checkpoint of a run has no previous one, so its `since_prev_ts` is
@@ -58,22 +58,25 @@ file, and they always share one `seq`.
 
 ## The record
 
+Fields come in this order on every line, as with
+[`Lba.val`](val.md#the-record).
+
 | Field | Meaning |
 |---|---|
-| `schema` | Record format version, currently `1` |
-| `run_id` | This process run, e.g. `20260930T135402Z-5-39e8b2c6` |
 | `seq` | Order of this record among all records in the run, values included |
 | `type` | `"ts"` |
-| `wall_time` | Seconds since the epoch, when recorded |
-| `mono_time` | A monotonic clock reading, unaffected by system clock changes |
-| `site_seq` | Order of this record among checkpoints from the same call site (file and line) |
-| `since_prev_ts` | Seconds since the previous checkpoint anywhere in the run; `null` for the first |
+| `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `first_seq` and `last_seq` they fell between, and the first `error` (see [Where records go](val.md#where-records-go)) |
+| `label` | The given label, or `null` |
 | `file`, `line` | Where `Lba.ts` was called; `file` is the path Ruby loaded that file by, usually absolute inside an app |
 | `class_name` | The caller's class, or the class itself inside a class method; `"<anonymous class>"` for an unnamed one |
 | `method_name` | The caller's method; `"<anonymous method>"` outside any method |
 | `method_type` | `"instance"` or `"class"` |
-| `label` | The given label, or `null` |
-| `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `first_seq` and `last_seq` they fell between, and the first `error` (see [Where records go](val.md#where-records-go)) |
+| `site_seq` | Order of this record among checkpoints from the same call site (file and line) |
+| `since_prev_ts` | Seconds since the previous checkpoint anywhere in the run; `null` for the first |
+| `wall_time` | Seconds since the epoch, when recorded |
+| `mono_time` | A monotonic clock reading, unaffected by system clock changes |
+| `run_id` | This process run, e.g. `20260930T135402Z-5-39e8b2c6` |
+| `schema` | Record format version, currently `1` |
 
 ### How `since_prev_ts` is measured
 
@@ -120,7 +123,7 @@ Calls past that write nothing; the first call to that site after the minute, or
 the process exiting normally, writes one record noting how many were skipped:
 
 ```json
-{"schema":1,"run_id":"20260930T135416Z-5-e7905d1f","seq":501,"type":"ts","wall_time":1790776456.2902832,"mono_time":47675.468684261,"file":"app/models/cart.rb","line":10,"suppressed":true,"suppressed_count":3}
+{"seq":501,"type":"ts","file":"app/models/cart.rb","line":10,"suppressed":true,"suppressed_count":3,"wall_time":1790776456.2902832,"mono_time":47675.468684261,"run_id":"20260930T135416Z-5-e7905d1f","schema":1}
 ```
 
 A `Lba.ts` and a `Lba.val` on the same line are separate call sites, each with

@@ -36,7 +36,7 @@ appends a line like this to the run's file (shown here with some fields left
 out; run as `ruby hello_world.rb`, so `file` is the path Ruby loaded it by):
 
 ```json
-{"type":"val","file":"hello_world.rb","line":3,"class_name":"HelloWorld","method_name":"hello","label":"name","value":"Charlie","value_type":"String"}
+{"type":"val","label":"name","file":"hello_world.rb","line":3,"class_name":"HelloWorld","method_name":"hello","value_type":"String","value":"Charlie"}
 ```
 
 A Symbol names something in the caller (a local, an instance variable, a method,
@@ -68,8 +68,8 @@ end
 appends two lines like these (again with some fields left out):
 
 ```json
-{"type":"ts","line":3,"class_name":"Cart","method_name":"checkout","site_seq":1,"since_prev_ts":null,"label":null}
-{"type":"ts","line":5,"class_name":"Cart","method_name":"checkout","site_seq":1,"since_prev_ts":0.25351782900543185,"label":"card charged"}
+{"type":"ts","label":null,"line":3,"class_name":"Cart","method_name":"checkout","site_seq":1,"since_prev_ts":null}
+{"type":"ts","label":"card charged","line":5,"class_name":"Cart","method_name":"checkout","site_seq":1,"since_prev_ts":0.25351782900543185}
 ```
 
 `since_prev_ts` is `null` for a run's first checkpoint; `site_seq` counts how

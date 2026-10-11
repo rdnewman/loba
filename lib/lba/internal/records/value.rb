@@ -35,13 +35,18 @@ module Lba
 
         # @return [Hash{Symbol => Object}] the record's fields, in order
         def fields
+          # Stamped before the value is evaluated, so serializing a large value
+          # doesn't delay wall_time.
+          stamp = RecordStamp.fields(mono_time: tracked[:mono_time])
           {
-            **RecordStamp.fields(seq: tracked[:seq], type: TYPE, mono_time: tracked[:mono_time]),
+            seq: tracked[:seq],
+            type: TYPE,
+            label: Label.infer(argument:, label:),
+            **Caller.fields(caller_binding),
             site_seq: tracked[:site_seq],
             diff: tracked[:diff],
-            **Caller.fields(caller_binding),
-            label: Label.infer(argument:, label:),
-            **evaluated_fields
+            **evaluated_fields,
+            **stamp
           }
         end
 
@@ -57,7 +62,13 @@ module Lba
         rescue StandardError => e
           { errors: [{ path: [], message: "#{e.class}: #{e.message}" }] }
         else
-          Serialization.serialize(value: evaluated, inspect:)
+          value_last(Serialization.serialize(value: evaluated, inspect:))
+        end
+
+        # The value is the one field with no size limit, so everything that
+        # describes it comes first.
+        def value_last(serialized)
+          serialized.except(:value).merge(serialized.slice(:value))
         end
       end
     end
