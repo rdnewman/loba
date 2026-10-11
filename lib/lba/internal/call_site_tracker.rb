@@ -5,14 +5,6 @@ module Lba
     # Numbers records across the process and per call site, and caps how many
     # records one call site writes per window of time.
     class CallSiteTracker
-      # Records one call site may write per window.
-      CAP = 500
-
-      # Length of a window, in seconds.
-      WINDOW = 60
-
-      private_constant :CAP, :WINDOW
-
       class << self
         # This process's tracker. On first use it registers an +at_exit+ hook
         # that writes the count of calls skipped at any capped site.
@@ -67,7 +59,7 @@ module Lba
         site = site_for(type:, file:, line:)
         # A record counting the site's skipped calls takes its seq, through the
         # block, before this call takes the next one.
-        numbered = site.record_call(now:, cap: CAP, window_length: WINDOW, sink:) { next_seq! }
+        numbered = site.record_call(now:, sink:) { next_seq! }
         return :suppressed if numbered == :suppressed
 
         { seq: next_seq!, mono_time: now, **numbered, **checkpoint_fields(type, now) }

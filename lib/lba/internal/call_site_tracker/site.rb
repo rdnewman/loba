@@ -26,8 +26,6 @@ module Lba
         # call against the cap and, unless it's skipped, numbers it.
         #
         # @param now [Float] a monotonic clock reading
-        # @param cap [Integer] calls the site may number per window
-        # @param window_length [Numeric] window length, in seconds
         # @param sink [IO, String, nil] where the site's records go; +nil+ keeps
         #   the last sink given
         # @yieldreturn [Integer] the +seq+ for a record counting skipped calls;
@@ -37,10 +35,10 @@ module Lba
         #   * +:site_seq+ [Integer] - the call's order among the site's records
         #   * +:diff+ [Float, nil] - seconds since the site's previous record, or
         #     +nil+ for its first
-        def record_call(now:, cap:, window_length:, sink:, &)
+        def record_call(now:, sink:, &)
           remember_sink(sink)
-          roll(now:, length: window_length, &)
-          window.count_call(cap:)
+          roll(now:, &)
+          window.count_call
           return :suppressed if window.skipping?
 
           advance(now)
@@ -65,8 +63,8 @@ module Lba
           @sink = sink
         end
 
-        def roll(now:, length:, &)
-          write_suppression(window.roll(now:, length:), &)
+        def roll(now:, &)
+          write_suppression(window.roll(now:), &)
         end
 
         def advance(now)
