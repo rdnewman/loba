@@ -1,17 +1,17 @@
-require_relative "call_site_tracker/site"
+require_relative "tracker/site"
 
 module Lba
   module Internal
     # Numbers records across the process and per call site, and caps how many
     # records one call site writes per window of time.
-    class CallSiteTracker
+    class Tracker
       class << self
         # This process's tracker. On first use it registers an +at_exit+ hook
         # that writes the count of calls skipped at any capped site.
         #
         # A forked child inherits this memo; the pid check gives it fresh counters.
         #
-        # @return [CallSiteTracker]
+        # @return [Tracker]
         def current
           return @current if @current&.pid == Process.pid
 

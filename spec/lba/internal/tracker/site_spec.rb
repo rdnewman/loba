@@ -1,7 +1,7 @@
 require "json"
 require "stringio"
 
-RSpec.describe Lba::Internal::CallSiteTracker::Site do
+RSpec.describe Lba::Internal::Tracker::Site do
   subject(:site) { described_class.new(type: "val", file: "app/models/order.rb", line: 10) }
 
   let(:cap) { 500 }

@@ -1,7 +1,7 @@
 require "json"
 require "stringio"
 
-RSpec.describe Lba::Internal::CallSiteTracker do
+RSpec.describe Lba::Internal::Tracker do
   subject(:tracker) { described_class.new }
 
   let(:sink) { instance_double(IO, write: nil, flush: nil) }

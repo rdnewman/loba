@@ -1,4 +1,4 @@
-RSpec.describe Lba::Internal::CallSiteTracker do
+RSpec.describe Lba::Internal::Tracker do
   describe "#record" do
     it "assigns seq 1 and site_seq 1 to a call site's first record" do
       tracker = described_class.new
@@ -146,21 +146,21 @@ RSpec.describe Lba::Internal::CallSiteTracker do
   describe ".current" do
     after { reset_current(described_class) }
 
-    it "returns a CallSiteTracker instance" do
-      stub_call_site_tracker_at_exit
+    it "returns a Tracker instance" do
+      stub_tracker_at_exit
 
       expect(described_class.current).to be_a(described_class)
     end
 
     it "memoizes the same instance across repeated calls" do
-      stub_call_site_tracker_at_exit
+      stub_tracker_at_exit
 
       expect(described_class.current).to equal(described_class.current)
     end
 
     context "when the process forks after .current is memoized" do
       it "gives the child fresh counters instead of continuing the parent's" do
-        stub_call_site_tracker_at_exit
+        stub_tracker_at_exit
         described_class.current.record(type: "val", file: "app/models/order.rb", line: 10)
 
         child_result = in_forked_child do
@@ -171,7 +171,7 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       end
 
       it "gives the child a fresh since_prev_ts instead of timing from the parent's ts" do
-        stub_call_site_tracker_at_exit
+        stub_tracker_at_exit
         described_class.current.record(type: "ts", file: "app/models/order.rb", line: 10)
 
         child_result = in_forked_child do

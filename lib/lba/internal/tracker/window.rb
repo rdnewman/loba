@@ -1,6 +1,6 @@
 module Lba
   module Internal
-    class CallSiteTracker
+    class Tracker
       # One call site's current window of time: how many calls it has counted,
       # and how many it has skipped since reaching its cap. Once a window
       # skips a call, it skips every call until it ends.

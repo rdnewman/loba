@@ -52,7 +52,7 @@ module Lba
       attr_reader :record_class, :options, :log, :logger, :sink, :caller_binding, :tracked
 
       def track
-        CallSiteTracker.current.record(
+        Tracker.current.record(
           type: record_class::TYPE,
           file: caller_binding.file,
           line: caller_binding.line,

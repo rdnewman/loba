@@ -1,4 +1,4 @@
-RSpec.describe Lba::Internal::CallSiteTracker::Window do
+RSpec.describe Lba::Internal::Tracker::Window do
   let(:cap) { 500 }
 
   describe "#count_call" do

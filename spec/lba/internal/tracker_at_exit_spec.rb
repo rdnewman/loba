@@ -1,11 +1,11 @@
-RSpec.describe Lba::Internal::CallSiteTracker do
+RSpec.describe Lba::Internal::Tracker do
   describe ".current" do
     let(:cap) { 500 }
 
     after { reset_current(described_class) }
 
     it "registers the shutdown flush exactly once, the first time it's created" do
-      hooks = stub_call_site_tracker_at_exit
+      hooks = stub_tracker_at_exit
 
       described_class.current
       described_class.current
@@ -15,7 +15,7 @@ RSpec.describe Lba::Internal::CallSiteTracker do
 
     context "when its shutdown hook runs" do
       it "writes the still-open window's true suppressed count for a capped site" do
-        hooks = stub_call_site_tracker_at_exit
+        hooks = stub_tracker_at_exit
         tracker = described_class.current
         site = { type: "val", file: "app/models/order.rb", line: 10 }
         sink = StringIO.new
@@ -32,7 +32,7 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       end
 
       it "flushes every capped site independently, to each one's own sink", :aggregate_failures do
-        hooks = stub_call_site_tracker_at_exit
+        hooks = stub_tracker_at_exit
         tracker = described_class.current
         order_site = { type: "val", file: "app/models/order.rb", line: 10 }
         invoice_site = { type: "val", file: "app/models/invoice.rb", line: 20 }
@@ -53,7 +53,7 @@ RSpec.describe Lba::Internal::CallSiteTracker do
 
       it "warns rather than raising when a capped site's sink was closed before exit" do
         capture_at_exit_hooks(Lba::Internal::WriteFailures)
-        hooks = stub_call_site_tracker_at_exit
+        hooks = stub_tracker_at_exit
         tracker = described_class.current
         site = { type: "val", file: "app/models/order.rb", line: 10 }
         sink = StringIO.new
@@ -68,7 +68,7 @@ RSpec.describe Lba::Internal::CallSiteTracker do
 
     context "when the process forks after the hook is registered" do
       it "writes nothing when the child runs the hook it inherited" do
-        hooks = stub_call_site_tracker_at_exit
+        hooks = stub_tracker_at_exit
         tracker = described_class.current
         site = { type: "val", file: "app/models/order.rb", line: 10 }
         sink = StringIO.new

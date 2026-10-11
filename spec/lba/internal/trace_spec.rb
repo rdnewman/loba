@@ -35,8 +35,8 @@ RSpec.describe Lba::Internal::Trace do
 
         # Stubs .current itself so the real singleton is never memoized and
         # never registers an at_exit hook in the test process.
-        tracker = instance_double(Lba::Internal::CallSiteTracker, record: :suppressed)
-        allow(Lba::Internal::CallSiteTracker).to receive(:current).and_return(tracker)
+        tracker = instance_double(Lba::Internal::Tracker, record: :suppressed)
+        allow(Lba::Internal::Tracker).to receive(:current).and_return(tracker)
 
         # Only #file and #line are stubbed, since the call site needs just
         # those. Any other call is the costly work this gate skips; the
@@ -50,7 +50,7 @@ RSpec.describe Lba::Internal::Trace do
       it "asks the tracker about the site, by the record's type" do
         described_class.record(Lba::Internal::Records::Timestamp, sink: StringIO.new)
 
-        expect(Lba::Internal::CallSiteTracker.current).to have_received(:record)
+        expect(Lba::Internal::Tracker.current).to have_received(:record)
           .with(type: "ts", file: "app.rb", line: 10, sink: an_instance_of(StringIO))
       end
 
@@ -82,8 +82,8 @@ RSpec.describe Lba::Internal::Trace do
 
       before do
         stub_const("Rails", mock_rails(production: false))
-        tracker = instance_double(Lba::Internal::CallSiteTracker, record: tracked)
-        allow(Lba::Internal::CallSiteTracker).to receive(:current).and_return(tracker)
+        tracker = instance_double(Lba::Internal::Tracker, record: tracked)
+        allow(Lba::Internal::Tracker).to receive(:current).and_return(tracker)
         allow(Lba::Internal::CallerBinding).to receive(:new).and_return(caller_binding)
         allow(Lba::Internal::Records::Timestamp)
           .to receive(:fields).and_return({ type: "ts", seq: 1 })
@@ -131,9 +131,9 @@ RSpec.describe Lba::Internal::Trace do
     context "when lba itself fails" do
       it "raises into the calling code" do
         stub_const("Rails", mock_rails(production: false))
-        tracker = instance_double(Lba::Internal::CallSiteTracker)
+        tracker = instance_double(Lba::Internal::Tracker)
         allow(tracker).to receive(:record).and_raise(RuntimeError, "tracker bug")
-        allow(Lba::Internal::CallSiteTracker).to receive(:current).and_return(tracker)
+        allow(Lba::Internal::Tracker).to receive(:current).and_return(tracker)
 
         expect { described_class.record(Lba::Internal::Records::Timestamp, sink: StringIO.new) }
           .to raise_error(RuntimeError, "tracker bug")

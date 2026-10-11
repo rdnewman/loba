@@ -3,7 +3,7 @@ require_relative "../records/suppression"
 
 module Lba
   module Internal
-    class CallSiteTracker
+    class Tracker
       # One call site: one record type at one file and line. Numbers and
       # times the site's records, remembers where they go, caps them through
       # its own Window, and writes the record counting any calls it skipped.
