@@ -16,19 +16,17 @@ module Lba
         @log_mirror = LogMirror.for(log:, logger:)
       end
 
-      # @return [Logger, nil] the Logger to also write to, or +nil+ for none
-      def logger = log_mirror&.logger
-
-      # Where the record goes, resolved on first use (see SinkResolver#resolve),
-      # which can create the default sink's directory. Never resolved when
-      # disabled, so a production environment never touches the filesystem.
+      # Where the record goes, built on first use. Its sink is resolved then
+      # (see SinkResolver#resolve), which can create the default sink's
+      # directory. Never built when disabled, so a production environment
+      # never touches the filesystem.
       #
-      # @return [IO, String, nil] an IO, or a file path to append to; +nil+
-      #   when disabled
-      def sink
+      # @return [Destination, nil] the sink, and the Logger to also write to;
+      #   +nil+ when disabled
+      def destination
         return if disabled?
 
-        @sink ||= SinkResolver.resolve(sink: sink_option)
+        @destination ||= Destination.new(sink: SinkResolver.resolve(sink: sink_option), logger:)
       end
 
       # @return [Boolean] +false+ in a production environment (see
@@ -42,6 +40,8 @@ module Lba
     private
 
       attr_reader :log_mirror, :sink_option
+
+      def logger = log_mirror&.logger
     end
   end
 end

@@ -38,7 +38,7 @@ module Lba
         @tracked = track
         return if tracked == :suppressed
 
-        destination.write(
+        settings.destination.write(
           record_class.fields(caller_binding:, tracked:, **options)
         )
 
@@ -50,15 +50,13 @@ module Lba
       attr_reader :record_class, :options, :log, :logger, :sink, :caller_binding, :tracked
 
       def track
-        Tracker.current.record(site, destination:, checkpoint: record_class::CHECKPOINT)
+        Tracker.current.record(
+          site, destination: settings.destination, checkpoint: record_class::CHECKPOINT
+        )
       end
 
       def site
         Site.new(type: record_class::TYPE, file: caller_binding.file, line: caller_binding.line)
-      end
-
-      def destination
-        @destination ||= Destination.new(sink: settings.sink, logger: settings.logger)
       end
 
       def settings
