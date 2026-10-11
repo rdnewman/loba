@@ -3,8 +3,7 @@ require_relative "container_node"
 module Lba
   module Internal
     module Serialization
-      # Serializes Hashes: keys and values both become children, and an extra
-      # key counts any pairs past ContainerNode::MAX_ENTRIES.
+      # Serializes Hashes: keys and values both become children.
       class HashNode < ContainerNode
       private
 
@@ -14,11 +13,7 @@ module Lba
         # key, value. Their flags count toward the Hash's the same way.
         def children_of(pairs) = pairs.flatten(1)
 
-        def values
-          return items unless oversized?
-
-          items.merge("[+#{omitted_count} more keys]" => true)
-        end
+        def omitted_unit = "keys"
 
         def items
           if colliding_groups.empty?

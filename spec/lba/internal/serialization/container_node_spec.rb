@@ -7,7 +7,9 @@ private
 
   def children_of(entries) = entries
 
-  def values = children.map { _1[:value] }
+  def items = children.map { _1[:value] }
+
+  def omitted_unit = "entries"
 
   def position(index) = index
 end
@@ -18,39 +20,15 @@ RSpec.describe Lba::Internal::Serialization::ContainerNode do
       "a" * (Lba::Internal::Serialization::StringNode::MAX_LENGTH + 1)
     end
 
-    it "returns its value and type, not truncated, for plain entries" do
+    it "returns its value and type, not cut, for plain entries" do
       result = ListContainerNode.serialize(value: [1, "two"])
 
       expect(result).to eq(
-        value: [1, "two"], value_type: "List", truncated: false
+        value: [1, "two"], value_type: "List"
       )
     end
 
-    # Truncated if any child is. A first child and a later one each catch code
-    # that keeps only one child's flag.
-    context "when a child is truncated" do
-      it "is truncated when any child is, even the first" do
-        result = ListContainerNode.serialize(value: [oversized_string, 1])
-
-        expect(result[:truncated]).to be true
-      end
-
-      it "is truncated when a later child is" do
-        result = ListContainerNode.serialize(value: [Object.new, 1, oversized_string])
-
-        expect(result[:truncated]).to be true
-      end
-    end
-
     context "when given more than MAX_ENTRIES entries" do
-      it "is truncated even when no child is" do
-        entries = Array.new(described_class::MAX_ENTRIES + 1) { 1 }
-
-        result = ListContainerNode.serialize(value: entries)
-
-        expect(result[:truncated]).to be true
-      end
-
       it "never serializes the entries past the limit" do
         entries = Array.new(described_class::MAX_ENTRIES) { 1 } + [Object.new]
 
@@ -61,12 +39,12 @@ RSpec.describe Lba::Internal::Serialization::ContainerNode do
     end
 
     context "when given exactly MAX_ENTRIES entries" do
-      it "is not truncated" do
+      it "is not cut" do
         entries = Array.new(described_class::MAX_ENTRIES) { 1 }
 
         result = ListContainerNode.serialize(value: entries)
 
-        expect(result[:truncated]).to be false
+        expect(result).not_to have_key(:cut)
       end
     end
 
@@ -97,13 +75,13 @@ RSpec.describe Lba::Internal::Serialization::ContainerNode do
         expect(result).to include(value: "[1]")
       end
 
-      it "cuts a long #inspect of itself and flags it truncated" do
+      it "cuts a long #inspect of itself, and lists the cut" do
         long_entries = Array.new(Lba::Internal::Serialization::StringNode::MAX_LENGTH) { 1 }
 
         result = ListContainerNode.serialize(value: long_entries, depth: described_class::MAX_DEPTH)
 
         expect(result[:value]).to end_with(" chars]")
-        expect(result[:truncated]).to be true
+        expect(result[:cut]).to match([a_hash_including(path: [], unit: "chars")])
       end
 
       # Its own output is #inspect either way, so only skipping the walk shows.

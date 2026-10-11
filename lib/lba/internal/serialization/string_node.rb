@@ -30,17 +30,17 @@ module Lba
 
           def cut(text)
             omitted = text.length - MAX_LENGTH
-            return untruncated(text) unless omitted.positive?
+            return uncut(text) unless omitted.positive?
 
             {
               value: "#{text[0...MAX_LENGTH]} [+#{omitted} chars]",
               value_type: "String",
-              truncated: true
+              cut: [{ path: [], omitted:, unit: "chars" }]
             }
           end
 
-          def untruncated(text)
-            { value: text, value_type: "String", truncated: false }
+          def uncut(text)
+            { value: text, value_type: "String" }
           end
 
           # Converting UTF-8 to UTF-8 checks nothing, so validity is checked

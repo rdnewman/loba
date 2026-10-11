@@ -34,7 +34,10 @@ module Lba
         #     +"non_finite"+ (NaN, Infinity), +"not_utf8"+ (a String that isn't
         #     text), or +"too_deep"+ (a container nested too deeply, rendered
         #     whole). A part whose rendering raised is in +:errors+ instead.
-        #   * +:truncated+ [Boolean] - whether any part was cut short
+        #   * +:cut+ [Array<Hash>] - present only if any part was cut short: one
+        #     +{ path:, omitted:, unit: }+ per part, +unit+ being +"chars"+ (a
+        #     long String, still marked +" [+N chars]"+ in the value),
+        #     +"entries"+ (an Array), or +"keys"+ (a Hash)
         #   * +:errors+ [Array<Hash>] - present only if rendering any part
         #     raised: one +{ path:, message: }+ per failure. A +path+, here and
         #     in +:rendered+, is the part's position (Array indexes and Hash

@@ -5,8 +5,7 @@ RSpec.describe Lba::Internal::Serialization do
 
       expect(result).to eq(
         value: 42,
-        value_type: "Integer",
-        truncated: false
+        value_type: "Integer"
       )
     end
 
@@ -30,8 +29,6 @@ RSpec.describe Lba::Internal::Serialization do
     end
 
     context "when given a realistic mixed structure" do
-      # rubocop:disable-next RSpec/ExampleLength -- a realistic tree needs its
-      # full input and output side by side.
       it "serializes a Hash/Array/String/native/plain-object mix end-to-end" do
         plain_object = Object.new
 
@@ -51,12 +48,11 @@ RSpec.describe Lba::Internal::Serialization do
           meta: { nested: true, deep: { value: 1 } }
         )
         expect(result[:value_type]).to eq("Hash")
-        expect(result[:truncated]).to be false
       end
     end
 
-    context "when a nested value is truncated" do
-      it "propagates truncated: true up through nested Array/Hash from an oversized String" do
+    context "when a nested value is cut" do
+      it "reports a nested String's cut by its path, keeping its marker" do
         long_string = "a" * (Lba::Internal::Serialization::StringNode::MAX_LENGTH + 10)
         input = { list: [1, long_string] }
 
@@ -65,28 +61,26 @@ RSpec.describe Lba::Internal::Serialization do
         expected_string =
           "#{'a' * Lba::Internal::Serialization::StringNode::MAX_LENGTH} [+10 chars]"
         expect(result[:value]).to eq(list: [1, expected_string])
-        expect(result[:truncated]).to be true
+        expect(result[:cut]).to eq([{ path: ["list", 1], omitted: 10, unit: "chars" }])
       end
 
-      it "propagates truncated: true up through a Hash from an oversized nested Array" do
+      it "reports a nested cut by its path through a Hash" do
         long_array = Array.new(Lba::Internal::Serialization::ArrayNode::MAX_ENTRIES + 3) { |i| i }
         input = { list: long_array }
 
         result = described_class.serialize(value: input)
 
-        expect(result[:value][:list].last).to eq("[+3 more entries]")
-        expect(result[:truncated]).to be true
+        expect(result[:cut]).to eq([{ path: ["list"], omitted: 3, unit: "entries" }])
       end
 
-      it "propagates truncated: true up through an Array from an oversized nested Hash" do
+      it "reports a nested cut by its path through an Array" do
         long_hash =
           (0...(Lba::Internal::Serialization::HashNode::MAX_ENTRIES + 2)).to_h { |i| [i, i] }
         input = [1, long_hash]
 
         result = described_class.serialize(value: input)
 
-        expect(result[:value][1]["[+2 more keys]"]).to be true
-        expect(result[:truncated]).to be true
+        expect(result[:cut]).to eq([{ path: [1], omitted: 2, unit: "keys" }])
       end
     end
 
@@ -140,7 +134,6 @@ RSpec.describe Lba::Internal::Serialization do
 
         expect(result).to eq(
           value: { "items" => ["(unrenderable)", 1, "(unrenderable)"] }, value_type: "Hash",
-          truncated: false,
           errors: [
             { path: ["items", 0], message: "ArgumentError: boom" },
             { path: ["items", 2], message: "ArgumentError: boom" }

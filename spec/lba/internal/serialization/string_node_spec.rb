@@ -5,8 +5,7 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
 
       expect(result).to eq(
         value: "hello",
-        value_type: "String",
-        truncated: false
+        value_type: "String"
       )
     end
 
@@ -17,7 +16,6 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
 
       expect(result[:value]).to eq("#{'a' * described_class::MAX_LENGTH} [+523 chars]")
       expect(result[:value_type]).to eq("String")
-      expect(result[:truncated]).to be true
     end
 
     it "does not truncate a String at exactly MAX_LENGTH" do
@@ -26,7 +24,6 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
       result = described_class.serialize(value: exact_length_string)
 
       expect(result[:value]).to eq(exact_length_string)
-      expect(result[:truncated]).to be false
     end
 
     # JSON text is UTF-8, so a String is recorded as-is only if it is UTF-8 or
@@ -38,7 +35,7 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
         result = described_class.serialize(value: latin1)
 
         expect(result).to eq(
-          value: "café", value_type: "String", truncated: false
+          value: "café", value_type: "String"
         )
         expect(result[:value].encoding).to eq(Encoding::UTF_8)
       end
@@ -51,8 +48,7 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
         result = described_class.serialize(value: binary)
 
         expect(result).to eq(
-          value: "\"\\xFF\\xFE\"", value_type: "String", rendered: [{ path: [], as: "not_utf8" }],
-          truncated: false
+          value: "\"\\xFF\\xFE\"", value_type: "String", rendered: [{ path: [], as: "not_utf8" }]
         )
       end
 
@@ -62,8 +58,7 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
         result = described_class.serialize(value: invalid)
 
         expect(result).to eq(
-          value: "\"ok\\xFF\"", value_type: "String", rendered: [{ path: [], as: "not_utf8" }],
-          truncated: false
+          value: "\"ok\\xFF\"", value_type: "String", rendered: [{ path: [], as: "not_utf8" }]
         )
       end
 
@@ -72,7 +67,8 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
 
         result = described_class.serialize(value: long_binary)
 
-        expect(result).to include(truncated: true)
+        omitted = long_binary.inspect.length - described_class::MAX_LENGTH
+        expect(result[:cut]).to eq([{ path: [], omitted:, unit: "chars" }])
         expect(result[:value]).to end_with(" chars]")
       end
     end

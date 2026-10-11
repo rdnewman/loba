@@ -2,15 +2,16 @@ module Lba
   module Internal
     module Serialization
       # The shared base for ArrayNode and HashNode: bounded recursion into
-      # children and aggregation of their flags, rendered parts, and errors. Each subclass
-      # supplies #children_of, #values, #value_type, and #position.
+      # children, and gathering of their rendered parts, cuts, errors, and
+      # key collisions. Each subclass supplies #children_of, #items,
+      # #value_type, #omitted_unit, and #position.
       class ContainerNode
         # Deeper containers fall back to #inspect. This also stops a cycle,
         # which Ruby's own #inspect then handles safely. 5 is a guess.
         MAX_DEPTH = 5
 
-        # Entries past this are never walked; a sentinel counts them. This
-        # bounds the cost of a huge value. 50 is a guess.
+        # Entries past this are never walked; the container's :cut entry counts
+        # them. This bounds the cost of a huge value. 50 is a guess.
         MAX_ENTRIES = 50
 
         # Shared by every child with no entries in a list, so it allocates
@@ -50,8 +51,8 @@ module Lba
             FallbackNode.serialize(value:, depth:, use_inspect:, as: "too_deep")
           else
             {
-              value: values, value_type:, **listed(:rendered), truncated:, **listed(:errors),
-              **listed(:collided, own: collisions)
+              value: items, value_type:, **listed(:rendered), **listed(:cut, own: own_cut),
+              **listed(:errors), **listed(:collided, own: collisions)
             }
           end
         end
@@ -64,7 +65,12 @@ module Lba
           raise NotImplementedError
         end
 
-        def values
+        def items
+          raise NotImplementedError
+        end
+
+        # What an omitted entry is called in a :cut entry: "entries" or "keys".
+        def omitted_unit
           raise NotImplementedError
         end
 
@@ -127,11 +133,13 @@ module Lba
           end
         end
 
-        def truncated
-          return true if oversized?
-          return false if children.none? { _1[:truncated] }
-
-          children.each_with_index.any? { |child, index| counted?(index) && child[:truncated] }
+        # The container's own cut, if it has more entries than are walked.
+        def own_cut
+          if oversized?
+            [{ path: [], omitted: omitted_count, unit: omitted_unit }]
+          else
+            NONE
+          end
         end
 
         def omitted_count

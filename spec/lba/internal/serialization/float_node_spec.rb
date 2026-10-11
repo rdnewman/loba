@@ -3,7 +3,7 @@ RSpec.describe Lba::Internal::Serialization::FloatNode do
     it "records a finite Float as itself" do
       result = described_class.serialize(value: 3.14)
 
-      expect(result).to eq(value: 3.14, value_type: "Float", truncated: false)
+      expect(result).to eq(value: 3.14, value_type: "Float")
     end
 
     # JSON has no NaN or Infinity, so these are recorded as text.
@@ -12,8 +12,7 @@ RSpec.describe Lba::Internal::Serialization::FloatNode do
         result = described_class.serialize(value: non_finite)
 
         expect(result).to eq(
-          value: non_finite.to_s, value_type: "Float", rendered: [{ path: [], as: "non_finite" }],
-          truncated: false
+          value: non_finite.to_s, value_type: "Float", rendered: [{ path: [], as: "non_finite" }]
         )
       end
     end

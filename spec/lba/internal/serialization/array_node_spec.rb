@@ -10,13 +10,14 @@ RSpec.describe Lba::Internal::Serialization::ArrayNode do
     end
 
     context "when it has more than MAX_ENTRIES entries" do
-      it "keeps the first MAX_ENTRIES and appends a count of the rest" do
+      it "keeps the first MAX_ENTRIES, and :cut counts the rest" do
         entries = Array.new(described_class::MAX_ENTRIES + 7) { |i| i }
 
         result = described_class.serialize(value: entries)
 
         kept = (0...described_class::MAX_ENTRIES).to_a
-        expect(result[:value]).to eq(kept + ["[+7 more entries]"])
+        expect(result[:value]).to eq(kept)
+        expect(result[:cut]).to eq([{ path: [], omitted: 7, unit: "entries" }])
       end
     end
 
@@ -25,7 +26,7 @@ RSpec.describe Lba::Internal::Serialization::ArrayNode do
         result = described_class.serialize(value: [1, object_whose_inspect_raises, 3])
 
         expect(result).to eq(
-          value: [1, "(unrenderable)", 3], value_type: "Array", truncated: false,
+          value: [1, "(unrenderable)", 3], value_type: "Array",
           errors: [{ path: [1], message: "ArgumentError: boom" }]
         )
       end

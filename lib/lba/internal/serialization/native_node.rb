@@ -11,8 +11,7 @@ module Lba
         def self.serialize(value:, **)
           {
             value:,
-            value_type: value.class.name,
-            truncated: false
+            value_type: value.class.name
           }
         end
       end

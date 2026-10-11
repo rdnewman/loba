@@ -41,7 +41,6 @@ module Lba
             {
               value: UNRENDERABLE,
               value_type: nil,
-              truncated: false,
               errors: [{ path: [], message: "#{error.class}: #{error.message}" }]
             }
           end

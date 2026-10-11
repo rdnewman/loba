@@ -14,7 +14,7 @@ RSpec.describe Lba::Internal::Serialization::HashNode do
     end
 
     context "when a key needs serializing" do
-      it "serializes the key too, and a cut key makes the Hash truncated" do
+      it "serializes the key too, and lists a cut key in :cut" do
         plain_object = Object.new
 
         result = described_class.serialize(value: { plain_object => 1, oversized_string => 2 })
@@ -22,7 +22,8 @@ RSpec.describe Lba::Internal::Serialization::HashNode do
         truncated_key = oversized_string[0, Lba::Internal::Serialization::StringNode::MAX_LENGTH]
         expect(result[:value].keys)
           .to match([plain_object.inspect, a_string_starting_with(truncated_key)])
-        expect(result).to include(truncated: true)
+        expect(result[:cut])
+          .to eq([{ path: ["#{truncated_key} [+1 chars]"], omitted: 1, unit: "chars", key: true }])
       end
     end
 
@@ -41,13 +42,14 @@ RSpec.describe Lba::Internal::Serialization::HashNode do
     end
 
     context "when it has more than MAX_ENTRIES pairs" do
-      it "keeps the first MAX_ENTRIES and adds a key counting the rest" do
+      it "keeps the first MAX_ENTRIES, and :cut counts the rest" do
         pairs = (0...(described_class::MAX_ENTRIES + 7)).to_h { |i| [i, i] }
 
         result = described_class.serialize(value: pairs)
 
         kept = (0...described_class::MAX_ENTRIES).to_h { |i| [i, i] }
-        expect(result[:value]).to eq(kept.merge("[+7 more keys]" => true))
+        expect(result[:value]).to eq(kept)
+        expect(result[:cut]).to eq([{ path: [], omitted: 7, unit: "keys" }])
       end
     end
 
@@ -57,7 +59,6 @@ RSpec.describe Lba::Internal::Serialization::HashNode do
 
         expect(result).to eq(
           value: { ok: 1, broken: "(unrenderable)" }, value_type: "Hash",
-          truncated: false,
           errors: [{ path: ["broken"], message: "ArgumentError: boom" }]
         )
       end
@@ -125,12 +126,12 @@ RSpec.describe Lba::Internal::Serialization::HashNode do
         expect(result).not_to include(:rendered, :errors)
       end
 
-      it "isn't truncated by a lost pair, since the value holds none of it" do
+      it "isn't cut by a lost pair, since the value holds none of it" do
         long = "z" * (Lba::Internal::Serialization::StringNode::MAX_LENGTH + 10)
 
         result = described_class.serialize(value: { 1 => "x", "1" => long })
 
-        expect(result[:truncated]).to be false
+        expect(result).not_to have_key(:cut)
       end
 
       it "shows a lost pair whose #inspect raises as unrenderable text" do

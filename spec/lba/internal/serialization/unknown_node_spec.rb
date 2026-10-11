@@ -6,7 +6,6 @@ RSpec.describe Lba::Internal::Serialization::UnknownNode do
 
         expect(result[:value]).to eq(native_value)
         expect(result[:value_type]).to eq(native_value.class.name)
-        expect(result[:truncated]).to be false
       end
     end
 
@@ -23,7 +22,6 @@ RSpec.describe Lba::Internal::Serialization::UnknownNode do
       result = described_class.serialize(value: long_string)
 
       expect(result[:value]).to eq("#{'a' * max_length} [+3 chars]")
-      expect(result[:truncated]).to be true
     end
 
     it "dispatches an Array to ArrayNode" do

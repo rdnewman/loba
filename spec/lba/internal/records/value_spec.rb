@@ -26,7 +26,7 @@ RSpec.describe Lba::Internal::Records::Value do
       expect(fields.keys).to contain_exactly(
         :schema, :run_id, :seq, :type, :wall_time, :mono_time, :site_seq, :diff,
         :file, :line, :class_name, :method_name, :method_type,
-        :label, :value, :value_type, :truncated
+        :label, :value, :value_type
       )
     end
 
@@ -73,7 +73,7 @@ RSpec.describe Lba::Internal::Records::Value do
         expect(fields).to include(
           label: "usr", errors: [{ path: [], message: "NameError: undefined name" }]
         )
-        expect(fields.keys).not_to include(:value, :value_type, :truncated)
+        expect(fields.keys).not_to include(:value, :value_type)
       end
 
       it "lets exceptions outside StandardError, such as Interrupt, through" do
@@ -99,7 +99,7 @@ RSpec.describe Lba::Internal::Records::Value do
         expect(fields).to include(
           label: "invoice", errors: [{ path: [], message: "ArgumentError: boom" }]
         )
-        expect(fields.keys).not_to include(:value, :value_type, :truncated)
+        expect(fields.keys).not_to include(:value, :value_type)
       end
     end
   end

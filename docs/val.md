@@ -29,7 +29,7 @@ HelloWorld.new.hello("Charlie")
 ```
 
 ```json
-{"type":"val","label":"name","file":"hello_world.rb","line":3,"class_name":"HelloWorld","method_name":"hello","method_type":"instance","value_type":"String","truncated":false,"value":"Charlie"}
+{"type":"val","label":"name","file":"hello_world.rb","line":3,"class_name":"HelloWorld","method_name":"hello","method_type":"instance","value_type":"String","value":"Charlie"}
 ```
 
 The label comes from the Symbol. A Symbol can also name an instance variable
@@ -135,7 +135,7 @@ bookkeeping that repeats from line to line.
 | `diff` | Seconds since the previous record from the same call site, exactly the difference between their `mono_time` values; `null` for the first |
 | `value_type` | The value's class name |
 | `rendered` | Present only when some part of the value is recorded as text instead of as itself: one `{"path", "as"}` per part, where `as` says why (see below). The text can look exactly like a real String; this says which parts aren't |
-| `truncated` | `true` if any part of the value was cut short (see [Limits](#limits)) |
+| `cut` | Present only when some part of the value was cut short: one `{"path", "omitted", "unit"}` per part, saying how many `"chars"`, `"entries"` (Array), or `"keys"` (Hash) were left out (see [Limits](#limits)) |
 | `errors` | Present only when evaluating the Symbol, or rendering any part of the value, raised: one `{"path", "message"}` per failure. Without `value`, nothing could be recorded; with it, only part couldn't (see [Errors](#errors)). A `path`, here and in `rendered`, is the part's Array indexes and Hash keys from the top; `[]` is the whole value. An entry about a Hash key itself, not the value under it, also has `"key": true` |
 | `collided` | Present only when Hash keys collide, meaning two keys JSON writes as the same text (`1` and `"1"`, `:a` and `"a"`). A JSON reader would keep only one pair, so `value` keeps the first, and this lists every colliding pair: one `{"path", "key", "pairs"}` per shared key, with `pairs` as `[key, value]` `#inspect` text, which shows why they collided (see below) |
 | `value` | The value, as JSON (see below) |
@@ -166,7 +166,7 @@ For example, `Lba.val :order` where `order` is
 `{total: Float::NAN, note: "NaN", items: [1, Point.new(2)]}`:
 
 ```json
-{"label":"order","value_type":"Hash","rendered":[{"path":["total"],"as":"non_finite"},{"path":["items",1],"as":"inspect"}],"truncated":false,"value":{"total":"NaN","note":"NaN","items":[1,"#<struct Point x=2>"]}}
+{"label":"order","value_type":"Hash","rendered":[{"path":["total"],"as":"non_finite"},{"path":["items",1],"as":"inspect"}],"value":{"total":"NaN","note":"NaN","items":[1,"#<struct Point x=2>"]}}
 ```
 
 `"total"` and `"note"` look the same in `value`; `rendered` says only `"total"`
@@ -179,7 +179,7 @@ with `inspect: false`, so a Symbol key and a String key stay apart.
 `Lba.val({id: 1, "id" => 2})` gives:
 
 ```json
-{"value_type":"Hash","truncated":false,"collided":[{"path":[],"key":"id","pairs":[[":id","1"],["\"id\"","2"]]}],"value":{"id":1}}
+{"value_type":"Hash","collided":[{"path":[],"key":"id","pairs":[[":id","1"],["\"id\"","2"]]}],"value":{"id":1}}
 ```
 
 Nothing inside a pair left out of `value` appears in `rendered` or `errors`,
@@ -216,8 +216,8 @@ To keep a record, and the cost of making it, bounded:
 
 - Strings longer than 500 characters are cut to 500, followed by
   `" [+N chars]"`. Text from `#inspect` or `#to_s` is cut the same way.
-- Arrays and Hashes keep their first 50 entries, followed by one entry (an Array)
-  or key (a Hash) counting the rest.
+- Arrays and Hashes keep their first 50 entries. Nothing in `value` marks the
+  cut; `cut` says where, and how many were left out.
 - Nesting deeper than 5 levels is rendered as text.
 - Each call site writes at most 500 records a minute. Calls past that write
   nothing, and skip evaluating and serializing their value. The first call to
@@ -235,7 +235,10 @@ To keep a record, and the cost of making it, bounded:
   A process killed without running its exit handlers (`kill -9`, or `exit!`)
   loses that last count.
 
-`truncated` is `true` whenever any of these cut a value short.
+`cut` lists every part these cut short, by path, so a cut value can't be
+mistaken for a complete one: `Lba.val :order` with 53 items gives
+`"cut":[{"path":["items"],"omitted":3,"unit":"entries"}]`, and `value` holds
+the first 50.
 
 ## Errors
 
@@ -262,7 +265,7 @@ in `errors`, whose `path` gives its position: Array indexes and Hash keys, from
 the outside in.
 
 ```json
-{"label":"items","value_type":"Array","truncated":false,"errors":[{"path":[0],"message":"NoMethodError: undefined method 'inspect' for an instance of BasicObject"},{"path":[2],"message":"ArgumentError: boom"}],"value":["(unrenderable)",1,"(unrenderable)"]}
+{"label":"items","value_type":"Array","errors":[{"path":[0],"message":"NoMethodError: undefined method 'inspect' for an instance of BasicObject"},{"path":[2],"message":"ArgumentError: boom"}],"value":["(unrenderable)",1,"(unrenderable)"]}
 ```
 
 So `errors` is always the sign that something couldn't be recorded; a record

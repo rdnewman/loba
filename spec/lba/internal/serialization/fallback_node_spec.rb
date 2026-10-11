@@ -21,7 +21,6 @@ RSpec.describe Lba::Internal::Serialization::FallbackNode do
       expect(result[:value]).to eq(plain_object.inspect)
       expect(result[:value]).not_to eq(plain_object.to_s)
       expect(result[:value_type]).to eq("Object")
-      expect(result[:truncated]).to be false
     end
 
     it "falls back to #to_s instead when use_inspect is false" do
@@ -35,7 +34,7 @@ RSpec.describe Lba::Internal::Serialization::FallbackNode do
 
     # Long rendered text is cut exactly as a long String is.
     context "when the rendered text is longer than a String may be" do
-      it "cuts #inspect output with the String marker and flags it truncated" do
+      it "cuts #inspect output with the String marker, and lists the cut" do
         long_rendering = RenderedAs.new("a" * (max_length + 523))
 
         result = described_class.serialize(value: long_rendering)
@@ -44,7 +43,7 @@ RSpec.describe Lba::Internal::Serialization::FallbackNode do
           value: "#{'a' * max_length} [+523 chars]",
           value_type: "RenderedAs",
           rendered: [{ path: [], as: "inspect" }],
-          truncated: true
+          cut: [{ path: [], omitted: 523, unit: "chars" }]
         )
       end
 
@@ -54,7 +53,6 @@ RSpec.describe Lba::Internal::Serialization::FallbackNode do
         result = described_class.serialize(value: long_rendering, use_inspect: false)
 
         expect(result[:value]).to eq("#{'a' * max_length} [+523 chars]")
-        expect(result[:truncated]).to be true
       end
     end
 
@@ -65,7 +63,6 @@ RSpec.describe Lba::Internal::Serialization::FallbackNode do
         result = described_class.serialize(value: exact_rendering)
 
         expect(result[:value]).to eq("a" * max_length)
-        expect(result[:truncated]).to be false
       end
     end
 
@@ -76,7 +73,7 @@ RSpec.describe Lba::Internal::Serialization::FallbackNode do
         result = described_class.serialize(value: object_whose_inspect_raises)
 
         expect(result).to eq(
-          value: "(unrenderable)", value_type: nil, truncated: false,
+          value: "(unrenderable)", value_type: nil,
           errors: [{ path: [], message: "ArgumentError: boom" }]
         )
       end

@@ -137,7 +137,7 @@ RSpec.describe Lba, ".value" do
     # fields come in the same order on every line.
     expect(record.keys).to eq(
       [:seq, :type, :label, :file, :line, :class_name, :method_name, :method_type,
-       :site_seq, :diff, :value_type, :truncated, :value,
+       :site_seq, :diff, :value_type, :value,
        :wall_time, :mono_time, :run_id, :schema]
     )
     expect(record[:file]).to end_with("value_spec.rb")
@@ -148,7 +148,6 @@ RSpec.describe Lba, ".value" do
     expect(record[:label]).to eq("lba_local_var")
     expect(record[:value]).to eq("traced value")
     expect(record[:value_type]).to eq("String")
-    expect(record[:truncated]).to be false
     expect(record[:schema]).to eq(1)
     expect(record[:type]).to eq("val")
     expect(record[:seq]).to eq(1)
@@ -395,7 +394,7 @@ RSpec.describe Lba, ".value" do
       expect(record[:errors]).to contain_exactly(
         { path: [], message: start_with("NameError: ").and(include("undefined_name")) }
       )
-      expect(record.keys).not_to include(:value, :value_type, :truncated)
+      expect(record.keys).not_to include(:value, :value_type)
     end
 
     it "records a traced method's own error" do
@@ -441,6 +440,18 @@ RSpec.describe Lba, ".value" do
       expect(record[:collided])
         .to eq([{ path: [], key: "id", pairs: [[":id", "1"], ["\"id\"", "2"]] }])
       expect(record.keys.index(:collided)).to be < record.keys.index(:value)
+    end
+
+    it "names each part cut short, and how much, before the value", :aggregate_failures do
+      stub_tracker_at_exit
+      sink = StringIO.new
+
+      described_class.value({ items: Array.new(53, 0) }, sink:)
+
+      record = written_record(sink)
+      expect(record[:cut]).to eq([{ path: ["items"], omitted: 3, unit: "entries" }])
+      expect(record[:value][:items].size).to eq(50)
+      expect(record.keys.index(:cut)).to be < record.keys.index(:value)
     end
 
     it "records binary data as its #inspect text" do

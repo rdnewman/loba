@@ -3,8 +3,7 @@ require_relative "container_node"
 module Lba
   module Internal
     module Serialization
-      # Serializes Arrays: each entry becomes a child, and a trailing entry
-      # counts any past ContainerNode::MAX_ENTRIES.
+      # Serializes Arrays: each entry becomes a child.
       class ArrayNode < ContainerNode
       private
 
@@ -12,11 +11,7 @@ module Lba
 
         def children_of(entries) = entries
 
-        def values
-          return items unless oversized?
-
-          items + ["[+#{omitted_count} more entries]"]
-        end
+        def omitted_unit = "entries"
 
         def items = children.map { _1[:value] }
 

@@ -5,8 +5,7 @@ RSpec.describe Lba::Internal::Serialization::NativeNode do
 
       expect(result).to eq(
         value: 42,
-        value_type: "Integer",
-        truncated: false
+        value_type: "Integer"
       )
     end
   end
