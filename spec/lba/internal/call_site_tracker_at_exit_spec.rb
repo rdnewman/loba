@@ -48,6 +48,20 @@ RSpec.describe Lba::Internal::CallSiteTracker do
         expect(invoice_flushed)
           .to include("file" => "app/models/invoice.rb", "suppressed_count" => 4)
       end
+
+      it "warns rather than raising when a capped site's sink was closed before exit" do
+        capture_at_exit_hooks(Lba::Internal::WriteFailures)
+        hooks = stub_call_site_tracker_at_exit
+        tracker = described_class.current
+        site = { type: "val", file: "app/models/order.rb", line: 10 }
+        sink = StringIO.new
+        6.times { tracker.record(**site, sink:, cap: 5) }
+        sink.close
+
+        expect { hooks.first.call }.to output(/lba: couldn't write a record/).to_stderr
+      ensure
+        reset_current(Lba::Internal::WriteFailures)
+      end
     end
 
     context "when the process forks after the hook is registered" do

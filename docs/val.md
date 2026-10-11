@@ -85,6 +85,24 @@ call, with a path (a String or `Pathname`) or any IO (such as `$stdout` or a
 `StringIO`). If the directory can't be created or written to, records go to
 `$stdout` instead.
 
+If a record still can't be written (a full disk, a read-only file, a closed
+IO), it is skipped, and the first such failure in the process is reported once
+on `$stderr`. The code being traced keeps running.
+
+A skipped record shouldn't look like code that never ran, so the next record
+that is written to the same sink notes what was missed, in `unwritten`:
+
+```json
+{"seq":4,"type":"ts","label":"after recovery","unwritten":{"count":2,"first_seq":2,"last_seq":3,"error":"Errno::EACCES: Permission denied @ rb_sysopen - log/trace.jsonl"}}
+```
+
+If no later record reaches that sink, the process reports the loss when it
+exits normally instead, on `$stderr`:
+
+```text
+lba: 2 records couldn't be written to "log/trace.jsonl" (first error: Errno::EACCES: Permission denied @ rb_sysopen - log/trace.jsonl)
+```
+
 Inside Rails, the default is used only once the app has booted (`Rails.root` is
 set); before that, records go under the current directory.
 
@@ -113,6 +131,7 @@ file.
 | `inspected` | `true` if any part of the value was recorded as text instead of as itself (see below) |
 | `truncated` | `true` if any part of the value was cut short (see [Limits](#limits)) |
 | `errors` | Present only when evaluating the Symbol, or rendering any part of the value, raised: one `{"path", "message"}` per failure. Without `value`, nothing could be recorded; with it, only part couldn't (see [Errors](#errors)) |
+| `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `first_seq` and `last_seq` they fell between, and the first `error` (see [Where records go](#where-records-go)) |
 
 Strings, numbers, `true`, `false`, `nil`, Arrays, and Hashes are recorded as
 JSON, including inside each other; Symbols are recorded as JSON strings, and

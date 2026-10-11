@@ -73,6 +73,7 @@ file, and they always share one `seq`.
 | `method_name` | The caller's method; `"<anonymous method>"` outside any method |
 | `method_type` | `"instance"` or `"class"` |
 | `label` | The given label, or `null` |
+| `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `first_seq` and `last_seq` they fell between, and the first `error` (see [Where records go](val.md#where-records-go)) |
 
 ### How `since_prev_ts` is measured
 
@@ -126,7 +127,12 @@ its own `site_seq` and its own limit.
 ## Errors
 
 `Lba.ts` runs none of the caller's code, so it has nothing to record as an
-error. An error raised from inside lba itself is a bug in lba, and is raised
+error. A record that can't be written (a full disk, a read-only file, a closed
+IO) is skipped and reported on `$stderr`, and the next record written to that
+sink notes the gap in `unwritten`, as for `Lba.val` (see
+[Where records go](val.md#where-records-go)). That matters for checkpoints in
+particular: a skipped checkpoint must not look like a line that was never
+reached. Any other error raised from inside lba is a bug in lba, and is raised
 at the call.
 
 ## Environment notes
