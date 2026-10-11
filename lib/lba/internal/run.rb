@@ -5,6 +5,10 @@ module Lba
     # One process's run: every record it writes carries the run's id, and its
     # records share one sink file.
     class Run
+      # Fails if anything, even a symlink, is already at the path.
+      CREATE_FLAGS = File::WRONLY | File::CREAT | File::EXCL | File::NOFOLLOW
+      private_constant :CREATE_FLAGS
+
       class << self
         # This process's run, created on first use.
         #
@@ -19,8 +23,8 @@ module Lba
         end
       end
 
-      # @return [String] the run's id: a UTC timestamp, the process id, and four
-      #   random hex digits, e.g. +"20260926T210626Z-894825-b10f"+
+      # @return [String] the run's id: a UTC timestamp, the process id, and eight
+      #   random hex digits, e.g. +"20260926T210626Z-894825-b10f3e7a"+
       attr_reader :id
 
       # @return [Integer] the id of the process that started the run
@@ -30,13 +34,39 @@ module Lba
       def initialize
         @pid = Process.pid
         @id = generate_id
+        @claimed_paths = []
+      end
+
+      # Claims a file for this run's records: creates it, readable and writable
+      # only by its owner, the first time it's claimed.
+      #
+      # A file or symlink already at the path wasn't made by this run (the
+      # random part of the id makes the path hard to guess ahead of time), so
+      # the path is refused rather than appended to.
+      #
+      # @param path [String] where the run's file goes
+      # @return [Boolean] whether this run created the file at +path+
+      def claim_file(path)
+        claimed_paths.include?(path) || create(path)
       end
 
     private
 
+      attr_reader :claimed_paths
+
+      def create(path)
+        File.open(path, CREATE_FLAGS, 0o600) do
+          # Created empty; Writer appends the records.
+        end
+        claimed_paths << path
+        true
+      rescue SystemCallError
+        false
+      end
+
       def generate_id
         timestamp = Time.now.utc.strftime("%Y%m%dT%H%M%SZ")
-        "#{timestamp}-#{pid}-#{SecureRandom.hex(2)}"
+        "#{timestamp}-#{pid}-#{SecureRandom.hex(4)}"
       end
     end
   end

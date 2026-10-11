@@ -4,6 +4,12 @@ module Lba
   module Internal
     # Appends one record to a sink as a line of JSON.
     class Writer
+      APPEND_FLAGS = File::WRONLY | File::APPEND | File::CREAT
+      # Records hold unredacted values, so a file Writer creates is readable
+      # only by its owner. An existing file keeps its mode.
+      NEW_FILE_MODE = 0o600
+      private_constant :APPEND_FLAGS, :NEW_FILE_MODE
+
       class << self
         # Writes the record; shorthand for +new(...).write+.
         #
@@ -54,7 +60,7 @@ module Lba
           sink.write(line)
           sink.flush
         else
-          File.open(sink, "a") { |file| file.write(line) }
+          File.open(sink, APPEND_FLAGS, NEW_FILE_MODE) { |file| file.write(line) }
         end
       end
     end

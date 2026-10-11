@@ -3,7 +3,9 @@ require "pathname"
 require "stringio"
 
 RSpec.describe Lba::Internal::SinkResolver, :aggregate_failures do
-  let(:run) { instance_double(Lba::Internal::Run, id: "20260830T143012Z-4242-ab12") }
+  let(:run) do
+    instance_double(Lba::Internal::Run, id: "20260830T143012Z-4242-ab12cd34", claim_file: true)
+  end
   let(:tmp_dir) { Dir.mktmpdir }
 
   around do |example|
@@ -103,6 +105,67 @@ RSpec.describe Lba::Internal::SinkResolver, :aggregate_failures do
       allow(File).to receive(:writable?).and_return(false)
 
       expect(described_class.resolve(run:)).to equal($stdout)
+    end
+
+    describe "the run's own file" do
+      it "is claimed by the run before it's used" do
+        allow(Dir).to receive(:pwd).and_return(tmp_dir)
+
+        resolved = described_class.resolve(run:)
+
+        expect(run).to have_received(:claim_file).with(resolved)
+      end
+
+      it "falls back to $stdout when the run can't claim it" do
+        allow(Dir).to receive(:pwd).and_return(tmp_dir)
+        allow(run).to receive(:claim_file).and_return(false)
+
+        expect(described_class.resolve(run:)).to equal($stdout)
+      end
+
+      it "falls back to $stdout when a symlink was planted at its path" do
+        run = Lba::Internal::Run.new
+        runs_dir = File.join(tmp_dir, ".lba", "runs")
+        FileUtils.mkdir_p(runs_dir)
+        File.symlink(File.join(tmp_dir, "target"), File.join(runs_dir, "#{run.id}.jsonl"))
+        allow(Dir).to receive(:pwd).and_return(tmp_dir)
+
+        expect(described_class.resolve(run:)).to equal($stdout)
+      end
+    end
+
+    it "leaves claiming to the run only for its own file, not a path it was given" do
+      path = File.join(tmp_dir, "explicit", "sink.jsonl")
+
+      described_class.resolve(sink: path, run:)
+
+      expect(run).not_to have_received(:claim_file)
+    end
+
+    context "with the common umask of 022" do
+      around do |example|
+        original_umask = File.umask(0o022)
+        example.run
+      ensure
+        File.umask(original_umask)
+      end
+
+      it "creates the run's directories accessible only by their owner" do
+        allow(Dir).to receive(:pwd).and_return(tmp_dir)
+
+        described_class.resolve(run:)
+
+        modes = [".lba", ".lba/runs"].map { |dir| File.stat(File.join(tmp_dir, dir)).mode & 0o777 }
+        expect(modes).to eq([0o700, 0o700])
+      end
+
+      it "creates a given path's directory with the usual mode" do
+        path = File.join(tmp_dir, "explicit", "sink.jsonl")
+
+        described_class.resolve(sink: path, run:)
+
+        expect(File.stat(File.dirname(path)).mode & 0o777).to eq(0o755)
+      end
     end
   end
 end

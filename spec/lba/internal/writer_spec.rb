@@ -32,6 +32,44 @@ RSpec.describe Lba::Internal::Writer do
       expect(File.read(path)).to eq("{\"seq\":1}\n{\"seq\":2}\n")
     end
 
+    it "appends through a symlink given as the sink" do
+      target = File.join(tmp_dir, "target.jsonl")
+      path = File.join(tmp_dir, "sink.jsonl")
+      File.symlink(target, path)
+
+      described_class.write({ "seq" => 1 }, sink: path)
+
+      expect(File.read(target)).to eq("{\"seq\":1}\n")
+    end
+
+    context "with the common umask of 022" do
+      around do |example|
+        original_umask = File.umask(0o022)
+        example.run
+      ensure
+        File.umask(original_umask)
+      end
+
+      # Records hold unredacted values, so other local users shouldn't read them.
+      it "creates a new path sink readable and writable only by its owner" do
+        path = File.join(tmp_dir, "sink.jsonl")
+
+        described_class.write({ "seq" => 1 }, sink: path)
+
+        expect(File.stat(path).mode & 0o777).to eq(0o600)
+      end
+
+      it "leaves an existing path sink's mode alone" do
+        path = File.join(tmp_dir, "sink.jsonl")
+        File.write(path, "")
+        File.chmod(0o644, path)
+
+        described_class.write({ "seq" => 1 }, sink: path)
+
+        expect(File.stat(path).mode & 0o777).to eq(0o644)
+      end
+    end
+
     # A full disk or an unwritable sink is the environment's problem, not the
     # traced code's, so it never raises into it.
     context "when the sink can't be written" do

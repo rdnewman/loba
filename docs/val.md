@@ -85,6 +85,12 @@ call, with a path (a String or `Pathname`) or any IO (such as `$stdout` or a
 `StringIO`). If the directory can't be created or written to, records go to
 `$stdout` instead.
 
+Records hold captured values as-is, so a file lba creates is readable and
+writable only by its owner (mode `0600`), as are the directories it creates
+for a run's own file (`0700`). Files and directories that already exist keep
+their permissions. If anything, even a symlink, is already at a run's own file
+path when the run first writes there, records go to `$stdout` instead.
+
 If a record still can't be written (a full disk, a read-only file, a closed
 IO), it is skipped, and the first such failure in the process is reported once
 on `$stderr`. The code being traced keeps running.
@@ -114,7 +120,7 @@ file.
 | Field | Meaning |
 |---|---|
 | `schema` | Record format version, currently `1` |
-| `run_id` | This process run, e.g. `20260926T210626Z-894825-b10f` |
+| `run_id` | This process run, e.g. `20260926T210626Z-894825-b10f3e7a` |
 | `seq` | Order of this record among all records in the run |
 | `type` | `"val"` |
 | `wall_time` | Seconds since the epoch, when recorded |
@@ -184,7 +190,7 @@ To keep a record, and the cost of making it, bounded:
   noting how many calls were skipped:
 
   ```json
-  {"schema":1,"run_id":"20260927T162656Z-1108765-4c1d","seq":501,"type":"val","wall_time":1790526416.5963955,"mono_time":1061.0,"file":"app/models/order.rb","line":55,"suppressed":true,"suppressed_count":1246}
+  {"schema":1,"run_id":"20260927T162656Z-1108765-4c1d93a0","seq":501,"type":"val","wall_time":1790526416.5963955,"mono_time":1061.0,"file":"app/models/order.rb","line":55,"suppressed":true,"suppressed_count":1246}
   ```
 
   It opens with the same fields as every record and takes the next `seq`, but

@@ -61,7 +61,7 @@ file, and they always share one `seq`.
 | Field | Meaning |
 |---|---|
 | `schema` | Record format version, currently `1` |
-| `run_id` | This process run, e.g. `20260930T135402Z-5-39e8` |
+| `run_id` | This process run, e.g. `20260930T135402Z-5-39e8b2c6` |
 | `seq` | Order of this record among all records in the run, values included |
 | `type` | `"ts"` |
 | `wall_time` | Seconds since the epoch, when recorded |
@@ -118,7 +118,7 @@ Calls past that write nothing; the first call to that site after the minute, or
 the process exiting normally, writes one record noting how many were skipped:
 
 ```json
-{"schema":1,"run_id":"20260930T135416Z-5-e790","seq":501,"type":"ts","wall_time":1790776456.2902832,"mono_time":47675.468684261,"file":"app/models/cart.rb","line":10,"suppressed":true,"suppressed_count":3}
+{"schema":1,"run_id":"20260930T135416Z-5-e7905d1f","seq":501,"type":"ts","wall_time":1790776456.2902832,"mono_time":47675.468684261,"file":"app/models/cart.rb","line":10,"suppressed":true,"suppressed_count":3}
 ```
 
 A `Lba.ts` and a `Lba.val` on the same line are separate call sites, each with
