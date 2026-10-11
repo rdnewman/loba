@@ -6,7 +6,6 @@ RSpec.describe Lba::Internal::Serialization do
       expect(result).to eq(
         value: 42,
         value_type: "Integer",
-        inspected: false,
         truncated: false
       )
     end
@@ -19,7 +18,6 @@ RSpec.describe Lba::Internal::Serialization do
 
         expect(result[:value]).to eq(plain_object.to_s)
         expect(result[:value]).not_to eq(plain_object.inspect)
-        expect(result[:inspected]).to be true
       end
 
       it "still uses #inspect by default" do
@@ -53,7 +51,6 @@ RSpec.describe Lba::Internal::Serialization do
           meta: { nested: true, deep: { value: 1 } }
         )
         expect(result[:value_type]).to eq("Hash")
-        expect(result[:inspected]).to be true
         expect(result[:truncated]).to be false
       end
     end
@@ -112,8 +109,6 @@ RSpec.describe Lba::Internal::Serialization do
         just_fits = nested_mixed(Lba::Internal::Serialization::HashNode::MAX_DEPTH)
 
         result = described_class.serialize(value: just_fits)
-
-        expect(result[:inspected]).to be false
         expect(result[:value]).to eq(just_fits)
       end
 
@@ -123,8 +118,6 @@ RSpec.describe Lba::Internal::Serialization do
         collapsed = nested_mixed(1, depth_from_root: max_depth)
 
         result = described_class.serialize(value: too_deep)
-
-        expect(result[:inspected]).to be true
         expect(result[:value]).to eq(nested_mixed(max_depth, leaf: collapsed.inspect))
       end
     end
@@ -147,7 +140,7 @@ RSpec.describe Lba::Internal::Serialization do
 
         expect(result).to eq(
           value: { "items" => ["(unrenderable)", 1, "(unrenderable)"] }, value_type: "Hash",
-          inspected: true, truncated: false,
+          truncated: false,
           errors: [
             { path: ["items", 0], message: "ArgumentError: boom" },
             { path: ["items", 2], message: "ArgumentError: boom" }

@@ -14,6 +14,11 @@ module Lba
         # Calls aren't checkpoints.
         CHECKPOINT = false
 
+        # The value is the one field with no size limit, so everything that
+        # describes it comes first.
+        VALUE_FIELDS = [:value_type, :rendered, :truncated, :errors, :value].freeze
+        private_constant :VALUE_FIELDS
+
         # Builds the record's fields; shorthand for +new(...).fields+.
         #
         # @return (see #fields)
@@ -62,13 +67,7 @@ module Lba
         rescue StandardError => e
           { errors: [{ path: [], message: "#{e.class}: #{e.message}" }] }
         else
-          value_last(Serialization.serialize(value: evaluated, inspect:))
-        end
-
-        # The value is the one field with no size limit, so everything that
-        # describes it comes first.
-        def value_last(serialized)
-          serialized.except(:value).merge(serialized.slice(:value))
+          Serialization.serialize(value: evaluated, inspect:).slice(*VALUE_FIELDS)
         end
       end
     end

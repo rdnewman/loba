@@ -15,7 +15,7 @@ module Lba
           if value.finite?
             NativeNode.serialize(value:)
           else
-            FallbackNode.serialize(value:)
+            FallbackNode.serialize(value:, as: "non_finite")
           end
         end
       end

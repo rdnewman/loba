@@ -6,7 +6,6 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
       expect(result).to eq(
         value: "hello",
         value_type: "String",
-        inspected: false,
         truncated: false
       )
     end
@@ -18,7 +17,6 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
 
       expect(result[:value]).to eq("#{'a' * described_class::MAX_LENGTH} [+523 chars]")
       expect(result[:value_type]).to eq("String")
-      expect(result[:inspected]).to be false
       expect(result[:truncated]).to be true
     end
 
@@ -40,7 +38,7 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
         result = described_class.serialize(value: latin1)
 
         expect(result).to eq(
-          value: "café", value_type: "String", inspected: false, truncated: false
+          value: "café", value_type: "String", truncated: false
         )
         expect(result[:value].encoding).to eq(Encoding::UTF_8)
       end
@@ -53,7 +51,8 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
         result = described_class.serialize(value: binary)
 
         expect(result).to eq(
-          value: "\"\\xFF\\xFE\"", value_type: "String", inspected: true, truncated: false
+          value: "\"\\xFF\\xFE\"", value_type: "String", rendered: [{ path: [], as: "not_utf8" }],
+          truncated: false
         )
       end
 
@@ -63,7 +62,8 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
         result = described_class.serialize(value: invalid)
 
         expect(result).to eq(
-          value: "\"ok\\xFF\"", value_type: "String", inspected: true, truncated: false
+          value: "\"ok\\xFF\"", value_type: "String", rendered: [{ path: [], as: "not_utf8" }],
+          truncated: false
         )
       end
 
@@ -72,7 +72,7 @@ RSpec.describe Lba::Internal::Serialization::StringNode do
 
         result = described_class.serialize(value: long_binary)
 
-        expect(result).to include(inspected: true, truncated: true)
+        expect(result).to include(truncated: true)
         expect(result[:value]).to end_with(" chars]")
       end
     end

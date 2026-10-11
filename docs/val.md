@@ -29,7 +29,7 @@ HelloWorld.new.hello("Charlie")
 ```
 
 ```json
-{"type":"val","label":"name","file":"hello_world.rb","line":3,"class_name":"HelloWorld","method_name":"hello","method_type":"instance","value_type":"String","inspected":false,"truncated":false,"value":"Charlie"}
+{"type":"val","label":"name","file":"hello_world.rb","line":3,"class_name":"HelloWorld","method_name":"hello","method_type":"instance","value_type":"String","truncated":false,"value":"Charlie"}
 ```
 
 The label comes from the Symbol. A Symbol can also name an instance variable
@@ -134,9 +134,9 @@ bookkeeping that repeats from line to line.
 | `site_seq` | Order of this record among records from the same call site (file and line) |
 | `diff` | Seconds since the previous record from the same call site, exactly the difference between their `mono_time` values; `null` for the first |
 | `value_type` | The value's class name |
-| `inspected` | `true` if any part of the value was recorded as text instead of as itself (see below) |
+| `rendered` | Present only when some part of the value is recorded as text instead of as itself: one `{"path", "as"}` per part, where `as` says why (see below). The text can look exactly like a real String; this says which parts aren't |
 | `truncated` | `true` if any part of the value was cut short (see [Limits](#limits)) |
-| `errors` | Present only when evaluating the Symbol, or rendering any part of the value, raised: one `{"path", "message"}` per failure. Without `value`, nothing could be recorded; with it, only part couldn't (see [Errors](#errors)) |
+| `errors` | Present only when evaluating the Symbol, or rendering any part of the value, raised: one `{"path", "message"}` per failure. Without `value`, nothing could be recorded; with it, only part couldn't (see [Errors](#errors)). A `path`, here and in `rendered`, is the part's Array indexes and Hash keys from the top; `[]` is the whole value |
 | `value` | The value, as JSON (see below) |
 | `wall_time` | Seconds since the epoch, when recorded |
 | `mono_time` | A monotonic clock reading, unaffected by system clock changes |
@@ -146,15 +146,29 @@ bookkeeping that repeats from line to line.
 Strings, numbers, `true`, `false`, `nil`, Arrays, and Hashes are recorded as
 JSON, including inside each other; Symbols are recorded as JSON strings, and
 Hash keys always become JSON strings. Anything else is rendered as text with
-`#inspect` (or `#to_s`, with `inspect: false`), and `inspected` is `true`.
+`#inspect` (or `#to_s`, with `inspect: false`), and `rendered` names it with
+`as` `"inspect"` (or `"to_s"`).
 
-JSON can't hold some values exactly, so these are recorded as text too, with
-`inspected` set:
+JSON can't hold some values exactly, so these are recorded as text too, and
+named in `rendered`:
 
 - A String that isn't text (binary data, or invalid UTF-8) is recorded as its
-  `#inspect` text, e.g. `"\"\\xFF\\xFE\""`. A String in another encoding that
-  converts to UTF-8 is recorded converted.
-- `NaN` and `Infinity` are recorded as `"NaN"`, `"Infinity"`, and `"-Infinity"`.
+  `#inspect` text, e.g. `"\"\\xFF\\xFE\""`, with `as` `"not_utf8"`. A String in
+  another encoding that converts to UTF-8 is recorded converted.
+- `NaN` and `Infinity` are recorded as `"NaN"`, `"Infinity"`, and `"-Infinity"`,
+  with `as` `"non_finite"`.
+- A container nested more than 5 levels deep is rendered whole as text, with
+  `as` `"too_deep"` (see [Limits](#limits)).
+
+For example, `Lba.val :order` where `order` is
+`{total: Float::NAN, note: "NaN", items: [1, Point.new(2)]}`:
+
+```json
+{"label":"order","value_type":"Hash","rendered":[{"path":["total"],"as":"non_finite"},{"path":["items",1],"as":"inspect"}],"truncated":false,"value":{"total":"NaN","note":"NaN","items":[1,"#<struct Point x=2>"]}}
+```
+
+`"total"` and `"note"` look the same in `value`; `rendered` says only `"total"`
+was a `NaN`.
 
 ## Options
 
@@ -233,7 +247,7 @@ in `errors`, whose `path` gives its position: Array indexes and Hash keys, from
 the outside in.
 
 ```json
-{"label":"items","value_type":"Array","inspected":true,"truncated":false,"errors":[{"path":[0],"message":"NoMethodError: undefined method 'inspect' for an instance of BasicObject"},{"path":[2],"message":"ArgumentError: boom"}],"value":["(unrenderable)",1,"(unrenderable)"]}
+{"label":"items","value_type":"Array","truncated":false,"errors":[{"path":[0],"message":"NoMethodError: undefined method 'inspect' for an instance of BasicObject"},{"path":[2],"message":"ArgumentError: boom"}],"value":["(unrenderable)",1,"(unrenderable)"]}
 ```
 
 So `errors` is always the sign that something couldn't be recorded; a record

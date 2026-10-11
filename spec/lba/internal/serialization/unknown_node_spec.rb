@@ -6,7 +6,6 @@ RSpec.describe Lba::Internal::Serialization::UnknownNode do
 
         expect(result[:value]).to eq(native_value)
         expect(result[:value_type]).to eq(native_value.class.name)
-        expect(result[:inspected]).to be false
         expect(result[:truncated]).to be false
       end
     end
@@ -14,7 +13,7 @@ RSpec.describe Lba::Internal::Serialization::UnknownNode do
     it "dispatches a Float to FloatNode, NaN handling included" do
       result = described_class.serialize(value: Float::NAN)
 
-      expect(result).to include(value: "NaN", inspected: true)
+      expect(result).to include(value: "NaN")
     end
 
     it "dispatches a String to StringNode, truncation included" do
@@ -32,7 +31,6 @@ RSpec.describe Lba::Internal::Serialization::UnknownNode do
 
       expect(result[:value]).to eq([1, 2])
       expect(result[:value_type]).to eq("Array")
-      expect(result[:inspected]).to be false
     end
 
     it "dispatches a Hash to HashNode" do
@@ -40,7 +38,6 @@ RSpec.describe Lba::Internal::Serialization::UnknownNode do
 
       expect(result[:value]).to eq(a: 1)
       expect(result[:value_type]).to eq("Hash")
-      expect(result[:inspected]).to be false
     end
 
     it "dispatches a value with no dedicated node type to FallbackNode" do
@@ -50,7 +47,6 @@ RSpec.describe Lba::Internal::Serialization::UnknownNode do
 
       expect(result[:value]).to eq(plain_object.inspect)
       expect(result[:value_type]).to eq("Object")
-      expect(result[:inspected]).to be true
     end
 
     # Subclasses such as HashWithIndifferentAccess must reach their structural
@@ -62,7 +58,6 @@ RSpec.describe Lba::Internal::Serialization::UnknownNode do
         result = described_class.serialize(value: string_subclass_value)
 
         expect(result[:value]).to eq("hello")
-        expect(result[:inspected]).to be false
       end
 
       it "dispatches an Array subclass to ArrayNode" do
@@ -71,7 +66,6 @@ RSpec.describe Lba::Internal::Serialization::UnknownNode do
         result = described_class.serialize(value: array_subclass_value)
 
         expect(result[:value]).to eq([1, 2])
-        expect(result[:inspected]).to be false
       end
 
       it "dispatches a Hash subclass to HashNode" do
@@ -80,7 +74,6 @@ RSpec.describe Lba::Internal::Serialization::UnknownNode do
         result = described_class.serialize(value: hash_subclass_value)
 
         expect(result[:value]).to eq(a: 1)
-        expect(result[:inspected]).to be false
       end
     end
   end

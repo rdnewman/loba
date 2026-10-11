@@ -12,7 +12,6 @@ module Lba
           {
             value:,
             value_type: value.class.name,
-            inspected: false,
             truncated: false
           }
         end

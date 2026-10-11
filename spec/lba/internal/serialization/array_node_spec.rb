@@ -25,7 +25,7 @@ RSpec.describe Lba::Internal::Serialization::ArrayNode do
         result = described_class.serialize(value: [1, object_whose_inspect_raises, 3])
 
         expect(result).to eq(
-          value: [1, "(unrenderable)", 3], value_type: "Array", inspected: true, truncated: false,
+          value: [1, "(unrenderable)", 3], value_type: "Array", truncated: false,
           errors: [{ path: [1], message: "ArgumentError: boom" }]
         )
       end

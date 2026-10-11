@@ -2,7 +2,7 @@ module Lba
   module Internal
     module Serialization
       # The shared base for ArrayNode and HashNode: bounded recursion into
-      # children and aggregation of their flags and errors. Each subclass
+      # children and aggregation of their flags, rendered parts, and errors. Each subclass
       # supplies #children_of, #values, #value_type, and #position.
       class ContainerNode
         # Deeper containers fall back to #inspect. This also stops a cycle,
@@ -13,8 +13,9 @@ module Lba
         # bounds the cost of a huge value. 50 is a guess.
         MAX_ENTRIES = 50
 
-        # Shared by every child without errors, so it allocates nothing.
-        NO_ERRORS = [].freeze
+        # Shared by every child with no entries in a list, so it allocates
+        # nothing.
+        NONE = [].freeze
 
         # Serializes a container; shorthand for +new(...).serialize+.
         #
@@ -46,9 +47,9 @@ module Lba
         # @return (see Lba::Internal::Serialization.serialize)
         def serialize
           if depth >= MAX_DEPTH
-            FallbackNode.serialize(value:, depth:, use_inspect:)
+            FallbackNode.serialize(value:, depth:, use_inspect:, as: "too_deep")
           else
-            with_errors({ value: values, value_type:, inspected:, truncated: })
+            { value: values, value_type:, **listed(:rendered), truncated:, **listed(:errors) }
           end
         end
 
@@ -64,33 +65,31 @@ module Lba
           raise NotImplementedError
         end
 
-        # Where the child at +index+ sits in this container, for an error's
-        # path.
+        # Where the child at +index+ sits in this container, for a path.
         def position(_index)
           raise NotImplementedError
         end
 
-        def with_errors(result)
-          errors = children_errors
-          return result if errors.empty?
+        # The children's entries in +list+ (+:rendered+ or +:errors+), keyed
+        # by +list+, or nothing if none has any.
+        def listed(list)
+          entries = children.each_with_index.flat_map do |child, index|
+            prefixed(child[list], index)
+          end
 
-          result.merge(errors:)
+          if entries.empty?
+            {}
+          else
+            { list => entries }
+          end
         end
 
-        def children_errors
-          children.each_with_index.flat_map { |child, index| prefixed_errors(child, index) }
-        end
+        # A child's entries, with its position put in front of their paths.
+        # The position is worked out only for a child that has entries.
+        def prefixed(entries, index)
+          return NONE unless entries
 
-        # The child's errors, with its position put in front of their paths.
-        # The position is worked out only for a child that has errors.
-        def prefixed_errors(child, index)
-          return NO_ERRORS unless child[:errors]
-
-          child[:errors].map { |error| error.merge(path: [position(index), *error[:path]]) }
-        end
-
-        def inspected
-          children.any? { _1[:inspected] }
+          entries.map { |entry| entry.merge(path: [position(index), *entry[:path]]) }
         end
 
         def truncated

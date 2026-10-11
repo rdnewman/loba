@@ -28,12 +28,17 @@ module Lba
         # @return [Hash{Symbol => Object}] the serialized value:
         #   * +:value+ - the JSON-ready form of +value+
         #   * +:value_type+ [String] - the class name of +value+
-        #   * +:inspected+ [Boolean] - whether any part was rendered as text
+        #   * +:rendered+ [Array<Hash>] - present only if any part is recorded as
+        #     text rather than as itself: one +{ path:, as: }+ per part, where
+        #     +as+ says why: +"inspect"+ or +"to_s"+ (no JSON form),
+        #     +"non_finite"+ (NaN, Infinity), +"not_utf8"+ (a String that isn't
+        #     text), or +"too_deep"+ (a container nested too deeply, rendered
+        #     whole). A part whose rendering raised is in +:errors+ instead.
         #   * +:truncated+ [Boolean] - whether any part was cut short
         #   * +:errors+ [Array<Hash>] - present only if rendering any part
-        #     raised: one +{ path:, message: }+ per failure, where +path+ is the
-        #     part's position (Array indexes and Hash keys) and +[]+ means the
-        #     whole value. When the whole value failed it is the only key.
+        #     raised: one +{ path:, message: }+ per failure. A +path+, here and
+        #     in +:rendered+, is the part's position (Array indexes and Hash
+        #     keys) and +[]+ means the whole value. When the whole value failed it is the only key.
         def serialize(value:, depth: 0, inspect: true)
           result = UnknownNode.serialize(value:, depth:, use_inspect: inspect)
 

@@ -22,7 +22,7 @@ module Lba
             if text
               cut(text)
             else
-              cut(value.inspect).merge(inspected: true)
+              cut(value.inspect).merge(rendered: [{ path: [], as: "not_utf8" }])
             end
           end
 
@@ -35,13 +35,12 @@ module Lba
             {
               value: "#{text[0...MAX_LENGTH]} [+#{omitted} chars]",
               value_type: "String",
-              inspected: false,
               truncated: true
             }
           end
 
           def untruncated(text)
-            { value: text, value_type: "String", inspected: false, truncated: false }
+            { value: text, value_type: "String", truncated: false }
           end
 
           # Converting UTF-8 to UTF-8 checks nothing, so validity is checked

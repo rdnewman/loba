@@ -21,7 +21,6 @@ RSpec.describe Lba::Internal::Serialization::FallbackNode do
       expect(result[:value]).to eq(plain_object.inspect)
       expect(result[:value]).not_to eq(plain_object.to_s)
       expect(result[:value_type]).to eq("Object")
-      expect(result[:inspected]).to be true
       expect(result[:truncated]).to be false
     end
 
@@ -32,7 +31,6 @@ RSpec.describe Lba::Internal::Serialization::FallbackNode do
 
       expect(result[:value]).to eq(plain_object.to_s)
       expect(result[:value]).not_to eq(plain_object.inspect)
-      expect(result[:inspected]).to be true
     end
 
     # Long rendered text is cut exactly as a long String is.
@@ -45,7 +43,7 @@ RSpec.describe Lba::Internal::Serialization::FallbackNode do
         expect(result).to eq(
           value: "#{'a' * max_length} [+523 chars]",
           value_type: "RenderedAs",
-          inspected: true,
+          rendered: [{ path: [], as: "inspect" }],
           truncated: true
         )
       end
@@ -78,7 +76,7 @@ RSpec.describe Lba::Internal::Serialization::FallbackNode do
         result = described_class.serialize(value: object_whose_inspect_raises)
 
         expect(result).to eq(
-          value: "(unrenderable)", value_type: nil, inspected: true, truncated: false,
+          value: "(unrenderable)", value_type: nil, truncated: false,
           errors: [{ path: [], message: "ArgumentError: boom" }]
         )
       end

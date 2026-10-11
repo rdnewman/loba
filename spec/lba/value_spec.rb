@@ -137,7 +137,7 @@ RSpec.describe Lba, ".value" do
     # fields come in the same order on every line.
     expect(record.keys).to eq(
       [:seq, :type, :label, :file, :line, :class_name, :method_name, :method_type,
-       :site_seq, :diff, :value_type, :inspected, :truncated, :value,
+       :site_seq, :diff, :value_type, :truncated, :value,
        :wall_time, :mono_time, :run_id, :schema]
     )
     expect(record[:file]).to end_with("value_spec.rb")
@@ -148,7 +148,6 @@ RSpec.describe Lba, ".value" do
     expect(record[:label]).to eq("lba_local_var")
     expect(record[:value]).to eq("traced value")
     expect(record[:value_type]).to eq("String")
-    expect(record[:inspected]).to be false
     expect(record[:truncated]).to be false
     expect(record[:schema]).to eq(1)
     expect(record[:type]).to eq("val")
@@ -396,7 +395,7 @@ RSpec.describe Lba, ".value" do
       expect(record[:errors]).to contain_exactly(
         { path: [], message: start_with("NameError: ").and(include("undefined_name")) }
       )
-      expect(record.keys).not_to include(:value, :value_type, :inspected, :truncated)
+      expect(record.keys).not_to include(:value, :value_type, :truncated)
     end
 
     it "records a traced method's own error" do
@@ -419,13 +418,25 @@ RSpec.describe Lba, ".value" do
 
   # Each of these once raised while writing the record's JSON line.
   context "when the value has no exact JSON form" do
+    # The text can look exactly like a real String, so the record names it.
+    it "names each part recorded as text, and why, before the value", :aggregate_failures do
+      stub_tracker_at_exit
+      sink = StringIO.new
+
+      described_class.value({ total: Float::NAN, note: "NaN" }, sink:)
+
+      record = written_record(sink)
+      expect(record[:rendered]).to eq([{ path: ["total"], as: "non_finite" }])
+      expect(record.keys.index(:rendered)).to be < record.keys.index(:value)
+    end
+
     it "records binary data as its #inspect text" do
       stub_tracker_at_exit
       sink = StringIO.new
 
       LbaValCallerContexts.new.with_binary_string(sink:)
 
-      expect(written_record(sink)).to include(value: "\"\\xFF\\xFE\"", inspected: true)
+      expect(written_record(sink)).to include(value: "\"\\xFF\\xFE\"")
     end
 
     it "records NaN as text" do
@@ -434,7 +445,7 @@ RSpec.describe Lba, ".value" do
 
       LbaValCallerContexts.new.with_nan(sink:)
 
-      expect(written_record(sink)).to include(value: "NaN", value_type: "Float", inspected: true)
+      expect(written_record(sink)).to include(value: "NaN", value_type: "Float")
     end
 
     it "records an object that can't be rendered as an error" do

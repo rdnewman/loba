@@ -21,14 +21,18 @@ module Lba
           # @param value [Object] the value to serialize
           # @param use_inspect [Boolean] +true+ to render with +#inspect+; +false+
           #   to use +#to_s+
+          # @param as [String, nil] why the value is recorded as text, for
+          #   +:rendered+; +nil+ for the method it was rendered with,
+          #   +"inspect"+ or +"to_s"+
           # @return (see Lba::Internal::Serialization.serialize)
-          def serialize(value:, use_inspect: true, **)
+          def serialize(value:, use_inspect: true, as: nil, **)
             text = rendered_value(value, use_inspect)
             value_type = value.class.name
           rescue StandardError => e
             unrenderable(e)
           else
-            StringNode.serialize(value: text).merge(value_type:, inspected: true)
+            rendered = [{ path: [], as: as || method_used(use_inspect) }]
+            StringNode.serialize(value: text).merge(value_type:, rendered:)
           end
 
         private
@@ -37,10 +41,17 @@ module Lba
             {
               value: UNRENDERABLE,
               value_type: nil,
-              inspected: true,
               truncated: false,
               errors: [{ path: [], message: "#{error.class}: #{error.message}" }]
             }
+          end
+
+          def method_used(use_inspect)
+            if use_inspect
+              "inspect"
+            else
+              "to_s"
+            end
           end
 
           def rendered_value(value, use_inspect)

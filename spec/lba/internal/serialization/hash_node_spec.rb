@@ -14,7 +14,7 @@ RSpec.describe Lba::Internal::Serialization::HashNode do
     end
 
     context "when a key needs serializing" do
-      it "serializes the key too, and its flags count toward the Hash's" do
+      it "serializes the key too, and a cut key makes the Hash truncated" do
         plain_object = Object.new
 
         result = described_class.serialize(value: { plain_object => 1, oversized_string => 2 })
@@ -22,7 +22,7 @@ RSpec.describe Lba::Internal::Serialization::HashNode do
         truncated_key = oversized_string[0, Lba::Internal::Serialization::StringNode::MAX_LENGTH]
         expect(result[:value].keys)
           .to match([plain_object.inspect, a_string_starting_with(truncated_key)])
-        expect(result).to include(inspected: true, truncated: true)
+        expect(result).to include(truncated: true)
       end
     end
 
@@ -57,7 +57,7 @@ RSpec.describe Lba::Internal::Serialization::HashNode do
 
         expect(result).to eq(
           value: { ok: 1, broken: "(unrenderable)" }, value_type: "Hash",
-          inspected: true, truncated: false,
+          truncated: false,
           errors: [{ path: ["broken"], message: "ArgumentError: boom" }]
         )
       end
