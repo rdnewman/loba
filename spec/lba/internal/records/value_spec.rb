@@ -7,7 +7,7 @@ RSpec.describe Lba::Internal::Records::Value do
     )
   end
 
-  def tracked = { seq: 7, site_seq: 2, diff: 0.4 }
+  def tracked = { seq: 7, mono_time: 100.25, site_seq: 2, diff: 0.4 }
 
   it "is the val record type" do
     expect(described_class::TYPE).to eq("val")
@@ -31,7 +31,7 @@ RSpec.describe Lba::Internal::Records::Value do
         caller_binding:, tracked:, argument: :subtotal, label: nil, inspect: true
       )
 
-      expect(fields).to include(seq: 7, type: "val", site_seq: 2, diff: 0.4)
+      expect(fields).to include(seq: 7, type: "val", mono_time: 100.25, site_seq: 2, diff: 0.4)
     end
 
     it "records the value the argument evaluates to in the caller, labeled by the Symbol" do

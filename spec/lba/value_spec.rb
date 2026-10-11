@@ -160,6 +160,18 @@ RSpec.describe Lba, ".value" do
     expect(record[:mono_time]).to be_a(Float)
   end
 
+  it "times a record exactly as the gap since its site's previous line's mono_time" do
+    stub_call_site_tracker_at_exit
+    sink = StringIO.new
+    test_case = LbaValIntegrationTestCase.new
+    test_case.call_val(sink:)
+
+    test_case.call_val(sink:)
+
+    first, second = sink.string.lines.map { JSON.parse(_1, symbolize_names: true) }
+    expect(second[:diff]).to eq(second[:mono_time] - first[:mono_time])
+  end
+
   context "when the process forks after an earlier call" do
     it "writes the child's records under its own run and sequence", :aggregate_failures do
       stub_call_site_tracker_at_exit

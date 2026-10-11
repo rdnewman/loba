@@ -79,6 +79,8 @@ file, and they always share one `seq`.
 
 - It counts from the previous **checkpoint**, from any line. A `Lba.val`
   between two checkpoints doesn't change it.
+- It's exactly the difference between this record's `mono_time` and the
+  previous checkpoint's.
 - It's measured on the monotonic clock, so a system clock change can't make it
   wrong or negative. On Linux that clock doesn't advance while the machine is
   suspended: across a sleep, `since_prev_ts` shows only the time awake, and the

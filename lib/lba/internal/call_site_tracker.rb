@@ -55,6 +55,9 @@ module Lba
       # @return [Hash{Symbol => Integer, Float, nil}, :suppressed] +:suppressed+
       #   if the site is capped; otherwise:
       #   * +:seq+ [Integer] - this record's order among all the process's records
+      #   * +:mono_time+ [Float] - the monotonic clock reading that +:diff+ and
+      #     +:since_prev_ts+ are measured from, for the record to write, so
+      #     they equal the gaps between written +mono_time+ values
       #   * +:site_seq+ [Integer] - its order among the site's records
       #   * +:diff+ [Float, nil] - seconds since the site's previous record, or
       #     +nil+ for its first
@@ -69,7 +72,7 @@ module Lba
         numbered = site.record_call(now:, cap:, window_length: window, sink:) { next_seq! }
         return :suppressed if numbered == :suppressed
 
-        { seq: next_seq!, **numbered, **checkpoint_fields(type, now) }
+        { seq: next_seq!, mono_time: now, **numbered, **checkpoint_fields(type, now) }
       end
       # rubocop:enable Metrics/ParameterLists
 

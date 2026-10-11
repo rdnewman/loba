@@ -17,6 +17,14 @@ RSpec.describe Lba::Internal::RecordStamp do
       expect(stamp[:wall_time]).to be_within(5).of(Time.now.to_f)
     end
 
+    it "records a given monotonic clock reading instead of reading the clock" do
+      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(999.0)
+
+      stamp = described_class.fields(seq: 1, type: "ts", mono_time: 100.25)
+
+      expect(stamp[:mono_time]).to eq(100.25)
+    end
+
     it "has only those fields" do
       stamp = described_class.fields(seq: 1, type: "val")
 

@@ -14,7 +14,7 @@ RSpec.describe Lba::Internal::Records::Timestamp do
   describe ".fields" do
     it "has the stamp, the site's number, the timing since the previous ts, the caller, " \
        "and a label, with no site diff" do
-      tracked = { seq: 7, site_seq: 2, diff: 0.4, since_prev_ts: 0.25 }
+      tracked = { seq: 7, mono_time: 100.25, site_seq: 2, diff: 0.4, since_prev_ts: 0.25 }
 
       fields = described_class.fields(caller_binding:, tracked:, label: nil)
 
@@ -25,15 +25,16 @@ RSpec.describe Lba::Internal::Records::Timestamp do
     end
 
     it "takes its numbers and timing from the tracker" do
-      tracked = { seq: 7, site_seq: 2, diff: 0.4, since_prev_ts: 0.25 }
+      tracked = { seq: 7, mono_time: 100.25, site_seq: 2, diff: 0.4, since_prev_ts: 0.25 }
 
       fields = described_class.fields(caller_binding:, tracked:, label: nil)
 
-      expect(fields).to include(seq: 7, type: "ts", site_seq: 2, since_prev_ts: 0.25)
+      expect(fields)
+        .to include(seq: 7, type: "ts", mono_time: 100.25, site_seq: 2, since_prev_ts: 0.25)
     end
 
     it "records the label given, normalized" do
-      tracked = { seq: 1, site_seq: 1, diff: nil, since_prev_ts: nil }
+      tracked = { seq: 1, mono_time: 100.25, site_seq: 1, diff: nil, since_prev_ts: nil }
 
       fields = described_class.fields(caller_binding:, tracked:, label: "  card charged ")
 

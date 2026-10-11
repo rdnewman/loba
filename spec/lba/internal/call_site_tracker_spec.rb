@@ -2,10 +2,11 @@ RSpec.describe Lba::Internal::CallSiteTracker do
   describe "#record" do
     it "assigns seq 1 and site_seq 1 to a call site's first record" do
       tracker = described_class.new
+      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.0)
 
       result = tracker.record(type: "val", file: "app/models/order.rb", line: 10)
 
-      expect(result).to eq(seq: 1, site_seq: 1, diff: nil)
+      expect(result).to eq(seq: 1, mono_time: 100.0, site_seq: 1, diff: nil)
     end
 
     it "increments both seq and site_seq on a second call to the same site" do
@@ -35,6 +36,18 @@ RSpec.describe Lba::Internal::CallSiteTracker do
       result = tracker.record(type: "val", file: "app/models/order.rb", line: 10)
 
       expect(result).to include(diff: 0.25)
+    end
+
+    # A record's diff and since_prev_ts must equal the gap between the
+    # mono_time values written on its lines, so the reading they're measured
+    # from is the one written.
+    it "reports the clock reading its timing was measured from" do
+      tracker = described_class.new
+      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.25)
+
+      result = tracker.record(type: "ts", file: "app/models/order.rb", line: 10)
+
+      expect(result).to include(mono_time: 100.25)
     end
 
     it "requires the record type, with no default" do

@@ -100,6 +100,18 @@ RSpec.describe Lba, ".timestamp" do
     expect(second_record).to include(method_name: "later_checkpoint", since_prev_ts: 0.5)
   end
 
+  it "times a checkpoint exactly as the gap between the two lines' mono_time" do
+    stub_call_site_tracker_at_exit
+    sink = StringIO.new
+    caller_contexts = LbaTsCallerContexts.new
+    caller_contexts.checkpoint(sink:)
+
+    caller_contexts.later_checkpoint(sink:)
+
+    first, second = sink.string.lines.map { JSON.parse(_1, symbolize_names: true) }
+    expect(second[:since_prev_ts]).to eq(second[:mono_time] - first[:mono_time])
+  end
+
   context "when given a label" do
     it "records it" do
       stub_call_site_tracker_at_exit

@@ -33,7 +33,7 @@ module Lba
         # @return [Hash{Symbol => Object}] the record's fields, in order
         def fields
           {
-            **RecordStamp.fields(seq: tracked[:seq], type: TYPE),
+            **RecordStamp.fields(seq: tracked[:seq], type: TYPE, mono_time: tracked[:mono_time]),
             site_seq: tracked[:site_seq],
             diff: tracked[:diff],
             **Caller.fields(caller_binding),
