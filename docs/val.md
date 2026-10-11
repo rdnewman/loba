@@ -137,6 +137,7 @@ bookkeeping that repeats from line to line.
 | `rendered` | Present only when some part of the value is recorded as text instead of as itself: one `{"path", "as"}` per part, where `as` says why (see below). The text can look exactly like a real String; this says which parts aren't |
 | `truncated` | `true` if any part of the value was cut short (see [Limits](#limits)) |
 | `errors` | Present only when evaluating the Symbol, or rendering any part of the value, raised: one `{"path", "message"}` per failure. Without `value`, nothing could be recorded; with it, only part couldn't (see [Errors](#errors)). A `path`, here and in `rendered`, is the part's Array indexes and Hash keys from the top; `[]` is the whole value. An entry about a Hash key itself, not the value under it, also has `"key": true` |
+| `collided` | Present only when Hash keys collide, meaning two keys JSON writes as the same text (`1` and `"1"`, `:a` and `"a"`). A JSON reader would keep only one pair, so `value` keeps the first, and this lists every colliding pair: one `{"path", "key", "pairs"}` per shared key, with `pairs` as `[key, value]` `#inspect` text, which shows why they collided (see below) |
 | `value` | The value, as JSON (see below) |
 | `wall_time` | Seconds since the epoch, when recorded |
 | `mono_time` | A monotonic clock reading, unaffected by system clock changes |
@@ -170,6 +171,19 @@ For example, `Lba.val :order` where `order` is
 
 `"total"` and `"note"` look the same in `value`; `rendered` says only `"total"`
 was a `NaN`.
+
+Two keys that JSON writes as the same text would leave a duplicate key, and a
+JSON reader keeps only one, so a pair would vanish without a trace. The first
+pair stays in `value`, and `collided` lists them all as `#inspect` text, even
+with `inspect: false`, so a Symbol key and a String key stay apart.
+`Lba.val({id: 1, "id" => 2})` gives:
+
+```json
+{"value_type":"Hash","truncated":false,"collided":[{"path":[],"key":"id","pairs":[[":id","1"],["\"id\"","2"]]}],"value":{"id":1}}
+```
+
+Nothing inside a pair left out of `value` appears in `rendered` or `errors`,
+since it has no place in `value` to point to.
 
 ## Options
 

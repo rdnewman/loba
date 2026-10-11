@@ -430,6 +430,19 @@ RSpec.describe Lba, ".value" do
       expect(record.keys.index(:rendered)).to be < record.keys.index(:value)
     end
 
+    it "lists Hash keys that collide as JSON text, before the value", :aggregate_failures do
+      stub_tracker_at_exit
+      sink = StringIO.new
+
+      described_class.value({ id: 1, "id" => 2 }, sink:)
+
+      record = written_record(sink)
+      expect(record[:value]).to eq(id: 1)
+      expect(record[:collided])
+        .to eq([{ path: [], key: "id", pairs: [[":id", "1"], ["\"id\"", "2"]] }])
+      expect(record.keys.index(:collided)).to be < record.keys.index(:value)
+    end
+
     it "records binary data as its #inspect text" do
       stub_tracker_at_exit
       sink = StringIO.new

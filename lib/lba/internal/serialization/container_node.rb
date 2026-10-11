@@ -49,7 +49,10 @@ module Lba
           if depth >= MAX_DEPTH
             FallbackNode.serialize(value:, depth:, use_inspect:, as: "too_deep")
           else
-            { value: values, value_type:, **listed(:rendered), truncated:, **listed(:errors) }
+            {
+              value: values, value_type:, **listed(:rendered), truncated:, **listed(:errors),
+              **listed(:collided, own: collisions)
+            }
           end
         end
 
@@ -78,12 +81,25 @@ module Lba
           UnknownNode.serialize(value: child, depth: depth + 1, use_inspect:)
         end
 
-        # The children's entries in +list+ (+:rendered+ or +:errors+), keyed
-        # by +list+, or nothing if none has any.
-        def listed(list)
+        # Whether the child at +index+ is in the value, so its flags and
+        # entries count. A Hash leaves out pairs whose keys collide.
+        def counted?(_index) = true
+
+        # This container's own key collisions; see HashNode.
+        def collisions = NONE
+
+        # The entries in +list+ (+:rendered+, +:errors+, or +:collided+): this
+        # container's +own+, then its counted children's. Keyed by +list+, or
+        # nothing if there are none.
+        def listed(list, own: NONE)
+          return {} if own.empty? && children.none? { _1[list] }
+
           entries = children.each_with_index.flat_map do |child, index|
+            next NONE unless counted?(index)
+
             prefixed(child[list], index)
           end
+          entries = own + entries unless own.empty?
 
           if entries.empty?
             {}
@@ -112,7 +128,10 @@ module Lba
         end
 
         def truncated
-          oversized? || children.any? { _1[:truncated] }
+          return true if oversized?
+          return false if children.none? { _1[:truncated] }
+
+          children.each_with_index.any? { |child, index| counted?(index) && child[:truncated] }
         end
 
         def omitted_count

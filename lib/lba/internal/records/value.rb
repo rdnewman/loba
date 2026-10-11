@@ -16,7 +16,7 @@ module Lba
 
         # The value is the one field with no size limit, so everything that
         # describes it comes first.
-        VALUE_FIELDS = [:value_type, :rendered, :truncated, :errors, :value].freeze
+        VALUE_FIELDS = [:value_type, :rendered, :truncated, :errors, :collided, :value].freeze
         private_constant :VALUE_FIELDS
 
         # Builds the record's fields; shorthand for +new(...).fields+.
