@@ -53,7 +53,6 @@ RSpec.describe Lba::Internal::Tracker do
       end
 
       it "warns rather than raising when a capped site's sink was closed before exit" do
-        capture_at_exit_hooks(Lba::Internal::WriteFailures)
         hooks = stub_tracker_at_exit
         tracker = described_class.current
         site = Lba::Internal::Site.new(type: "val", file: "app/models/order.rb", line: 10)
@@ -63,6 +62,25 @@ RSpec.describe Lba::Internal::Tracker do
         sink.close
 
         expect { hooks.first.call }.to output(/lba: couldn't write a record/).to_stderr
+      ensure
+        reset_current(Lba::Internal::WriteFailures)
+      end
+
+      it "counts a suppression record it couldn't write in the exit summary" do
+        hooks = []
+        capture_at_exit_hooks(described_class, into: hooks)
+        capture_at_exit_hooks(Lba::Internal::WriteFailures, into: hooks)
+        tracker = described_class.current
+        site = Lba::Internal::Site.new(type: "val", file: "app/models/order.rb", line: 10)
+        sink = StringIO.new
+        destination = destination_to(sink)
+        (cap + 1).times { tracker.record(site, destination:) }
+        sink.close
+
+        expect do
+          destination.write({ seq: 502, type: "val" })
+          hooks.reverse_each(&:call)
+        end.to output(/lba: 2 records couldn't be written/).to_stderr
       ensure
         reset_current(Lba::Internal::WriteFailures)
       end
@@ -83,6 +101,26 @@ RSpec.describe Lba::Internal::Tracker do
         end
 
         expect(written_in_child).to be_empty
+      end
+
+      it "writes no write-failure summary when the child runs the hook it inherited" do
+        hooks = stub_tracker_at_exit
+        described_class.current
+        failures = Lba::Internal::WriteFailures.current
+        allow(failures).to receive(:warn)
+        failures.report(sink: "a.jsonl", error: Errno::ENOSPC.new, seq: 3)
+        allow(failures).to receive(:warn).and_call_original
+
+        summary_in_child = in_forked_child do
+          captured = StringIO.new
+          $stderr = captured # rubocop:disable RSpec/ExpectOutput
+          hooks.first.call
+          captured.string
+        end
+
+        expect(summary_in_child).to be_empty
+      ensure
+        reset_current(Lba::Internal::WriteFailures)
       end
     end
   end

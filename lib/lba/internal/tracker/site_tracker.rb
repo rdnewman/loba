@@ -65,7 +65,7 @@ module Lba
 
         def advance(now)
           @site_seq += 1
-          { site_seq: @site_seq, diff: advance_diff!(now) }
+          { site_seq: @site_seq, diff: advance_diff(now) }
         end
 
         def write_suppression(suppressed_count)
@@ -74,7 +74,7 @@ module Lba
           Records::Suppression.write(site:, suppressed_count:, seq: yield, destination:)
         end
 
-        def advance_diff!(now)
+        def advance_diff(now)
           diff = if @last_mono_time
                    now - @last_mono_time
                  end

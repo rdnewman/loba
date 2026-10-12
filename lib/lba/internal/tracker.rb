@@ -7,7 +7,8 @@ module Lba
     class Tracker
       class << self
         # This process's tracker. On first use it registers an +at_exit+ hook
-        # that writes the count of calls skipped at any capped site.
+        # that writes the count of calls skipped at any capped site, then
+        # summarizes records that couldn't be written (see WriteFailures).
         #
         # A forked child inherits this memo; the pid check gives it fresh counters.
         #
@@ -15,7 +16,7 @@ module Lba
         def current
           return @current if @current&.pid == Process.pid
 
-          @current = new.tap { |tracker| tracker.send(:register_at_exit!) }
+          @current = new.tap { |tracker| tracker.send(:register_at_exit) }
         end
       end
 
@@ -59,10 +60,10 @@ module Lba
         now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         # A record counting the site's skipped calls takes its seq, through the
         # block, before this call takes the next one.
-        numbered = site_tracker_for(site).record_call(now:, destination:) { next_seq! }
+        numbered = site_tracker_for(site).record_call(now:, destination:) { advance_seq }
         return :suppressed if numbered == :suppressed
 
-        { seq: next_seq!, mono_time: now, **numbered, **checkpoint_fields(checkpoint, now) }
+        { seq: advance_seq, mono_time: now, **numbered, **checkpoint_fields(checkpoint, now) }
       end
 
     private
@@ -75,13 +76,13 @@ module Lba
 
       def checkpoint_fields(checkpoint, now)
         if checkpoint
-          { since_prev_ts: advance_since_prev_ts!(now) }
+          { since_prev_ts: advance_since_prev_ts(now) }
         else
           {}
         end
       end
 
-      def advance_since_prev_ts!(now)
+      def advance_since_prev_ts(now)
         since_prev_ts = if @last_ts_mono_time
                           now - @last_ts_mono_time
                         end
@@ -90,18 +91,25 @@ module Lba
       end
 
       # Forked children inherit this hook; the pid check keeps them from
-      # re-flushing the parent's suppressed sites.
-      def register_at_exit!
-        at_exit { flush_all! if pid == Process.pid }
+      # re-flushing the parent's suppressed sites or repeating its summary.
+      def register_at_exit
+        at_exit { shut_down if pid == Process.pid }
       end
 
-      def flush_all!
+      # Summarizes write failures only after flushing, so a suppression record
+      # that can't be written is counted in the summary rather than lost.
+      def shut_down
+        flush_all
+        WriteFailures.existing&.summarize
+      end
+
+      def flush_all
         site_trackers.each_value do |site_tracker|
-          site_tracker.flush { next_seq! }
+          site_tracker.flush { advance_seq }
         end
       end
 
-      def next_seq!
+      def advance_seq
         @global_seq += 1
       end
     end

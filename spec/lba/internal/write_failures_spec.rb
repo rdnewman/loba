@@ -59,13 +59,40 @@ RSpec.describe Lba::Internal::WriteFailures do
     end
   end
 
+  describe "#summarize" do
+    it "reports each sink's records that were never written, one line per sink" do
+      failures = described_class.new
+      allow(failures).to receive(:warn)
+      failures.report(sink: "a.jsonl", error: no_space, seq: 3)
+      failures.report(sink: "a.jsonl", error: no_space, seq: 4)
+      failures.report(sink: "b.jsonl", error: Errno::EACCES.new, seq: 5)
+      allow(failures).to receive(:warn).and_call_original
+
+      expect { failures.summarize }.to output(
+        "lba: 2 records couldn't be written to \"a.jsonl\" " \
+        "(first error: Errno::ENOSPC: No space left on device)\n" \
+        "lba: 1 record couldn't be written to \"b.jsonl\" " \
+        "(first error: Errno::EACCES: Permission denied)\n"
+      ).to_stderr
+    end
+
+    it "reports nothing for a sink whose gap was since noted" do
+      failures = described_class.new
+      allow(failures).to receive(:warn)
+      failures.report(sink: "a.jsonl", error: no_space, seq: 3)
+      failures.forget_unwritten("a.jsonl")
+      allow(failures).to receive(:warn).and_call_original
+
+      expect { failures.summarize }.not_to output.to_stderr
+    end
+  end
+
   describe ".existing" do
     it "is nil while no failure has created the process's instance" do
       expect(described_class.existing).to be_nil
     end
 
     it "is the process's instance once one exists" do
-      capture_at_exit_hooks(described_class)
       current = described_class.current
 
       expect(described_class.existing).to equal(current)
@@ -74,60 +101,19 @@ RSpec.describe Lba::Internal::WriteFailures do
 
   describe ".current" do
     it "memoizes the same instance across repeated calls" do
-      capture_at_exit_hooks(described_class)
-
       expect(described_class.current).to equal(described_class.current)
     end
 
-    it "registers its exit summary exactly once, when it's created" do
+    it "registers no exit hook of its own" do
       hooks = capture_at_exit_hooks(described_class)
 
-      2.times { described_class.current }
+      described_class.current
 
-      expect(hooks.size).to eq(1)
-    end
-
-    context "when its exit summary runs" do
-      it "reports each sink's records that were never written" do
-        hooks = capture_at_exit_hooks(described_class)
-        failures = described_class.current
-        allow(failures).to receive(:warn)
-        failures.report(sink: "a.jsonl", error: no_space, seq: 3)
-        failures.report(sink: "a.jsonl", error: no_space, seq: 4)
-        allow(failures).to receive(:warn).and_call_original
-
-        expect { hooks.first.call }.to output(
-          "lba: 2 records couldn't be written to \"a.jsonl\" " \
-          "(first error: Errno::ENOSPC: No space left on device)\n"
-        ).to_stderr
-      end
-
-      it "says record, not records, for a single one" do
-        hooks = capture_at_exit_hooks(described_class)
-        failures = described_class.current
-        allow(failures).to receive(:warn)
-        failures.report(sink: "a.jsonl", error: no_space, seq: 3)
-        allow(failures).to receive(:warn).and_call_original
-
-        expect { hooks.first.call }.to output(/\Alba: 1 record couldn't be written/).to_stderr
-      end
-
-      it "reports nothing for a sink whose gap was since marked" do
-        hooks = capture_at_exit_hooks(described_class)
-        failures = described_class.current
-        allow(failures).to receive(:warn)
-        failures.report(sink: "a.jsonl", error: no_space, seq: 3)
-        failures.forget_unwritten("a.jsonl")
-
-        hooks.first.call
-
-        expect(failures).to have_received(:warn).once
-      end
+      expect(hooks).to be_empty
     end
 
     context "when the process forks after a failure was reported" do
       it "warns again in the child, which hasn't reported one", :aggregate_failures do
-        capture_at_exit_hooks(described_class)
         expect { described_class.current.report(sink: "sink.jsonl", error: no_space, seq: 3) }
           .to output.to_stderr
 
@@ -141,22 +127,6 @@ RSpec.describe Lba::Internal::WriteFailures do
         end
 
         expect(warned_in_child).to start_with("lba: couldn't write a record")
-      end
-
-      it "writes no exit summary when the child runs the hook it inherited" do
-        hooks = capture_at_exit_hooks(described_class)
-        failures = described_class.current
-        allow(failures).to receive(:warn)
-        failures.report(sink: "a.jsonl", error: no_space, seq: 3)
-
-        summary_in_child = in_forked_child do
-          captured = StringIO.new
-          $stderr = captured # rubocop:disable RSpec/ExpectOutput
-          hooks.first.call
-          captured.string
-        end
-
-        expect(summary_in_child).to be_empty
       end
     end
   end

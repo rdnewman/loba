@@ -7,7 +7,9 @@ module Lba
     class WriteFailures
       class << self
         # This process's instance, created on first use, which only a write
-        # failure triggers. Creating it registers the exit summary.
+        # failure triggers. Its exit summary is run by {Tracker}'s exit hook,
+        # after that hook writes its last records, so their failures are
+        # counted too.
         #
         # A forked child inherits this memo; the pid check gives it its own,
         # so it reports its own failures.
@@ -16,7 +18,7 @@ module Lba
         def current
           return @current if @current&.pid == Process.pid
 
-          @current = new.tap { |failures| failures.send(:register_at_exit!) }
+          @current = new
         end
 
         # This process's instance if a failure has created one, without
@@ -73,6 +75,17 @@ module Lba
         @unwritten.delete(sink)
       end
 
+      # Warns on $stderr, one line per sink, about records never written
+      # there and never noted on a later record.
+      #
+      # @return [void]
+      def summarize
+        @unwritten.each do |sink, entry|
+          warn "lba: #{records(entry[:count])} couldn't be written to #{sink.inspect} " \
+               "(first error: #{entry[:error]})"
+        end
+      end
+
     private
 
       def count_unwritten(sink, error, seq)
@@ -89,19 +102,6 @@ module Lba
         warn "lba: couldn't write a record to #{sink.inspect} " \
              "(#{error.class}: #{error.message}); " \
              "later write failures in this process won't be reported"
-      end
-
-      # Forked children inherit this hook; the pid check keeps them from
-      # repeating the parent's summary.
-      def register_at_exit!
-        at_exit { summarize if pid == Process.pid }
-      end
-
-      def summarize
-        @unwritten.each do |sink, entry|
-          warn "lba: #{records(entry[:count])} couldn't be written to #{sink.inspect} " \
-               "(first error: #{entry[:error]})"
-        end
       end
 
       def records(count)

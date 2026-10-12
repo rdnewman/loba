@@ -73,8 +73,6 @@ RSpec.describe Lba::Internal::Writer do
     # A full disk or an unwritable sink is the environment's problem, not the
     # traced code's, so it never raises into it.
     context "when the sink can't be written" do
-      before { capture_at_exit_hooks(Lba::Internal::WriteFailures) }
-
       after { reset_current(Lba::Internal::WriteFailures) }
 
       it "skips a read-only file and warns, without raising", :aggregate_failures do
@@ -98,10 +96,7 @@ RSpec.describe Lba::Internal::Writer do
 
     # So a record that was dropped isn't mistaken for code that never ran.
     context "when earlier records to the sink couldn't be written" do
-      before do
-        capture_at_exit_hooks(Lba::Internal::WriteFailures)
-        allow(Lba::Internal::WriteFailures.current).to receive(:warn)
-      end
+      before { allow(Lba::Internal::WriteFailures.current).to receive(:warn) }
 
       after { reset_current(Lba::Internal::WriteFailures) }
 
