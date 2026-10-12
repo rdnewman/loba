@@ -13,7 +13,7 @@ RSpec.configure do |config|
   config.include MockedRails
   config.include AllocationHelpers
   config.include AtExitHelpers
-  config.include TrackerHelpers
+  config.include VisitsHelpers
   config.include DestinationHelpers
   config.include ForkHelpers
   config.include MemoizedCurrentHelpers

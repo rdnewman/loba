@@ -34,10 +34,10 @@ class LbaTsCallerContexts
 end
 
 RSpec.describe Lba, ".timestamp" do
-  # The real .current memoizes a process-wide tracker; reset it so other
+  # The real .current memoizes the process's visits; reset them so other
   # specs start fresh.
   after do
-    reset_current(Lba::Internal::Tracker)
+    reset_current(Lba::Internal::Run::Visits)
   end
 
   def written_record(sink)
@@ -55,7 +55,7 @@ RSpec.describe Lba, ".timestamp" do
   it "writes a complete checkpoint record for the real call site, in a fixed field order",
      :aggregate_failures do
     stub_const("Rails", mock_rails(production: false))
-    stub_tracker_at_exit
+    stub_visits_at_exit
     sink = StringIO.new
 
     LbaTsCallerContexts.new.checkpoint(sink:)
@@ -79,7 +79,7 @@ RSpec.describe Lba, ".timestamp" do
   end
 
   it "returns nil" do
-    stub_tracker_at_exit
+    stub_visits_at_exit
 
     result = LbaTsCallerContexts.new.checkpoint(sink: StringIO.new)
 
@@ -87,7 +87,7 @@ RSpec.describe Lba, ".timestamp" do
   end
 
   it "times a checkpoint from the previous one, in another method" do
-    stub_tracker_at_exit
+    stub_visits_at_exit
     sink = StringIO.new
     caller_contexts = LbaTsCallerContexts.new
     allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.0)
@@ -101,7 +101,7 @@ RSpec.describe Lba, ".timestamp" do
   end
 
   it "times a checkpoint exactly as the gap between the two lines' mono_time" do
-    stub_tracker_at_exit
+    stub_visits_at_exit
     sink = StringIO.new
     caller_contexts = LbaTsCallerContexts.new
     caller_contexts.checkpoint(sink:)
@@ -114,7 +114,7 @@ RSpec.describe Lba, ".timestamp" do
 
   context "when given a label" do
     it "records it" do
-      stub_tracker_at_exit
+      stub_visits_at_exit
       sink = StringIO.new
 
       LbaTsCallerContexts.new.checkpoint(label: "reached step A", sink:)
@@ -125,7 +125,7 @@ RSpec.describe Lba, ".timestamp" do
 
   context "when called by its alias, Lba.ts" do
     it "writes the same kind of record as Lba.timestamp" do
-      stub_tracker_at_exit
+      stub_visits_at_exit
       sink = StringIO.new
 
       LbaTsCallerContexts.new.through_alias(sink:)
@@ -143,7 +143,7 @@ RSpec.describe Lba, ".timestamp" do
 
   context "when called inside a block within a method" do
     it "reports the enclosing method" do
-      stub_tracker_at_exit
+      stub_visits_at_exit
       sink = StringIO.new
 
       LbaTsCallerContexts.new.within_block(sink:)
@@ -156,7 +156,7 @@ RSpec.describe Lba, ".timestamp" do
 
   context "when called from a class method" do
     it "reports the class itself and a :class method type" do
-      stub_tracker_at_exit
+      stub_visits_at_exit
       sink = StringIO.new
 
       LbaTsCallerContexts.from_class_method(sink:)
@@ -170,7 +170,7 @@ RSpec.describe Lba, ".timestamp" do
 
   context "when the process forks after an earlier checkpoint" do
     it "writes the child's records under its own run, timed fresh", :aggregate_failures do
-      stub_tracker_at_exit
+      stub_visits_at_exit
       parent_sink = StringIO.new
       LbaTsCallerContexts.new.checkpoint(sink: parent_sink)
       parent_run_id = written_record(parent_sink)[:run_id]
@@ -189,7 +189,7 @@ RSpec.describe Lba, ".timestamp" do
   # One call writes to the sink and mirrors to the logger: both, not either.
   context "when mirroring to a logger", :aggregate_failures do
     it "writes the same record to the sink and to the given logger" do
-      stub_tracker_at_exit
+      stub_visits_at_exit
       sink = StringIO.new
       log_output = StringIO.new
 
@@ -200,7 +200,7 @@ RSpec.describe Lba, ".timestamp" do
     end
 
     it "writes to the sink and to Rails.logger when log: true inside Rails" do
-      stub_tracker_at_exit
+      stub_visits_at_exit
       sink = StringIO.new
       rails_log_output = StringIO.new
       stub_const("Rails", mock_rails(logger: Logger.new(rails_log_output)))
@@ -212,7 +212,7 @@ RSpec.describe Lba, ".timestamp" do
     end
 
     it "writes only to the sink by default, even inside Rails" do
-      stub_tracker_at_exit
+      stub_visits_at_exit
       sink = StringIO.new
       rails_log_output = StringIO.new
       stub_const("Rails", mock_rails(logger: Logger.new(rails_log_output)))

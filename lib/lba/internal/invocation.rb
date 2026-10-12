@@ -15,7 +15,7 @@ module Lba
 
       # @param record_class [Class] the record's builder, e.g. Records::Value
       # @param options [Hash] keywords the builder takes beyond the caller and
-      #   the tracker's numbers, e.g. +argument:+
+      #   the visit's numbers, e.g. +argument:+
       # @param log (see Lba.value)
       # @param logger (see Lba.value)
       # @param sink (see Lba.value)
@@ -50,7 +50,7 @@ module Lba
       attr_reader :record_class, :options, :log, :logger, :sink, :caller_binding, :tracked
 
       def track
-        Tracker.current.record(
+        Run::Visits.current.record(
           site, destination: settings.destination, checkpoint: record_class::CHECKPOINT
         )
       end

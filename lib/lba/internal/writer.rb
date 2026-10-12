@@ -34,11 +34,11 @@ module Lba
       #
       # @return [void]
       def write
-        gap = WriteFailures.existing&.unwritten(sink)
+        gap = Run::WriteFailures.existing&.unwritten(sink)
         append(with_gap(gap))
-        WriteFailures.existing.forget_unwritten(sink) if gap
+        Run::WriteFailures.existing.forget_unwritten(sink) if gap
       rescue SystemCallError, IOError => e
-        WriteFailures.current.report(sink:, error: e, seq: record[:seq])
+        Run::WriteFailures.current.report(sink:, error: e, seq: record[:seq])
       end
 
     private

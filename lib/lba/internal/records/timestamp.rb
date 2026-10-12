@@ -20,7 +20,7 @@ module Lba
 
         # @param caller_binding [CallerBinding] the calling frame
         # @param tracked [Hash{Symbol => Integer, Float, nil}] the call's numbers
-        #   and timing (see Tracker#record)
+        #   and timing (see Run::Visits#record)
         # @param label [String, Symbol, nil] the label given, if any
         def initialize(caller_binding:, tracked:, label:)
           @caller_binding = caller_binding

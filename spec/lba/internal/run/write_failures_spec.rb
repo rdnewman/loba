@@ -1,6 +1,6 @@
 require "stringio"
 
-RSpec.describe Lba::Internal::WriteFailures do
+RSpec.describe Lba::Internal::Run::WriteFailures do
   after { reset_current(described_class) }
 
   def no_space = Errno::ENOSPC.new

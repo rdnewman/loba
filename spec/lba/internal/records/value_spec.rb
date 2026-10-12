@@ -30,7 +30,7 @@ RSpec.describe Lba::Internal::Records::Value do
       )
     end
 
-    it "takes its numbers and timing from the tracker" do
+    it "takes its numbers and timing from the run's visits" do
       fields = described_class.fields(
         caller_binding:, tracked:, argument: :subtotal, label: nil, inspect: true
       )

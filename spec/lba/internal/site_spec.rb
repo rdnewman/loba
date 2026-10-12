@@ -4,7 +4,7 @@ RSpec.describe Lba::Internal::Site do
       .to raise_error(ArgumentError, /type/)
   end
 
-  # The tracker keeps each site's state in a Hash keyed by the site, building
+  # The run's visits keep each site's state in a Hash keyed by the site, building
   # a new Site for every call.
   describe "as a Hash key" do
     it "finds a site's entry with another site of the same type, file, and line" do

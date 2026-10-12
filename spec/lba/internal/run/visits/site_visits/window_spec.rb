@@ -1,4 +1,4 @@
-RSpec.describe Lba::Internal::Tracker::Window do
+RSpec.describe Lba::Internal::Run::Visits::SiteVisits::Window do
   let(:cap) { 500 }
 
   describe "#count_call" do

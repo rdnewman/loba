@@ -35,8 +35,8 @@ RSpec.describe Lba::Internal::Invocation do
 
         # Stubs .current itself so the real singleton is never memoized and
         # never registers an at_exit hook in the test process.
-        tracker = instance_double(Lba::Internal::Tracker, record: :suppressed)
-        allow(Lba::Internal::Tracker).to receive(:current).and_return(tracker)
+        visits = instance_double(Lba::Internal::Run::Visits, record: :suppressed)
+        allow(Lba::Internal::Run::Visits).to receive(:current).and_return(visits)
 
         # Only #file and #line are stubbed, since the call site needs just
         # those. Any other call is the costly work this gate skips; the
@@ -47,22 +47,22 @@ RSpec.describe Lba::Internal::Invocation do
         allow(Lba::Internal::Records::Timestamp).to receive(:fields)
       end
 
-      it "tells the tracker a timestamp call is a checkpoint" do
+      it "tells the run's visits a timestamp call is a checkpoint" do
         described_class.record(Lba::Internal::Records::Timestamp, sink: StringIO.new)
 
-        expect(Lba::Internal::Tracker.current).to have_received(:record)
+        expect(Lba::Internal::Run::Visits.current).to have_received(:record)
           .with(
             Lba::Internal::Site.new(type: "ts", file: "app.rb", line: 10),
             destination: having_attributes(sink: an_instance_of(StringIO)), checkpoint: true
           )
       end
 
-      it "tells the tracker a value call isn't a checkpoint" do
+      it "tells the run's visits a value call isn't a checkpoint" do
         options = { argument: :total, label: nil, inspect: true }
 
         described_class.record(Lba::Internal::Records::Value, options:, sink: StringIO.new)
 
-        expect(Lba::Internal::Tracker.current).to have_received(:record)
+        expect(Lba::Internal::Run::Visits.current).to have_received(:record)
           .with(
             Lba::Internal::Site.new(type: "val", file: "app.rb", line: 10),
             destination: having_attributes(sink: an_instance_of(StringIO)), checkpoint: false
@@ -97,14 +97,14 @@ RSpec.describe Lba::Internal::Invocation do
 
       before do
         stub_const("Rails", mock_rails(production: false))
-        tracker = instance_double(Lba::Internal::Tracker, record: tracked)
-        allow(Lba::Internal::Tracker).to receive(:current).and_return(tracker)
+        visits = instance_double(Lba::Internal::Run::Visits, record: tracked)
+        allow(Lba::Internal::Run::Visits).to receive(:current).and_return(visits)
         allow(Lba::Internal::CallerBinding).to receive(:new).and_return(caller_binding)
         allow(Lba::Internal::Records::Timestamp)
           .to receive(:fields).and_return({ type: "ts", seq: 1 })
       end
 
-      it "builds the record from the caller, the tracker's numbers, and the options given" do
+      it "builds the record from the caller, the visit's numbers, and the options given" do
         described_class.record(
           Lba::Internal::Records::Timestamp, options: { label: "step A" }, sink: StringIO.new
         )
@@ -146,12 +146,12 @@ RSpec.describe Lba::Internal::Invocation do
     context "when lba itself fails" do
       it "raises into the calling code" do
         stub_const("Rails", mock_rails(production: false))
-        tracker = instance_double(Lba::Internal::Tracker)
-        allow(tracker).to receive(:record).and_raise(RuntimeError, "tracker bug")
-        allow(Lba::Internal::Tracker).to receive(:current).and_return(tracker)
+        visits = instance_double(Lba::Internal::Run::Visits)
+        allow(visits).to receive(:record).and_raise(RuntimeError, "visits bug")
+        allow(Lba::Internal::Run::Visits).to receive(:current).and_return(visits)
 
         expect { described_class.record(Lba::Internal::Records::Timestamp, sink: StringIO.new) }
-          .to raise_error(RuntimeError, "tracker bug")
+          .to raise_error(RuntimeError, "visits bug")
       end
     end
   end

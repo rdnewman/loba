@@ -73,7 +73,7 @@ RSpec.describe Lba::Internal::Writer do
     # A full disk or an unwritable sink is the environment's problem, not the
     # traced code's, so it never raises into it.
     context "when the sink can't be written" do
-      after { reset_current(Lba::Internal::WriteFailures) }
+      after { reset_current(Lba::Internal::Run::WriteFailures) }
 
       it "skips a read-only file and warns, without raising", :aggregate_failures do
         path = File.join(tmp_dir, "read_only.jsonl")
@@ -96,9 +96,9 @@ RSpec.describe Lba::Internal::Writer do
 
     # So a record that was dropped isn't mistaken for code that never ran.
     context "when earlier records to the sink couldn't be written" do
-      before { allow(Lba::Internal::WriteFailures.current).to receive(:warn) }
+      before { allow(Lba::Internal::Run::WriteFailures.current).to receive(:warn) }
 
-      after { reset_current(Lba::Internal::WriteFailures) }
+      after { reset_current(Lba::Internal::Run::WriteFailures) }
 
       # Fails its first few writes with a full disk, then succeeds.
       def flaky_sink(failures)
@@ -158,7 +158,7 @@ RSpec.describe Lba::Internal::Writer do
     it "leaves the failure tracking alone when writes succeed" do
       described_class.write({ seq: 1 }, sink: StringIO.new)
 
-      expect(Lba::Internal::WriteFailures.existing).to be_nil
+      expect(Lba::Internal::Run::WriteFailures.existing).to be_nil
     end
 
     context "when writing fails for any other reason" do
