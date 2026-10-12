@@ -1,19 +1,16 @@
 require_relative "../record_stamp"
-require_relative "../writer"
 
 module Lba
   module Internal
-    # Classes that each build and write one kind of record.
+    # Classes that each build one kind of record's fields.
     module Records
-      # The record a capped call site writes to count the calls it skipped.
+      # Builds the fields of the record a capped call site writes to count the
+      # calls it skipped.
       class Suppression
-        # Writes one suppression record; shorthand for
-        # +new(**fields).write(destination:)+.
+        # Builds the record's fields; shorthand for +new(...).fields+.
         #
-        # @param destination (see #write)
-        # @param fields [Hash] the keywords of #initialize
-        # @return (see #write)
-        def self.write(destination:, **fields) = new(**fields).write(destination:)
+        # @return (see #fields)
+        def self.fields(...) = new(...).fields
 
         # @param site [Site] the call site that skipped the calls
         # @param suppressed_count [Integer] calls the site skipped
@@ -24,16 +21,7 @@ module Lba
           @seq = seq
         end
 
-        # @param destination [Destination] where to write, and log
-        # @return [void]
-        def write(destination:)
-          destination.write(fields)
-        end
-
-      private
-
-        attr_reader :site, :suppressed_count, :seq
-
+        # @return [Hash{Symbol => Object}] the record's fields, in order
         def fields
           {
             seq:,
@@ -45,6 +33,10 @@ module Lba
             **RecordStamp.fields
           }
         end
+
+      private
+
+        attr_reader :site, :suppressed_count, :seq
       end
     end
   end

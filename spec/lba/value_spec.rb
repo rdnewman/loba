@@ -158,6 +158,20 @@ RSpec.describe Lba, ".value" do
     expect(record[:mono_time]).to be_a(Float)
   end
 
+  it "writes the record counting a capped site's skipped calls in a fixed field order" do
+    hooks = stub_tracker_at_exit
+    sink = StringIO.new
+    501.times { described_class.value("looped", sink:) }
+
+    hooks.first.call
+
+    suppression = JSON.parse(sink.string.lines.last, symbolize_names: true)
+    expect(suppression.keys).to eq(
+      [:seq, :type, :file, :line, :suppressed, :suppressed_count,
+       :wall_time, :mono_time, :run_id, :schema]
+    )
+  end
+
   it "times a record exactly as the gap since its site's previous line's mono_time" do
     stub_tracker_at_exit
     sink = StringIO.new

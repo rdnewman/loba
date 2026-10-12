@@ -71,7 +71,7 @@ module Lba
         def write_suppression(suppressed_count)
           return if suppressed_count.zero?
 
-          Records::Suppression.write(site:, suppressed_count:, seq: yield, destination:)
+          destination.write(Records::Suppression.fields(site:, suppressed_count:, seq: yield))
         end
 
         def advance_diff(now)
