@@ -97,13 +97,14 @@ RSpec.describe Lba::Internal::Settings do
       expect(Lba::Internal::SinkResolver).to have_received(:resolve).once
     end
 
-    it "carries the Logger given" do
+    it "mirrors to the Logger given" do
       hide_const("Rails")
-      logger = Logger.new(StringIO.new)
+      log_output = StringIO.new
+      settings = described_class.new(logger: Logger.new(log_output), sink: StringIO.new)
 
-      settings = described_class.new(logger:, sink: StringIO.new)
+      settings.destination.write({ seq: 1 })
 
-      expect(settings.destination.logger).to equal(logger)
+      expect(log_output.string).to include("{\"seq\":1}")
     end
   end
 

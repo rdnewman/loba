@@ -21,12 +21,12 @@ module Lba
       # directory. Never built when disabled, so a production environment
       # never touches the filesystem.
       #
-      # @return [Destination, nil] the sink, and the Logger to also write to;
+      # @return [Destination, nil] the sink, and the LogMirror if logging;
       #   +nil+ when disabled
       def destination
         return if disabled?
 
-        @destination ||= Destination.new(sink: SinkResolver.resolve(sink: sink_option), logger:)
+        @destination ||= Destination.new(sink: SinkResolver.resolve(sink: sink_option), log_mirror:)
       end
 
       # @return [Boolean] +false+ in a production environment (see
@@ -40,8 +40,6 @@ module Lba
     private
 
       attr_reader :log_mirror, :sink_option
-
-      def logger = log_mirror&.logger
     end
   end
 end

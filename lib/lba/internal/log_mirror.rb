@@ -1,11 +1,10 @@
+require "json"
+
 module Lba
   module Internal
-    # Decides whether a record is also written to a Logger, and which one.
+    # Decides whether a record is also written to a Logger, and which one, and
+    # writes it there.
     class LogMirror
-      # @return [Logger, nil] the given Logger, else +Rails.logger+ if Rails has
-      #   one; +nil+ outside Rails when none was given
-      attr_reader :logger
-
       FALSE_VALUES = [
         false, 0, nil, "",
         "0", :"0",
@@ -58,7 +57,20 @@ module Lba
         @logger ||= default_logger
       end
 
+      # Writes the record to the Logger as one JSON line, at +debug+ level.
+      # Writes nothing when there's no Logger: outside Rails, with none given.
+      #
+      # @param fields [Hash] the record
+      # @return [void]
+      def write(fields)
+        logger&.debug(JSON.generate(fields))
+      end
+
     private
+
+      # The given Logger, else +Rails.logger+ if Rails has one; +nil+ outside
+      # Rails when none was given.
+      attr_reader :logger
 
       def validated_logger(candidate_logger)
         return if candidate_logger.nil?
