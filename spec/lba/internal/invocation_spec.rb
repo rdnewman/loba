@@ -27,6 +27,23 @@ RSpec.describe Lba::Internal::Invocation do
 
         expect(result).to be_nil
       end
+
+      it "does not validate the logger given" do
+        expect { described_class.record(Lba::Internal::Records::Timestamp, logger: "not a logger") }
+          .not_to raise_error
+      end
+
+      it "does not resolve the sink, so it never touches the filesystem" do
+        Dir.mktmpdir do |dir|
+          sink_dir = File.join(dir, "never_created")
+
+          described_class.record(
+            Lba::Internal::Records::Timestamp, sink: File.join(sink_dir, "records.jsonl")
+          )
+
+          expect(Dir.exist?(sink_dir)).to be false
+        end
+      end
     end
 
     context "when the call site is suppressed" do
@@ -48,16 +65,21 @@ RSpec.describe Lba::Internal::Invocation do
       end
 
       it "tells the run's visits a timestamp call is a checkpoint" do
+        destination = destination_to(StringIO.new)
+        allow(Lba::Internal::Destination).to receive(:for).and_return(destination)
+
         described_class.record(Lba::Internal::Records::Timestamp, sink: StringIO.new)
 
         expect(Lba::Internal::Run::Visits.current).to have_received(:record)
           .with(
             Lba::Internal::Site.new(type: "ts", file: "app.rb", line: 10),
-            destination: having_attributes(sink: an_instance_of(StringIO)), checkpoint: true
+            destination:, checkpoint: true
           )
       end
 
       it "tells the run's visits a value call isn't a checkpoint" do
+        destination = destination_to(StringIO.new)
+        allow(Lba::Internal::Destination).to receive(:for).and_return(destination)
         options = { argument: :total, label: nil, inspect: true }
 
         described_class.record(Lba::Internal::Records::Value, options:, sink: StringIO.new)
@@ -65,7 +87,7 @@ RSpec.describe Lba::Internal::Invocation do
         expect(Lba::Internal::Run::Visits.current).to have_received(:record)
           .with(
             Lba::Internal::Site.new(type: "val", file: "app.rb", line: 10),
-            destination: having_attributes(sink: an_instance_of(StringIO)), checkpoint: false
+            destination:, checkpoint: false
           )
       end
 
@@ -111,6 +133,16 @@ RSpec.describe Lba::Internal::Invocation do
 
         expect(Lba::Internal::Records::Timestamp).to have_received(:fields)
           .with(caller_binding:, tracked:, label: "step A")
+      end
+
+      it "builds one destination for the call, from the options given" do
+        sink = StringIO.new
+        allow(Lba::Internal::Destination).to receive(:for).and_call_original
+
+        described_class.record(Lba::Internal::Records::Timestamp, options: { label: nil }, sink:)
+
+        expect(Lba::Internal::Destination)
+          .to have_received(:for).once.with(sink:, log: nil, logger: nil)
       end
 
       it "writes the record's fields to the sink as one JSON line" do

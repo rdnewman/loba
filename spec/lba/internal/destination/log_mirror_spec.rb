@@ -1,7 +1,7 @@
 require "logger"
 require "stringio"
 
-RSpec.describe Lba::Internal::LogMirror do
+RSpec.describe Lba::Internal::Destination::LogMirror do
   describe ".for" do
     context "when :log is explicitly false" do
       it "returns nil with nothing else given" do

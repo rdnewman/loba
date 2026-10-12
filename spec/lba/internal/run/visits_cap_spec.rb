@@ -10,12 +10,14 @@ RSpec.describe Lba::Internal::Run::Visits do
 
   describe "#record with a write-time cap" do
     it "suppresses the call that crosses the cap without writing anything", :aggregate_failures do
-      cap.times { visits.record(site, destination: discarding_destination) }
+      sink = instance_double(IO, write: nil, flush: nil)
+      destination = destination_to(sink)
+      cap.times { visits.record(site, destination:) }
 
-      result = visits.record(site, destination: discarding_destination)
+      result = visits.record(site, destination:)
 
       expect(result).to eq(:suppressed)
-      expect(discarding_destination.sink).not_to have_received(:write)
+      expect(sink).not_to have_received(:write)
     end
 
     it "keeps skipping a capped site's calls until 60 seconds have passed" do

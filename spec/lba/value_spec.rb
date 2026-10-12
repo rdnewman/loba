@@ -388,6 +388,19 @@ RSpec.describe Lba, ".value" do
     end
   end
 
+  # Misusing lba's own API fails loudly at the line just written.
+  context "when misused" do
+    it "raises for an option it doesn't take, such as production:" do
+      expect { described_class.value(:total, production: true) }
+        .to raise_error(ArgumentError, /unknown keyword: :production/)
+    end
+
+    it "raises when logger: is not a Logger" do
+      expect { described_class.value(:total, logger: "not a logger", sink: StringIO.new) }
+        .to raise_error(Lba::InvalidLoggerOptionError)
+    end
+  end
+
   # A tracing call must never break the code it traces.
   context "when evaluating a Symbol raises" do
     it "does not raise into the calling code" do

@@ -32,35 +32,29 @@ module Lba
       #
       # @return [void]
       def record
-        return if settings.disabled?
+        return if Platform::Environment.production?
 
+        @destination = Destination.for(sink:, log:, logger:)
         @caller_binding = CallerBinding.new(depth: DEPTH)
         @tracked = track
         return if tracked == :suppressed
 
-        settings.destination.write(
-          record_class.fields(caller_binding:, tracked:, **options)
-        )
+        destination.write(record_class.fields(caller_binding:, tracked:, **options))
 
         nil
       end
 
     private
 
-      attr_reader :record_class, :options, :log, :logger, :sink, :caller_binding, :tracked
+      attr_reader :record_class, :options, :log, :logger, :sink,
+                  :destination, :caller_binding, :tracked
 
       def track
-        Run::Visits.current.record(
-          site, destination: settings.destination, checkpoint: record_class::CHECKPOINT
-        )
+        Run::Visits.current.record(site, destination:, checkpoint: record_class::CHECKPOINT)
       end
 
       def site
         Site.new(type: record_class::TYPE, file: caller_binding.file, line: caller_binding.line)
-      end
-
-      def settings
-        @settings ||= Settings.new(log:, logger:, sink:)
       end
     end
   end
