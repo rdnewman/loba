@@ -43,7 +43,7 @@ module Lba
   # @example Also writing to Rails.logger
   #   Lba.val :name, log: true
   def self.value(argument, label: nil, inspect: true, log: nil, logger: nil, sink: nil)
-    Internal::Trace.record(
+    Internal::Invocation.record(
       Internal::Records::Value, options: { argument:, label:, inspect: }, log:, logger:, sink:
     )
   end

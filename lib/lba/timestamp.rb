@@ -31,6 +31,8 @@ module Lba
   # @example Naming the checkpoint
   #   Lba.ts label: "reached step A"
   def self.timestamp(label: nil, log: nil, logger: nil, sink: nil)
-    Internal::Trace.record(Internal::Records::Timestamp, options: { label: }, log:, logger:, sink:)
+    Internal::Invocation.record(
+      Internal::Records::Timestamp, options: { label: }, log:, logger:, sink:
+    )
   end
 end

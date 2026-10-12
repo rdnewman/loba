@@ -2,9 +2,9 @@ module Lba
   module Internal
     # Carries out one +Lba.value+ or +Lba.timestamp+ call: checks it's enabled
     # and not capped, captures the caller, builds the record, and writes it.
-    class Trace
+    class Invocation
       # The frames between the caller and #record: the public method (e.g.
-      # +.value+), Trace.record, and #record itself. Depth counts from where the
+      # +.value+), Invocation.record, and #record itself. Depth counts from where the
       # CallerBinding is built, so it must be built directly in #record.
       DEPTH = 3
 

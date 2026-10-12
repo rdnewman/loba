@@ -1,7 +1,7 @@
 require "logger"
 require "stringio"
 
-RSpec.describe Lba::Internal::Trace do
+RSpec.describe Lba::Internal::Invocation do
   describe ".record" do
     context "when lba is disabled" do
       before { stub_const("Rails", mock_rails(production: true)) }
@@ -141,7 +141,7 @@ RSpec.describe Lba::Internal::Trace do
       end
     end
 
-    # A trace's own steps run none of the caller's code, so a failure in them
+    # An invocation's own steps run none of the caller's code, so a failure in them
     # is lba's own bug and surfaces rather than being recorded.
     context "when lba itself fails" do
       it "raises into the calling code" do
