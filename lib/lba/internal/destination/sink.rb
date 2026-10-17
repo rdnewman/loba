@@ -107,25 +107,51 @@ module Lba
         # If the target can't be written (a full disk, a read-only file, a
         # closed IO), the record is skipped and Run::WriteFailures counts it,
         # so tracing never breaks the traced code. The next record written to
-        # the same target notes what was missed, in +:unwritten+. Any other
+        # the same sink notes what was missed, in +:unwritten+. Any other
         # error is lba's own bug, and raises.
         #
         # @param fields [Hash] the record
         # @return [void]
         def write(fields)
           write_failures = Run.current.write_failures
-          gap = write_failures.unwritten(target)
+          gap = write_failures.unwritten(self)
 
           append(with_gap(fields, gap))
 
-          write_failures.forget_unwritten(target) if gap
+          write_failures.forget_unwritten(self) if gap
         rescue SystemCallError, IOError => e
-          write_failures.report(sink: target, error: e, seq: fields[:seq])
+          write_failures.report(sink: self, error: e, seq: fields[:seq])
         end
 
-      private
+        # Whether +other+ is the same sink: a Sink on an equal path or on the
+        # same IO object. Each call builds its own Sink, so this is how a sink
+        # is recognized from one call to the next.
+        #
+        # @param other [Object]
+        # @return [Boolean]
+        def eql?(other)
+          other.instance_of?(Sink) && target.eql?(other.target)
+        end
+        alias == eql?
+
+        # @return [Integer] equal for sinks that are #eql?
+        def hash
+          [Sink, target].hash
+        end
+
+        # How lba's messages name the sink: its target as +inspect+ shows it,
+        # so a path keeps its quotes.
+        #
+        # @return [String] e.g. +"\"a.jsonl\""+
+        def to_s
+          target.inspect
+        end
+
+      protected
 
         attr_reader :target
+
+      private
 
         def with_gap(fields, gap)
           if gap

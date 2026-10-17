@@ -1,6 +1,8 @@
 RSpec.describe Lba::Internal::Run::WriteFailures::Gap do
   def no_space = Errno::ENOSPC.new
 
+  def sink_to(path) = Lba::Internal::Destination::Sink.new(path)
+
   describe ".new" do
     it "starts at the first record that couldn't be written" do
       gap = described_class.new(error: no_space, seq: 3)
@@ -47,7 +49,7 @@ RSpec.describe Lba::Internal::Run::WriteFailures::Gap do
     it "names one record, the sink, and the error" do
       gap = described_class.new(error: no_space, seq: 3)
 
-      expect(gap.summary(sink: "a.jsonl")).to eq(
+      expect(gap.summary(sink: sink_to("a.jsonl"))).to eq(
         "1 record couldn't be written to \"a.jsonl\" " \
         "(first error: Errno::ENOSPC: No space left on device)"
       )
@@ -57,7 +59,7 @@ RSpec.describe Lba::Internal::Run::WriteFailures::Gap do
       gap = described_class.new(error: no_space, seq: 3)
       gap.add(seq: 4)
 
-      expect(gap.summary(sink: "a.jsonl")).to eq(
+      expect(gap.summary(sink: sink_to("a.jsonl"))).to eq(
         "2 records couldn't be written to \"a.jsonl\" " \
         "(first error: Errno::ENOSPC: No space left on device)"
       )

@@ -3,12 +3,14 @@ require "stringio"
 RSpec.describe Lba::Internal::Run::WriteFailures do
   def no_space = Errno::ENOSPC.new
 
+  def sink_to(path) = Lba::Internal::Destination::Sink.new(path)
+
   describe "#report" do
     it "warns on $stderr about the first failure, naming the sink and the error" do
       failures = described_class.new
       error = Errno::EACCES.new("sink.jsonl")
 
-      expect { failures.report(sink: "sink.jsonl", error:, seq: 3) }.to output(
+      expect { failures.report(sink: sink_to("sink.jsonl"), error:, seq: 3) }.to output(
         "lba: couldn't write a record to \"sink.jsonl\" " \
         "(Errno::EACCES: Permission denied - sink.jsonl); " \
         "later write failures in this process won't be reported\n"
@@ -17,9 +19,10 @@ RSpec.describe Lba::Internal::Run::WriteFailures do
 
     it "stays quiet about later failures", :aggregate_failures do
       failures = described_class.new
-      expect { failures.report(sink: "sink.jsonl", error: no_space, seq: 3) }.to output.to_stderr
+      expect { failures.report(sink: sink_to("sink.jsonl"), error: no_space, seq: 3) }
+        .to output.to_stderr
 
-      expect { failures.report(sink: "sink.jsonl", error: no_space, seq: 4) }
+      expect { failures.report(sink: sink_to("sink.jsonl"), error: no_space, seq: 4) }
         .not_to output.to_stderr
     end
   end
@@ -28,10 +31,10 @@ RSpec.describe Lba::Internal::Run::WriteFailures do
     it "is the sink's unwritten records: their count, seq range, and first error" do
       failures = described_class.new
       allow(failures).to receive(:warn)
-      failures.report(sink: "a.jsonl", error: no_space, seq: 3)
-      failures.report(sink: "a.jsonl", error: Errno::EACCES.new, seq: 4)
+      failures.report(sink: sink_to("a.jsonl"), error: no_space, seq: 3)
+      failures.report(sink: sink_to("a.jsonl"), error: Errno::EACCES.new, seq: 4)
 
-      expect(failures.unwritten("a.jsonl").to_h).to eq(
+      expect(failures.unwritten(sink_to("a.jsonl")).to_h).to eq(
         count: 2, first_seq: 3, last_seq: 4, error: "Errno::ENOSPC: No space left on device"
       )
     end
@@ -39,9 +42,9 @@ RSpec.describe Lba::Internal::Run::WriteFailures do
     it "keeps each sink's unwritten records apart" do
       failures = described_class.new
       allow(failures).to receive(:warn)
-      failures.report(sink: "a.jsonl", error: no_space, seq: 3)
+      failures.report(sink: sink_to("a.jsonl"), error: no_space, seq: 3)
 
-      expect(failures.unwritten("b.jsonl")).to be_nil
+      expect(failures.unwritten(sink_to("b.jsonl"))).to be_nil
     end
   end
 
@@ -49,11 +52,11 @@ RSpec.describe Lba::Internal::Run::WriteFailures do
     it "forgets the sink's unwritten records, once a later record has noted them" do
       failures = described_class.new
       allow(failures).to receive(:warn)
-      failures.report(sink: "a.jsonl", error: no_space, seq: 3)
+      failures.report(sink: sink_to("a.jsonl"), error: no_space, seq: 3)
 
-      failures.forget_unwritten("a.jsonl")
+      failures.forget_unwritten(sink_to("a.jsonl"))
 
-      expect(failures.unwritten("a.jsonl")).to be_nil
+      expect(failures.unwritten(sink_to("a.jsonl"))).to be_nil
     end
   end
 
@@ -61,9 +64,9 @@ RSpec.describe Lba::Internal::Run::WriteFailures do
     it "reports each sink's records that were never written, one line per sink" do
       failures = described_class.new
       allow(failures).to receive(:warn)
-      failures.report(sink: "a.jsonl", error: no_space, seq: 3)
-      failures.report(sink: "a.jsonl", error: no_space, seq: 4)
-      failures.report(sink: "b.jsonl", error: Errno::EACCES.new, seq: 5)
+      failures.report(sink: sink_to("a.jsonl"), error: no_space, seq: 3)
+      failures.report(sink: sink_to("a.jsonl"), error: no_space, seq: 4)
+      failures.report(sink: sink_to("b.jsonl"), error: Errno::EACCES.new, seq: 5)
       allow(failures).to receive(:warn).and_call_original
 
       expect { failures.summarize }.to output(
@@ -77,8 +80,8 @@ RSpec.describe Lba::Internal::Run::WriteFailures do
     it "reports nothing for a sink whose gap was since noted" do
       failures = described_class.new
       allow(failures).to receive(:warn)
-      failures.report(sink: "a.jsonl", error: no_space, seq: 3)
-      failures.forget_unwritten("a.jsonl")
+      failures.report(sink: sink_to("a.jsonl"), error: no_space, seq: 3)
+      failures.forget_unwritten(sink_to("a.jsonl"))
       allow(failures).to receive(:warn).and_call_original
 
       expect { failures.summarize }.not_to output.to_stderr

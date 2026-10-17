@@ -52,11 +52,11 @@ module Lba
 
           # The gap in a sentence, for a person reading $stderr.
           #
-          # @param sink [#inspect] the sink that missed the records
+          # @param sink [Destination::Sink] the sink that missed the records
           # @return [String] e.g. +1 record couldn't be written to "a.jsonl"
           #   (first error: Errno::ENOSPC: No space left on device)+
           def summary(sink:)
-            "#{records} couldn't be written to #{sink.inspect} (first error: #{error})"
+            "#{records} couldn't be written to #{sink} (first error: #{error})"
           end
 
         private

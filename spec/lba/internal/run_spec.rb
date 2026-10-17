@@ -129,6 +129,8 @@ RSpec.describe Lba::Internal::Run do
       501.times { run.visits.note(order_site, destination:) }
     end
 
+    def sink_to(path) = Lba::Internal::Destination::Sink.new(path)
+
     def report_quietly(write_failures, sink:)
       allow(write_failures).to receive(:warn)
       write_failures.report(sink:, error: Errno::ENOSPC.new, seq: 3)
@@ -170,7 +172,7 @@ RSpec.describe Lba::Internal::Run do
 
       it "summarizes the records that couldn't be written" do
         run = described_class.current
-        report_quietly(run.write_failures, sink: "a.jsonl")
+        report_quietly(run.write_failures, sink: sink_to("a.jsonl"))
 
         expect { run_exit_hooks.first.call }
           .to output(/lba: 1 record couldn't be written to "a.jsonl"/).to_stderr
@@ -218,7 +220,7 @@ RSpec.describe Lba::Internal::Run do
       end
 
       it "gives the child fresh write failures, so it warns about its own first failure" do
-        report_quietly(described_class.current.write_failures, sink: "a.jsonl")
+        report_quietly(described_class.current.write_failures, sink: sink_to("a.jsonl"))
 
         # An expectation inside the child can't report back to the parent, so
         # the child captures $stderr itself and returns what it got.
@@ -226,7 +228,7 @@ RSpec.describe Lba::Internal::Run do
           captured = StringIO.new
           $stderr = captured # rubocop:disable RSpec/ExpectOutput
           described_class.current.write_failures
-                         .report(sink: "a.jsonl", error: Errno::ENOSPC.new, seq: 3)
+                         .report(sink: sink_to("a.jsonl"), error: Errno::ENOSPC.new, seq: 3)
           captured.string
         end
 
@@ -246,7 +248,7 @@ RSpec.describe Lba::Internal::Run do
       end
 
       it "writes no summary when the child runs the exit hook it inherited" do
-        report_quietly(described_class.current.write_failures, sink: "a.jsonl")
+        report_quietly(described_class.current.write_failures, sink: sink_to("a.jsonl"))
 
         summary_in_child = in_forked_child do
           captured = StringIO.new

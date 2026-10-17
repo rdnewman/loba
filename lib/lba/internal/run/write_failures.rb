@@ -18,7 +18,7 @@ module Lba
         # Counts a record that couldn't be written to +sink+, and warns on
         # $stderr about the first such failure in the process.
         #
-        # @param sink [IO, String] where the record was to be written
+        # @param sink [Destination::Sink] where the record was to be written
         # @param error [Exception] why it couldn't be
         # @param seq [Integer, nil] the record's +seq+
         # @return [void]
@@ -31,7 +31,7 @@ module Lba
         # stay until #forget_unwritten, so a write that fails again doesn't lose
         # them.
         #
-        # @param sink [IO, String] the sink about to be written
+        # @param sink [Destination::Sink] the sink about to be written
         # @return [Gap, nil] +nil+ if none were missed
         def unwritten(sink)
           @unwritten[sink]
@@ -40,7 +40,7 @@ module Lba
         # Forgets +sink+'s unwritten records, once a record that notes them has
         # been written there.
         #
-        # @param sink [IO, String] the sink just written
+        # @param sink [Destination::Sink] the sink just written
         # @return [void]
         def forget_unwritten(sink)
           @unwritten.delete(sink)
@@ -70,7 +70,7 @@ module Lba
           return if @reported
 
           @reported = true
-          warn "lba: couldn't write a record to #{sink.inspect} " \
+          warn "lba: couldn't write a record to #{sink} " \
                "(#{error.class}: #{error.message}); " \
                "later write failures in this process won't be reported"
         end

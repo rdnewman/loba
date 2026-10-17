@@ -359,4 +359,55 @@ RSpec.describe Lba::Internal::Destination::Sink do
       end
     end
   end
+
+  # Each call builds its own Sink, so two built for the same target are the
+  # same sink.
+  describe "equality" do
+    it "holds for two Sinks on the same path", :aggregate_failures do
+      sink = described_class.new("a.jsonl")
+      same = described_class.new(+"a.jsonl")
+
+      expect(sink).to eq(same)
+      expect(sink).to eql(same)
+      expect(sink.hash).to eq(same.hash)
+    end
+
+    it "holds for two Sinks on the same IO" do
+      io = StringIO.new
+      sink = described_class.new(io)
+      same = described_class.new(io)
+
+      expect(sink).to eql(same)
+    end
+
+    it "fails for Sinks on different paths" do
+      expect(described_class.new("a.jsonl")).not_to eql(described_class.new("b.jsonl"))
+    end
+
+    it "fails for Sinks on different IOs, even ones with the same contents" do
+      expect(described_class.new(StringIO.new)).not_to eql(described_class.new(StringIO.new))
+    end
+
+    it "fails for the target itself" do
+      expect(described_class.new("a.jsonl")).not_to eq("a.jsonl")
+    end
+
+    it "lets another Sink on the same target find a Hash entry" do
+      entries = { described_class.new("a.jsonl") => :gap }
+
+      expect(entries[described_class.new("a.jsonl")]).to eq(:gap)
+    end
+  end
+
+  describe "#to_s" do
+    it "names a path as inspect shows it, for lba's messages" do
+      expect(described_class.new("a.jsonl").to_s).to eq("\"a.jsonl\"")
+    end
+
+    it "names an IO as inspect shows it" do
+      io = StringIO.new
+
+      expect(described_class.new(io).to_s).to eq(io.inspect)
+    end
+  end
 end
