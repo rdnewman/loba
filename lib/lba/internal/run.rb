@@ -3,23 +3,29 @@ require "securerandom"
 module Lba
   module Internal
     # One process's run: every record it writes carries the run's id, and its
-    # records share one sink file.
+    # records share one sink file. A forked child is a run of its own.
     class Run
       # Fails if anything, even a symlink, is already at the path.
       CREATE_FLAGS = File::WRONLY | File::CREAT | File::EXCL | File::NOFOLLOW
       private_constant :CREATE_FLAGS
 
       class << self
-        # This process's run, created on first use.
+        # This process's run, created on first use. Creating it registers the
+        # run's +at_exit+ hook, which writes the count of calls skipped at any
+        # capped site, then summarizes records that couldn't be written.
         #
         # A forked child inherits this memo; the pid check gives it its own run
         # and file.
         #
         # @return [Run]
         def current
-          return @current if @current&.pid == Process.pid
+          if @current&.pid == Process.pid
+            return @current
+          end
 
-          @current = new
+          @current = new.tap do |run|
+            run.send(:register_at_exit)
+          end
         end
       end
 
@@ -30,11 +36,19 @@ module Lba
       # @return [Integer] the id of the process that started the run
       attr_reader :pid
 
+      # @return [Visits] the run's visits to call sites
+      attr_reader :visits
+
+      # @return [WriteFailures] the run's records that couldn't be written
+      attr_reader :write_failures
+
       # Starts a run for the current process.
       def initialize
         @pid = Process.pid
         @id = generate_id
         @claimed_paths = []
+        @visits = Visits.new
+        @write_failures = WriteFailures.new
       end
 
       # Claims a file for this run's records: creates it, readable and writable
@@ -53,6 +67,23 @@ module Lba
     private
 
       attr_reader :claimed_paths
+
+      # Forked children inherit this hook; the pid check keeps them from
+      # re-flushing the parent's capped sites or repeating its summary.
+      def register_at_exit
+        at_exit do
+          if pid == Process.pid
+            shut_down
+          end
+        end
+      end
+
+      # Summarizes write failures only after flushing, so a skipped-call record
+      # that can't be written is counted in the summary rather than lost.
+      def shut_down
+        visits.flush
+        write_failures.summarize
+      end
 
       def claim(path)
         create_exclusively(path)

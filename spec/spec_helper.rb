@@ -13,11 +13,17 @@ RSpec.configure do |config|
   config.include MockedRails
   config.include AllocationHelpers
   config.include AtExitHelpers
-  config.include VisitsHelpers
   config.include DestinationHelpers
   config.include ForkHelpers
   config.include MemoizedCurrentHelpers
+  config.include RunHelpers
   config.include SerializationHelpers
+
+  # Every record is stamped with Run.current's id, so most examples create a
+  # run. Capture the exit hook each run registers, which would otherwise fire
+  # at the suite's exit, and start every example without a current run.
+  config.before { @run_exit_hooks = capture_at_exit_hooks(Lba::Internal::Run) }
+  config.after { reset_current(Lba::Internal::Run) }
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true

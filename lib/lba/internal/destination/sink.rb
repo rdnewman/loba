@@ -113,11 +113,14 @@ module Lba
         # @param fields [Hash] the record
         # @return [void]
         def write(fields)
-          gap = Run::WriteFailures.existing&.unwritten(target)
+          write_failures = Run.current.write_failures
+          gap = write_failures.unwritten(target)
+
           append(with_gap(fields, gap))
-          Run::WriteFailures.existing.forget_unwritten(target) if gap
+
+          write_failures.forget_unwritten(target) if gap
         rescue SystemCallError, IOError => e
-          Run::WriteFailures.current.report(sink: target, error: e, seq: fields[:seq])
+          write_failures.report(sink: target, error: e, seq: fields[:seq])
         end
 
       private
@@ -128,7 +131,11 @@ module Lba
           if gap
             # The gap qualifies the record's place in the run, so it goes right
             # after the record's seq and type.
-            { **fields.slice(:seq, :type), unwritten: gap, **fields.except(:seq, :type) }
+            {
+              **fields.slice(:seq, :type),
+              unwritten: gap,
+              **fields.except(:seq, :type)
+            }
           else
             fields
           end

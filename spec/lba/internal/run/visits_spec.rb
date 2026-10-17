@@ -164,43 +164,69 @@ RSpec.describe Lba::Internal::Run::Visits do
     end
   end
 
-  describe ".current" do
-    after { reset_current(described_class) }
-
-    it "returns a Visits instance" do
-      stub_visits_at_exit
-
-      expect(described_class.current).to be_a(described_class)
+  describe "#flush" do
+    # A site's cap is 500 records per window.
+    def record_past_cap(visits, site, destination, skipped:)
+      (500 + skipped).times { visits.record(site, destination:) }
     end
 
-    it "memoizes the same instance across repeated calls" do
-      stub_visits_at_exit
+    it "writes the still-open window's true skipped count for a capped site" do
+      visits = described_class.new
+      sink = StringIO.new
+      record_past_cap(visits, site, destination_to(sink), skipped: 8)
 
-      expect(described_class.current).to equal(described_class.current)
+      visits.flush
+
+      expect(JSON.parse(sink.string.lines.last)).to include(
+        "type" => "val", "file" => "app/models/order.rb", "line" => 10,
+        "suppressed" => true, "suppressed_count" => 8
+      )
     end
 
-    context "when the process forks after .current is memoized" do
-      it "gives the child fresh counters instead of continuing the parent's" do
-        stub_visits_at_exit
-        described_class.current.record(site)
+    it "flushes every capped site independently, to each one's own sink", :aggregate_failures do
+      visits = described_class.new
+      order_sink = StringIO.new
+      invoice_sink = StringIO.new
+      invoice_site = site(file: "app/models/invoice.rb", line: 20)
+      record_past_cap(visits, site, destination_to(order_sink), skipped: 1)
+      record_past_cap(visits, invoice_site, destination_to(invoice_sink), skipped: 4)
 
-        child_result = in_forked_child do
-          described_class.current.record(site)
-        end
+      visits.flush
 
-        expect(child_result).to include(seq: 1, site_seq: 1)
-      end
+      order_flushed = JSON.parse(order_sink.string.lines.last)
+      invoice_flushed = JSON.parse(invoice_sink.string.lines.last)
+      expect(order_flushed).to include("file" => "app/models/order.rb", "suppressed_count" => 1)
+      expect(invoice_flushed)
+        .to include("file" => "app/models/invoice.rb", "suppressed_count" => 4)
+    end
 
-      it "gives the child a fresh since_prev_ts instead of timing from the parent's checkpoint" do
-        stub_visits_at_exit
-        described_class.current.record(site(type: "ts"), checkpoint: true)
+    it "numbers the records it writes after the visits' last seq" do
+      visits = described_class.new
+      sink = StringIO.new
+      record_past_cap(visits, site, destination_to(sink), skipped: 1)
 
-        child_result = in_forked_child do
-          described_class.current.record(site(type: "ts"), checkpoint: true)
-        end
+      visits.flush
 
-        expect(child_result).to include(since_prev_ts: nil)
-      end
+      expect(JSON.parse(sink.string.lines.last)).to include("seq" => 501)
+    end
+
+    it "writes nothing for a site under its cap" do
+      visits = described_class.new
+      sink = StringIO.new
+      visits.record(site, destination: destination_to(sink))
+
+      visits.flush
+
+      expect(sink.string).to be_empty
+    end
+
+    it "warns rather than raising when a capped site's sink was closed" do
+      visits = described_class.new
+      sink = StringIO.new
+      record_past_cap(visits, site, destination_to(sink), skipped: 1)
+      sink.close
+
+      expect { visits.flush }.to output(/lba: couldn't write a record/).to_stderr
     end
   end
 end

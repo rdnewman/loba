@@ -10,7 +10,8 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
   describe ".for" do
     let(:run) do
-      instance_double(Lba::Internal::Run, id: "20260830T143012Z-4242-ab12cd34", claim_file: true)
+      instance_double(Lba::Internal::Run, id: "20260830T143012Z-4242-ab12cd34", claim_file: true,
+                                          write_failures: Lba::Internal::Run::WriteFailures.new)
     end
 
     around do |example|
@@ -258,8 +259,6 @@ RSpec.describe Lba::Internal::Destination::Sink do
     # A full disk or an unwritable sink is the environment's problem, not the
     # traced code's, so it never raises into it.
     context "when the sink can't be written" do
-      after { reset_current(Lba::Internal::Run::WriteFailures) }
-
       it "skips a read-only file and warns, without raising", :aggregate_failures do
         path = File.join(tmp_dir, "read_only.jsonl")
         File.write(path, "")
@@ -282,9 +281,7 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
     # So a record that was dropped isn't mistaken for code that never ran.
     context "when earlier records to the sink couldn't be written" do
-      before { allow(Lba::Internal::Run::WriteFailures.current).to receive(:warn) }
-
-      after { reset_current(Lba::Internal::Run::WriteFailures) }
+      before { allow(Lba::Internal::Run.current.write_failures).to receive(:warn) }
 
       # Fails its first few writes with a full disk, then succeeds.
       def flaky_io(failures)
@@ -350,12 +347,6 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
         expect(written_lines(other)).to eq([{ "seq" => 4 }])
       end
-    end
-
-    it "leaves the failure tracking alone when writes succeed" do
-      described_class.new(StringIO.new).write({ seq: 1 })
-
-      expect(Lba::Internal::Run::WriteFailures.existing).to be_nil
     end
 
     context "when writing fails for any other reason" do

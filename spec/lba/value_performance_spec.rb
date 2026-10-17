@@ -8,8 +8,6 @@ require "stringio"
 # Each example stays under the cap of 500 calls per site per
 # minute. Past it, calls take the cheaper suppressed path and skew the result.
 RSpec.describe Lba, ".value" do
-  after { reset_current(Lba::Internal::Run::Visits) }
-
   def elapsed
     start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     yield
@@ -26,7 +24,6 @@ RSpec.describe Lba, ".value" do
   end
 
   it "adds only a small, explicit amount of overhead over a no-op baseline", :performance do
-    stub_visits_at_exit
     iterations = 300
     sink = StringIO.new
 
@@ -44,7 +41,6 @@ RSpec.describe Lba, ".value" do
   # reports. GC pauses set the tail and cost the same wall time on any
   # machine, so the bound is absolute and loose, not a multiple of the mean.
   it "keeps the 99th-percentile call under 10ms", :performance do
-    stub_visits_at_exit
     iterations = 300
     sink = StringIO.new
 
@@ -80,7 +76,6 @@ RSpec.describe Lba, ".value" do
   # with depth, and Rails stacks run deep. Lba.value should pay that about once
   # per call, not once per field it reads.
   it "grows with stack depth about as much as one stack snapshot", :performance do
-    stub_visits_at_exit
     depth = 200
     sink = StringIO.new
 
@@ -96,7 +91,6 @@ RSpec.describe Lba, ".value" do
   # stack depth, which RSpec adds to. The bound catches a regression but isn't
   # real-world cost. A call allocates about 200 here.
   it "allocates only a bounded, explicit number of objects per call" do
-    stub_visits_at_exit
     iterations = 300
     sink = StringIO.new
 
@@ -111,7 +105,6 @@ RSpec.describe Lba, ".value" do
   # cross the cap. The first batch absorbs one-time setup, such as
   # autoloading, so it isn't mistaken for growth.
   it "does not retain memory across repeated batches of calls" do
-    stub_visits_at_exit
     batch_size = 300
     sink = StringIO.new
 
@@ -133,7 +126,6 @@ RSpec.describe Lba, ".value" do
   # raises and rescues an exception on every call.
   context "when evaluating the argument fails" do
     it "adds only a small, explicit amount of overhead over a no-op baseline", :performance do
-      stub_visits_at_exit
       iterations = 300
       sink = StringIO.new
 
@@ -145,7 +137,6 @@ RSpec.describe Lba, ".value" do
     end
 
     it "does not retain memory across repeated batches of calls" do
-      stub_visits_at_exit
       batch_size = 300
       sink = StringIO.new
 

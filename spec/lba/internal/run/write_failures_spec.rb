@@ -1,8 +1,6 @@
 require "stringio"
 
 RSpec.describe Lba::Internal::Run::WriteFailures do
-  after { reset_current(described_class) }
-
   def no_space = Errno::ENOSPC.new
 
   describe "#report" do
@@ -84,50 +82,6 @@ RSpec.describe Lba::Internal::Run::WriteFailures do
       allow(failures).to receive(:warn).and_call_original
 
       expect { failures.summarize }.not_to output.to_stderr
-    end
-  end
-
-  describe ".existing" do
-    it "is nil while no failure has created the process's instance" do
-      expect(described_class.existing).to be_nil
-    end
-
-    it "is the process's instance once one exists" do
-      current = described_class.current
-
-      expect(described_class.existing).to equal(current)
-    end
-  end
-
-  describe ".current" do
-    it "memoizes the same instance across repeated calls" do
-      expect(described_class.current).to equal(described_class.current)
-    end
-
-    it "registers no exit hook of its own" do
-      hooks = capture_at_exit_hooks(described_class)
-
-      described_class.current
-
-      expect(hooks).to be_empty
-    end
-
-    context "when the process forks after a failure was reported" do
-      it "warns again in the child, which hasn't reported one", :aggregate_failures do
-        expect { described_class.current.report(sink: "sink.jsonl", error: no_space, seq: 3) }
-          .to output.to_stderr
-
-        # An expectation inside the child can't report back to the parent, so
-        # the child captures $stderr itself and returns what it got.
-        warned_in_child = in_forked_child do
-          captured = StringIO.new
-          $stderr = captured # rubocop:disable RSpec/ExpectOutput
-          described_class.current.report(sink: "sink.jsonl", error: no_space, seq: 3)
-          captured.string
-        end
-
-        expect(warned_in_child).to start_with("lba: couldn't write a record")
-      end
     end
   end
 end

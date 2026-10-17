@@ -1,15 +1,17 @@
 module AtExitHelpers
   # Lets klass build real instances but captures the at_exit hooks they
   # register, which would otherwise fire at the suite's exit. Returns the hooks
-  # in registration order so a spec can run one. Pass the same into: array for
-  # several classes to keep their hooks in one registration order, which
-  # reverse_each then runs as Ruby does at exit. Pair with reset_current.
-  def capture_at_exit_hooks(klass, into: [])
-    hooks = into
+  # in registration order so a spec can run one. Pair with reset_current.
+  #
+  # at_exit is stubbed before #initialize runs, so a hook registered while the
+  # instance is built is captured too, rather than registered for real.
+  def capture_at_exit_hooks(klass)
+    hooks = []
 
-    allow(klass).to receive(:new).and_wrap_original do |original|
-      original.call.tap do |instance|
+    allow(klass).to receive(:new) do
+      klass.allocate.tap do |instance|
         allow(instance).to receive(:at_exit) { |&hook| hooks << hook }
+        instance.send(:initialize)
       end
     end
 

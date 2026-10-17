@@ -4,39 +4,11 @@ module Lba
       # Keeps track of records that couldn't be written, so a dropped record
       # isn't mistaken for code that never ran. The first failure is reported on
       # $stderr; each sink's unwritten records are then noted on the next record
-      # written there (see #unwritten), or summarized at exit if none is.
+      # written there (see #unwritten), or summarized at exit if none is (see
+      # Run.current).
       class WriteFailures
-        class << self
-          # This process's instance, created on first use, which only a write
-          # failure triggers. Its exit summary is run by {Visits}' exit hook,
-          # after that hook writes its last records, so their failures are
-          # counted too.
-          #
-          # A forked child inherits this memo; the pid check gives it its own,
-          # so it reports its own failures.
-          #
-          # @return [WriteFailures]
-          def current
-            return @current if @current&.pid == Process.pid
-
-            @current = new
-          end
-
-          # This process's instance if a failure has created one, without
-          # creating it, so a successful write costs almost nothing.
-          #
-          # @return [WriteFailures, nil]
-          def existing
-            @current if @current&.pid == Process.pid
-          end
-        end
-
-        # @return [Integer] the id of the process that created this instance
-        attr_reader :pid
-
         # Starts with no failure reported.
         def initialize
-          @pid = Process.pid
           @reported = false
           @unwritten = {}
         end

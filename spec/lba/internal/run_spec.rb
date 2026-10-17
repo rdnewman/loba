@@ -103,8 +103,37 @@ RSpec.describe Lba::Internal::Run do
     end
   end
 
+  describe "#visits" do
+    it "is the run's Visits, the same one on every call" do
+      run = described_class.new
+
+      expect(run.visits).to be_a(Lba::Internal::Run::Visits).and equal(run.visits)
+    end
+  end
+
+  describe "#write_failures" do
+    it "is the run's WriteFailures, the same one on every call" do
+      run = described_class.new
+
+      expect(run.write_failures).to be_a(Lba::Internal::Run::WriteFailures)
+        .and equal(run.write_failures)
+    end
+  end
+
   describe ".current" do
-    after { reset_current(described_class) }
+    def order_site = Lba::Internal::Site.new(type: "val", file: "app/models/order.rb", line: 10)
+
+    # A site's cap is 500 records per window, so this leaves one skipped call
+    # for the exit hook to write.
+    def record_past_cap(run, destination)
+      501.times { run.visits.record(order_site, destination:) }
+    end
+
+    def report_quietly(write_failures, sink:)
+      allow(write_failures).to receive(:warn)
+      write_failures.report(sink:, error: Errno::ENOSPC.new, seq: 3)
+      allow(write_failures).to receive(:warn).and_call_original
+    end
 
     it "returns a Run instance" do
       expect(described_class.current).to be_a(described_class)
@@ -112,6 +141,52 @@ RSpec.describe Lba::Internal::Run do
 
     it "memoizes the same instance across repeated calls" do
       expect(described_class.current).to equal(described_class.current)
+    end
+
+    it "registers one exit hook, the first time it creates the run" do
+      described_class.current
+      described_class.current
+
+      expect(run_exit_hooks.size).to eq(1)
+    end
+
+    it "is the only way a run registers an exit hook" do
+      described_class.new
+
+      expect(run_exit_hooks).to be_empty
+    end
+
+    context "when its exit hook runs" do
+      it "writes the count of calls skipped at a capped site" do
+        run = described_class.current
+        sink = StringIO.new
+        record_past_cap(run, destination_to(sink))
+
+        run_exit_hooks.first.call
+
+        expect(JSON.parse(sink.string.lines.last))
+          .to include("suppressed" => true, "suppressed_count" => 1)
+      end
+
+      it "summarizes the records that couldn't be written" do
+        run = described_class.current
+        report_quietly(run.write_failures, sink: "a.jsonl")
+
+        expect { run_exit_hooks.first.call }
+          .to output(/lba: 1 record couldn't be written to "a.jsonl"/).to_stderr
+      end
+
+      # Summarizing first would lose a record that the hook itself couldn't
+      # write.
+      it "counts a skipped-call record it couldn't write in the summary" do
+        run = described_class.current
+        sink = StringIO.new
+        record_past_cap(run, destination_to(sink))
+        sink.close
+
+        expect { run_exit_hooks.first.call }
+          .to output(/lba: 1 record couldn't be written/).to_stderr
+      end
     end
 
     context "when the process forks after .current is memoized" do
@@ -122,6 +197,65 @@ RSpec.describe Lba::Internal::Run do
 
         expect(child[:run_id]).not_to eq(parent_run_id)
         expect(child[:run_id]).to include("-#{child[:pid]}-")
+      end
+
+      it "gives the child fresh visits instead of continuing the parent's" do
+        described_class.current.visits.record(order_site)
+
+        child_result = in_forked_child { described_class.current.visits.record(order_site) }
+
+        expect(child_result).to include(seq: 1, site_seq: 1)
+      end
+
+      it "gives the child a fresh since_prev_ts instead of timing from the parent's checkpoint" do
+        described_class.current.visits.record(order_site, checkpoint: true)
+
+        child_result = in_forked_child do
+          described_class.current.visits.record(order_site, checkpoint: true)
+        end
+
+        expect(child_result).to include(since_prev_ts: nil)
+      end
+
+      it "gives the child fresh write failures, so it warns about its own first failure" do
+        report_quietly(described_class.current.write_failures, sink: "a.jsonl")
+
+        # An expectation inside the child can't report back to the parent, so
+        # the child captures $stderr itself and returns what it got.
+        warned_in_child = in_forked_child do
+          captured = StringIO.new
+          $stderr = captured # rubocop:disable RSpec/ExpectOutput
+          described_class.current.write_failures
+                         .report(sink: "a.jsonl", error: Errno::ENOSPC.new, seq: 3)
+          captured.string
+        end
+
+        expect(warned_in_child).to start_with("lba: couldn't write a record")
+      end
+
+      it "writes nothing when the child runs the exit hook it inherited" do
+        sink = StringIO.new
+        record_past_cap(described_class.current, destination_to(sink))
+
+        written_in_child = in_forked_child do
+          run_exit_hooks.first.call
+          sink.string
+        end
+
+        expect(written_in_child).to be_empty
+      end
+
+      it "writes no summary when the child runs the exit hook it inherited" do
+        report_quietly(described_class.current.write_failures, sink: "a.jsonl")
+
+        summary_in_child = in_forked_child do
+          captured = StringIO.new
+          $stderr = captured # rubocop:disable RSpec/ExpectOutput
+          run_exit_hooks.first.call
+          captured.string
+        end
+
+        expect(summary_in_child).to be_empty
       end
     end
   end

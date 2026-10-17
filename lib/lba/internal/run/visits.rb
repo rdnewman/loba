@@ -8,27 +8,8 @@ module Lba
       # window of time. Keeps running counts and times, not the visits
       # themselves; the written records are the history.
       class Visits
-        class << self
-          # This process's visits. On first use it registers an +at_exit+ hook
-          # that writes the count of calls skipped at any capped site, then
-          # summarizes records that couldn't be written (see WriteFailures).
-          #
-          # A forked child inherits this memo; the pid check gives it fresh counters.
-          #
-          # @return [Visits]
-          def current
-            return @current if @current&.pid == Process.pid
-
-            @current = new.tap { |visits| visits.send(:register_at_exit) }
-          end
-        end
-
-        # @return [Integer] the id of the process that created this instance
-        attr_reader :pid
-
         # Starts with no call sites seen.
         def initialize
-          @pid = Process.pid
           @site_visits = {}
           @global_seq = 0
           @last_ts_mono_time = nil
@@ -69,6 +50,16 @@ module Lba
           { seq: advance_seq, mono_time: now, **numbered, **checkpoint_fields(checkpoint, now) }
         end
 
+        # Writes, for each capped site, the record counting the calls it has
+        # skipped in its current window, as the run ends.
+        #
+        # @return [void]
+        def flush
+          site_visits.each_value do |visits_at_site|
+            visits_at_site.flush { advance_seq }
+          end
+        end
+
       private
 
         attr_reader :site_visits
@@ -91,25 +82,6 @@ module Lba
                           end
           @last_ts_mono_time = now
           since_prev_ts
-        end
-
-        # Forked children inherit this hook; the pid check keeps them from
-        # re-flushing the parent's suppressed sites or repeating its summary.
-        def register_at_exit
-          at_exit { shut_down if pid == Process.pid }
-        end
-
-        # Summarizes write failures only after flushing, so a suppression record
-        # that can't be written is counted in the summary rather than lost.
-        def shut_down
-          flush_all
-          WriteFailures.existing&.summarize
-        end
-
-        def flush_all
-          site_visits.each_value do |visits_at_site|
-            visits_at_site.flush { advance_seq }
-          end
         end
 
         def advance_seq

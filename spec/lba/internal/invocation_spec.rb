@@ -49,11 +49,8 @@ RSpec.describe Lba::Internal::Invocation do
     context "when the call site is suppressed" do
       before do
         stub_const("Rails", mock_rails(production: false))
-
-        # Stubs .current itself so the real singleton is never memoized and
-        # never registers an at_exit hook in the test process.
         visits = instance_double(Lba::Internal::Run::Visits, record: :suppressed)
-        allow(Lba::Internal::Run::Visits).to receive(:current).and_return(visits)
+        allow(Lba::Internal::Run.current).to receive(:visits).and_return(visits)
 
         # Only #file and #line are stubbed, since the call site needs just
         # those. Any other call is the costly work this gate skips; the
@@ -70,7 +67,7 @@ RSpec.describe Lba::Internal::Invocation do
 
         described_class.record(Lba::Internal::Records::Timestamp, sink: StringIO.new)
 
-        expect(Lba::Internal::Run::Visits.current).to have_received(:record)
+        expect(Lba::Internal::Run.current.visits).to have_received(:record)
           .with(
             Lba::Internal::Site.new(type: "ts", file: "app.rb", line: 10),
             destination:, checkpoint: true
@@ -84,7 +81,7 @@ RSpec.describe Lba::Internal::Invocation do
 
         described_class.record(Lba::Internal::Records::Value, options:, sink: StringIO.new)
 
-        expect(Lba::Internal::Run::Visits.current).to have_received(:record)
+        expect(Lba::Internal::Run.current.visits).to have_received(:record)
           .with(
             Lba::Internal::Site.new(type: "val", file: "app.rb", line: 10),
             destination:, checkpoint: false
@@ -120,7 +117,7 @@ RSpec.describe Lba::Internal::Invocation do
       before do
         stub_const("Rails", mock_rails(production: false))
         visits = instance_double(Lba::Internal::Run::Visits, record: tracked)
-        allow(Lba::Internal::Run::Visits).to receive(:current).and_return(visits)
+        allow(Lba::Internal::Run.current).to receive(:visits).and_return(visits)
         allow(Lba::Internal::CallerBinding).to receive(:new).and_return(caller_binding)
         allow(Lba::Internal::Records::Timestamp)
           .to receive(:fields).and_return({ type: "ts", seq: 1 })
@@ -180,7 +177,7 @@ RSpec.describe Lba::Internal::Invocation do
         stub_const("Rails", mock_rails(production: false))
         visits = instance_double(Lba::Internal::Run::Visits)
         allow(visits).to receive(:record).and_raise(RuntimeError, "visits bug")
-        allow(Lba::Internal::Run::Visits).to receive(:current).and_return(visits)
+        allow(Lba::Internal::Run.current).to receive(:visits).and_return(visits)
 
         expect { described_class.record(Lba::Internal::Records::Timestamp, sink: StringIO.new) }
           .to raise_error(RuntimeError, "visits bug")
