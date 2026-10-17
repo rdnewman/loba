@@ -1,7 +1,7 @@
 module Lba
   module Internal
     class Run
-      class WriteFailures
+      class Delivery
         # The records a sink missed since the last one written there: how many,
         # the range of their seqs, and the first error. Noted on the next record
         # the sink receives, so a reader can tell dropped records from code that

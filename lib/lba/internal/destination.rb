@@ -30,12 +30,14 @@ module Lba
         @log_mirror = log_mirror
       end
 
-      # Writes the record to the sink, and to the log mirror if there is one.
+      # Writes the record to the sink, through the run's Delivery, and to the
+      # log mirror if there is one. The mirror gets the record as given: a gap
+      # the sink noted on it is the sink's, not the log's.
       #
       # @param fields [Hash] the record
       # @return [void]
       def write(fields)
-        sink.write(fields)
+        Run.current.delivery.write(fields, to: sink)
         log_mirror&.write(fields)
       end
 

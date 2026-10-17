@@ -105,5 +105,26 @@ RSpec.describe Lba::Internal::Destination do
       expect(log_output.string).to include("DEBUG")
       expect(log_output.string).to include("{\"seq\":1,\"type\":\"ts\"}")
     end
+
+    # The log has every record the sink missed, so the sink's gap isn't noted
+    # there.
+    it "mirrors each record as given, even when the sink missed some", :aggregate_failures do
+      io = StringIO.new
+      failures = 1
+      allow(io).to receive(:write).and_wrap_original do |original, line|
+        raise Errno::ENOSPC if (failures -= 1) >= 0
+
+        original.call(line)
+      end
+      log_output = StringIO.new
+      log_mirror = Lba::Internal::Destination::LogMirror.new(logger: Logger.new(log_output))
+      destination = described_class.new(sink: Lba::Internal::Destination::Sink.new(io), log_mirror:)
+      allow(Lba::Internal::Run.current.delivery).to receive(:warn)
+
+      [1, 2].each { |seq| destination.write({ seq: }) }
+
+      expect(io.string).to include("unwritten")
+      expect(log_output.string.lines.map { _1[/\{.*\}/] }).to eq(["{\"seq\":1}", "{\"seq\":2}"])
+    end
   end
 end

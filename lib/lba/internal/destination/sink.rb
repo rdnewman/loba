@@ -1,10 +1,9 @@
 require "fileutils"
-require "json"
 
 module Lba
   module Internal
     class Destination
-      # The IO or file a destination appends records to, one line of JSON each.
+      # The IO or file a destination's records are appended to, one line each.
       class Sink
         APPEND_FLAGS = File::WRONLY | File::APPEND | File::CREAT
         # Records hold unredacted values, so a file a Sink creates is readable
@@ -101,26 +100,20 @@ module Lba
           @target = target
         end
 
-        # Writes the record as a line, flushing an IO so the record isn't held
+        # Writes the line to the target, flushing an IO so the line isn't held
         # in a buffer.
         #
-        # If the target can't be written (a full disk, a read-only file, a
-        # closed IO), the record is skipped and Run::WriteFailures counts it,
-        # so tracing never breaks the traced code. The next record written to
-        # the same sink notes what was missed, in +:unwritten+. Any other
-        # error is lba's own bug, and raises.
-        #
-        # @param fields [Hash] the record
+        # @param line [String] a record's line, newline included
         # @return [void]
-        def write(fields)
-          write_failures = Run.current.write_failures
-          gap = write_failures.unwritten(self)
-
-          append(with_gap(fields, gap))
-
-          write_failures.forget_unwritten(self) if gap
-        rescue SystemCallError, IOError => e
-          write_failures.report(sink: self, error: e, seq: fields[:seq])
+        # @raise [SystemCallError, IOError] if the target can't be written (a
+        #   full disk, a read-only file, a closed IO)
+        def append(line)
+          if target.respond_to?(:write)
+            target.write(line)
+            target.flush
+          else
+            File.open(target, APPEND_FLAGS, NEW_FILE_MODE) { |file| file.write(line) }
+          end
         end
 
         # Whether +other+ is the same sink: a Sink on an equal path or on the
@@ -150,27 +143,6 @@ module Lba
       protected
 
         attr_reader :target
-
-      private
-
-        def with_gap(fields, gap)
-          if gap
-            gap.noted_on(fields)
-          else
-            fields
-          end
-        end
-
-        def append(fields)
-          line = "#{JSON.generate(fields)}\n"
-
-          if target.respond_to?(:write)
-            target.write(line)
-            target.flush
-          else
-            File.open(target, APPEND_FLAGS, NEW_FILE_MODE) { |file| file.write(line) }
-          end
-        end
       end
     end
   end

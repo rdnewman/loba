@@ -1,4 +1,4 @@
-RSpec.describe Lba::Internal::Run::WriteFailures::Gap do
+RSpec.describe Lba::Internal::Run::Delivery::Gap do
   def no_space = Errno::ENOSPC.new
 
   def sink_to(path) = Lba::Internal::Destination::Sink.new(path)

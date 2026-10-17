@@ -1,0 +1,203 @@
+require "json"
+require "stringio"
+
+RSpec.describe Lba::Internal::Run::Delivery do
+  def sink_to(target) = Lba::Internal::Destination::Sink.new(target)
+
+  # A sink on the path whose every append fails.
+  def failing_sink(path, error: Errno::ENOSPC.new)
+    sink_to(path).tap { |sink| allow(sink).to receive(:append).and_raise(error) }
+  end
+
+  # An IO that raises each of the errors on one write, in order, then writes
+  # normally.
+  def flaky_io(*errors)
+    io = StringIO.new
+    allow(io).to receive(:write).and_wrap_original do |original, line|
+      error = errors.shift
+      raise error if error
+
+      original.call(line)
+    end
+    io
+  end
+
+  def written_lines(io) = io.string.lines.map { JSON.parse(_1) }
+
+  # For examples about something other than the warning.
+  def quiet_delivery
+    described_class.new.tap { |delivery| allow(delivery).to receive(:warn) }
+  end
+
+  describe "#write" do
+    it "appends the record to the sink as one JSON line" do
+      io = StringIO.new
+
+      described_class.new.write({ seq: 1, type: "ts" }, to: sink_to(io))
+
+      expect(io.string).to eq("{\"seq\":1,\"type\":\"ts\"}\n")
+    end
+
+    # A full disk or an unwritable sink is the environment's problem, not the
+    # traced code's, so it never raises into it.
+    context "when the sink can't be written" do
+      it "warns on $stderr about the first failure, naming the sink and the error" do
+        sink = failing_sink("sink.jsonl", error: Errno::EACCES.new("sink.jsonl"))
+
+        expect { described_class.new.write({ seq: 3 }, to: sink) }.to output(
+          "lba: couldn't write a record to \"sink.jsonl\" " \
+          "(Errno::EACCES: Permission denied - sink.jsonl); " \
+          "later write failures in this process won't be reported\n"
+        ).to_stderr
+      end
+
+      it "stays quiet about later failures, to any sink", :aggregate_failures do
+        delivery = described_class.new
+        expect { delivery.write({ seq: 3 }, to: failing_sink("a.jsonl")) }.to output.to_stderr
+
+        expect { delivery.write({ seq: 4 }, to: failing_sink("b.jsonl")) }
+          .not_to output.to_stderr
+      end
+
+      it "skips a read-only file, without raising", :aggregate_failures do
+        Dir.mktmpdir do |dir|
+          path = File.join(dir, "read_only.jsonl")
+          File.write(path, "")
+          File.chmod(0o444, path)
+
+          expect { described_class.new.write({ seq: 1 }, to: sink_to(path)) }
+            .to output(/Errno::EACCES/).to_stderr
+          expect(File.read(path)).to be_empty
+        end
+      end
+
+      it "skips a closed IO, without raising" do
+        io = StringIO.new
+        io.close
+
+        expect { described_class.new.write({ seq: 1 }, to: sink_to(io)) }
+          .to output(/IOError/).to_stderr
+      end
+    end
+
+    # So a record that was dropped isn't mistaken for code that never ran.
+    context "when earlier records to the sink couldn't be written" do
+      it "notes them on the next record written there" do
+        io = flaky_io(Errno::ENOSPC, Errno::ENOSPC)
+        delivery = quiet_delivery
+        sink = sink_to(io)
+
+        [3, 4, 5].each { |seq| delivery.write({ seq: }, to: sink) }
+
+        expect(written_lines(io)).to eq(
+          [{ "seq" => 5, "unwritten" => {
+            "count" => 2, "first_seq" => 3, "last_seq" => 4,
+            "error" => "Errno::ENOSPC: No space left on device"
+          } }]
+        )
+      end
+
+      it "notes the first error for them all" do
+        io = flaky_io(Errno::ENOSPC, Errno::EACCES)
+        delivery = quiet_delivery
+        sink = sink_to(io)
+
+        [3, 4, 5].each { |seq| delivery.write({ seq: }, to: sink) }
+
+        expect(written_lines(io).last["unwritten"])
+          .to include("count" => 2, "error" => "Errno::ENOSPC: No space left on device")
+      end
+
+      it "notes them on the next record from another Sink to the same target" do
+        io = flaky_io(Errno::ENOSPC)
+        delivery = quiet_delivery
+        delivery.write({ seq: 3 }, to: sink_to(io))
+
+        delivery.write({ seq: 4 }, to: sink_to(io))
+
+        expect(written_lines(io).last).to include("unwritten" => include("count" => 1))
+      end
+
+      # A gap qualifies the record's place in the run, so it comes right after
+      # the record's seq and type, before anything that could make a line long.
+      it "notes them right after the record's seq and type" do
+        io = flaky_io(Errno::ENOSPC)
+        delivery = quiet_delivery
+        sink = sink_to(io)
+
+        [3, 4].each { |seq| delivery.write({ seq:, type: "ts", label: "after" }, to: sink) }
+
+        expect(written_lines(io).last.keys).to eq(["seq", "type", "unwritten", "label"])
+      end
+
+      it "notes them only once" do
+        io = flaky_io(Errno::ENOSPC)
+        delivery = quiet_delivery
+        sink = sink_to(io)
+
+        [3, 4, 5].each { |seq| delivery.write({ seq: }, to: sink) }
+
+        expect(written_lines(io).last).to eq("seq" => 5)
+      end
+
+      it "notes them only on the sink that missed them" do
+        other = StringIO.new
+        delivery = quiet_delivery
+        delivery.write({ seq: 3 }, to: sink_to(flaky_io(Errno::ENOSPC)))
+
+        delivery.write({ seq: 4 }, to: sink_to(other))
+
+        expect(written_lines(other)).to eq([{ "seq" => 4 }])
+      end
+
+      # An error that isn't a write failure (a Timeout, say) can interrupt the
+      # write that would have noted them.
+      it "keeps them for the next record when that write raises", :aggregate_failures do
+        io = flaky_io(Errno::ENOSPC, RuntimeError.new("interrupted"))
+        delivery = quiet_delivery
+        sink = sink_to(io)
+        delivery.write({ seq: 3 }, to: sink)
+        expect { delivery.write({ seq: 4 }, to: sink) }.to raise_error(RuntimeError)
+
+        delivery.write({ seq: 5 }, to: sink)
+
+        expect(written_lines(io).last["unwritten"]).to include("count" => 1, "last_seq" => 3)
+      end
+    end
+
+    context "when writing fails for any other reason" do
+      it "raises, since that's a bug in lba" do
+        sink = failing_sink("a.jsonl", error: RuntimeError.new("lba bug"))
+
+        expect { described_class.new.write({ seq: 1 }, to: sink) }
+          .to raise_error(RuntimeError, "lba bug")
+      end
+    end
+  end
+
+  describe "#summarize" do
+    it "warns on $stderr about each sink's records never noted there, one line per sink" do
+      delivery = quiet_delivery
+      delivery.write({ seq: 3 }, to: failing_sink("a.jsonl"))
+      delivery.write({ seq: 4 }, to: failing_sink("a.jsonl"))
+      delivery.write({ seq: 5 }, to: failing_sink("b.jsonl", error: Errno::EACCES.new))
+      allow(delivery).to receive(:warn).and_call_original
+
+      expect { delivery.summarize }.to output(
+        "lba: 2 records couldn't be written to \"a.jsonl\" " \
+        "(first error: Errno::ENOSPC: No space left on device)\n" \
+        "lba: 1 record couldn't be written to \"b.jsonl\" " \
+        "(first error: Errno::EACCES: Permission denied)\n"
+      ).to_stderr
+    end
+
+    it "warns about nothing for a sink whose gap was since noted" do
+      io = flaky_io(Errno::ENOSPC)
+      delivery = quiet_delivery
+      [3, 4].each { |seq| delivery.write({ seq: }, to: sink_to(io)) }
+      allow(delivery).to receive(:warn).and_call_original
+
+      expect { delivery.summarize }.not_to output.to_stderr
+    end
+  end
+end

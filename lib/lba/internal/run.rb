@@ -39,8 +39,8 @@ module Lba
       # @return [Visits] the run's visits to call sites
       attr_reader :visits
 
-      # @return [WriteFailures] the run's records that couldn't be written
-      attr_reader :write_failures
+      # @return [Delivery] the run's writing of records to their sinks
+      attr_reader :delivery
 
       # Starts a run for the current process.
       def initialize
@@ -48,7 +48,7 @@ module Lba
         @id = generate_id
         @claimed_paths = []
         @visits = Visits.new
-        @write_failures = WriteFailures.new
+        @delivery = Delivery.new
       end
 
       # Claims a file for this run's records: creates it, readable and writable
@@ -82,7 +82,7 @@ module Lba
       # that can't be written is counted in the summary rather than lost.
       def shut_down
         visits.flush
-        write_failures.summarize
+        delivery.summarize
       end
 
       def claim(path)
