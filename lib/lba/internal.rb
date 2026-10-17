@@ -12,8 +12,6 @@ require_relative "internal/records/suppression"
 require_relative "internal/records/caller"
 require_relative "internal/records/value"
 require_relative "internal/records/timestamp"
-require_relative "internal/sink_resolver"
-require_relative "internal/writer"
 require_relative "internal/destination"
 require_relative "internal/invocation"
 

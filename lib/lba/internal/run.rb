@@ -47,21 +47,24 @@ module Lba
       # @param path [String] where the run's file goes
       # @return [Boolean] whether this run created the file at +path+
       def claim_file(path)
-        claimed_paths.include?(path) || create(path)
+        claimed_paths.include?(path) || claim(path)
       end
 
     private
 
       attr_reader :claimed_paths
 
-      def create(path)
-        File.open(path, CREATE_FLAGS, 0o600) do
-          # Created empty; Writer appends the records.
-        end
+      def claim(path)
+        create_exclusively(path)
         claimed_paths << path
         true
       rescue SystemCallError
         false
+      end
+
+      # Fails if anything is already at the path, a symlink included.
+      def create_exclusively(path)
+        File.write(path, "", flags: CREATE_FLAGS, perm: 0o600)
       end
 
       def generate_id

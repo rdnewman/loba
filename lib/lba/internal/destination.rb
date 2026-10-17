@@ -1,4 +1,5 @@
 require_relative "destination/log_mirror"
+require_relative "destination/sink"
 
 module Lba
   module Internal
@@ -18,10 +19,10 @@ module Lba
         # run in order, and resolving the sink can create directories, so the
         # logger has to be checked first.
         log_mirror = LogMirror.for(log:, logger:)
-        new(sink: SinkResolver.resolve(sink:), log_mirror:)
+        new(sink: Sink.for(sink), log_mirror:)
       end
 
-      # @param sink [IO, String] an IO, or a file path to append to
+      # @param sink [Sink] where records are appended
       # @param log_mirror [LogMirror, nil] where records are mirrored; +nil+ if
       #   not logging
       def initialize(sink:, log_mirror:)
@@ -34,7 +35,7 @@ module Lba
       # @param fields [Hash] the record
       # @return [void]
       def write(fields)
-        Writer.write(fields, sink:)
+        sink.write(fields)
         log_mirror&.write(fields)
       end
 
