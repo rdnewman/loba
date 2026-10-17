@@ -26,7 +26,7 @@ module Lba
 
         # @param caller_binding [CallerBinding] the calling frame
         # @param tracked [Hash{Symbol => Integer, Float, nil}] the call's numbers
-        #   and timing (see Run::Visits#record)
+        #   and timing (see Run::Visits#note)
         # @param argument [Symbol, Object] the argument given (see Lba.value)
         # @param label [String, Symbol, nil] the label given, if any
         # @param inspect [Boolean] how to render a value with no JSON form

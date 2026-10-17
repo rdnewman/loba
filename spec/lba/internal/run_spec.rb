@@ -125,8 +125,8 @@ RSpec.describe Lba::Internal::Run do
 
     # A site's cap is 500 records per window, so this leaves one skipped call
     # for the exit hook to write.
-    def record_past_cap(run, destination)
-      501.times { run.visits.record(order_site, destination:) }
+    def note_past_cap(run, destination)
+      501.times { run.visits.note(order_site, destination:) }
     end
 
     def report_quietly(write_failures, sink:)
@@ -160,7 +160,7 @@ RSpec.describe Lba::Internal::Run do
       it "writes the count of calls skipped at a capped site" do
         run = described_class.current
         sink = StringIO.new
-        record_past_cap(run, destination_to(sink))
+        note_past_cap(run, destination_to(sink))
 
         run_exit_hooks.first.call
 
@@ -181,7 +181,7 @@ RSpec.describe Lba::Internal::Run do
       it "counts a skipped-call record it couldn't write in the summary" do
         run = described_class.current
         sink = StringIO.new
-        record_past_cap(run, destination_to(sink))
+        note_past_cap(run, destination_to(sink))
         sink.close
 
         expect { run_exit_hooks.first.call }
@@ -200,18 +200,18 @@ RSpec.describe Lba::Internal::Run do
       end
 
       it "gives the child fresh visits instead of continuing the parent's" do
-        described_class.current.visits.record(order_site)
+        described_class.current.visits.note(order_site)
 
-        child_result = in_forked_child { described_class.current.visits.record(order_site) }
+        child_result = in_forked_child { described_class.current.visits.note(order_site) }
 
         expect(child_result).to include(seq: 1, site_seq: 1)
       end
 
       it "gives the child a fresh since_prev_ts instead of timing from the parent's checkpoint" do
-        described_class.current.visits.record(order_site, checkpoint: true)
+        described_class.current.visits.note(order_site, checkpoint: true)
 
         child_result = in_forked_child do
-          described_class.current.visits.record(order_site, checkpoint: true)
+          described_class.current.visits.note(order_site, checkpoint: true)
         end
 
         expect(child_result).to include(since_prev_ts: nil)
@@ -235,7 +235,7 @@ RSpec.describe Lba::Internal::Run do
 
       it "writes nothing when the child runs the exit hook it inherited" do
         sink = StringIO.new
-        record_past_cap(described_class.current, destination_to(sink))
+        note_past_cap(described_class.current, destination_to(sink))
 
         written_in_child = in_forked_child do
           run_exit_hooks.first.call

@@ -50,7 +50,7 @@ module Lba
                   :destination, :caller_binding, :tracked
 
       def track
-        Run.current.visits.record(site, destination:, checkpoint: record_class::CHECKPOINT)
+        Run.current.visits.note(site, destination:, checkpoint: record_class::CHECKPOINT)
       end
 
       def site

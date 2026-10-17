@@ -3,30 +3,30 @@ RSpec.describe Lba::Internal::Run::Visits do
     Lba::Internal::Site.new(type:, file:, line:)
   end
 
-  describe "#record" do
+  describe "#note" do
     it "assigns seq 1 and site_seq 1 to a call site's first record" do
       visits = described_class.new
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.0)
 
-      result = visits.record(site)
+      result = visits.note(site)
 
       expect(result).to eq(seq: 1, mono_time: 100.0, site_seq: 1, diff: nil)
     end
 
     it "increments both seq and site_seq on a second call to the same site" do
       visits = described_class.new
-      visits.record(site)
+      visits.note(site)
 
-      result = visits.record(site)
+      result = visits.note(site)
 
       expect(result).to include(seq: 2, site_seq: 2)
     end
 
     it "shares one global seq counter across call sites" do
       visits = described_class.new
-      visits.record(site)
+      visits.note(site)
 
-      result = visits.record(site(file: "app/models/invoice.rb", line: 20))
+      result = visits.note(site(file: "app/models/invoice.rb", line: 20))
 
       expect(result).to include(seq: 2)
     end
@@ -34,10 +34,10 @@ RSpec.describe Lba::Internal::Run::Visits do
     it "reports diff as the elapsed time since the previous record at the same site" do
       visits = described_class.new
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.0)
-      visits.record(site)
+      visits.note(site)
 
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.25)
-      result = visits.record(site)
+      result = visits.note(site)
 
       expect(result).to include(diff: 0.25)
     end
@@ -49,7 +49,7 @@ RSpec.describe Lba::Internal::Run::Visits do
       visits = described_class.new
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.25)
 
-      result = visits.record(site(type: "ts"))
+      result = visits.note(site(type: "ts"))
 
       expect(result).to include(mono_time: 100.25)
     end
@@ -57,36 +57,36 @@ RSpec.describe Lba::Internal::Run::Visits do
     describe "what counts as a separate call site" do
       it "gives another file its own site_seq and diff" do
         visits = described_class.new
-        visits.record(site)
+        visits.note(site)
 
-        result = visits.record(site(file: "app/models/invoice.rb"))
+        result = visits.note(site(file: "app/models/invoice.rb"))
 
         expect(result).to include(site_seq: 1, diff: nil)
       end
 
       it "gives another line in the same file its own site_seq and diff" do
         visits = described_class.new
-        visits.record(site)
+        visits.note(site)
 
-        result = visits.record(site(line: 11))
+        result = visits.note(site(line: 11))
 
         expect(result).to include(site_seq: 1, diff: nil)
       end
 
       it "gives another record type on the same line its own site_seq and diff" do
         visits = described_class.new
-        visits.record(site)
+        visits.note(site)
 
-        result = visits.record(site(type: "ts"))
+        result = visits.note(site(type: "ts"))
 
         expect(result).to include(site_seq: 1, diff: nil)
       end
 
       it "still numbers a val and a ts on the same line in one global seq" do
         visits = described_class.new
-        visits.record(site)
+        visits.note(site)
 
-        result = visits.record(site(type: "ts"))
+        result = visits.note(site(type: "ts"))
 
         expect(result).to include(seq: 2)
       end
@@ -100,7 +100,7 @@ RSpec.describe Lba::Internal::Run::Visits do
       it "is nil on the process's first checkpoint" do
         visits = described_class.new
 
-        result = visits.record(site(type: "ts"), checkpoint: true)
+        result = visits.note(site(type: "ts"), checkpoint: true)
 
         expect(result).to include(since_prev_ts: nil)
       end
@@ -108,10 +108,10 @@ RSpec.describe Lba::Internal::Run::Visits do
       it "is the time since the previous checkpoint, at any site" do
         visits = described_class.new
         stub_monotonic(100.0)
-        visits.record(site(type: "ts"), checkpoint: true)
+        visits.note(site(type: "ts"), checkpoint: true)
 
         stub_monotonic(100.5)
-        result = visits.record(site(type: "ts", file: "app/models/invoice.rb"), checkpoint: true)
+        result = visits.note(site(type: "ts", file: "app/models/invoice.rb"), checkpoint: true)
 
         expect(result).to include(since_prev_ts: 0.5)
       end
@@ -119,21 +119,21 @@ RSpec.describe Lba::Internal::Run::Visits do
       it "ignores calls that aren't checkpoints between two checkpoints" do
         visits = described_class.new
         stub_monotonic(100.0)
-        visits.record(site(type: "ts"), checkpoint: true)
+        visits.note(site(type: "ts"), checkpoint: true)
         stub_monotonic(100.2)
-        visits.record(site(line: 11))
+        visits.note(site(line: 11))
 
         stub_monotonic(100.5)
-        result = visits.record(site(type: "ts", line: 12), checkpoint: true)
+        result = visits.note(site(type: "ts", line: 12), checkpoint: true)
 
         expect(result).to include(since_prev_ts: 0.5)
       end
 
       it "is left off calls that aren't checkpoints" do
         visits = described_class.new
-        visits.record(site(type: "ts"), checkpoint: true)
+        visits.note(site(type: "ts"), checkpoint: true)
 
-        result = visits.record(site(line: 11))
+        result = visits.note(site(line: 11))
 
         expect(result).not_to have_key(:since_prev_ts)
       end
@@ -141,12 +141,12 @@ RSpec.describe Lba::Internal::Run::Visits do
       it "doesn't count a call as a checkpoint for its site's type" do
         visits = described_class.new
         stub_monotonic(100.0)
-        visits.record(site(type: "ts"), checkpoint: true)
+        visits.note(site(type: "ts"), checkpoint: true)
         stub_monotonic(100.2)
-        visits.record(site(type: "ts", line: 11))
+        visits.note(site(type: "ts", line: 11))
 
         stub_monotonic(100.5)
-        result = visits.record(site(type: "ts", line: 12), checkpoint: true)
+        result = visits.note(site(type: "ts", line: 12), checkpoint: true)
 
         expect(result).to include(since_prev_ts: 0.5)
       end
@@ -154,10 +154,10 @@ RSpec.describe Lba::Internal::Run::Visits do
       it "counts a call the caller says is a checkpoint, whatever its site's type" do
         visits = described_class.new
         stub_monotonic(100.0)
-        visits.record(site(type: "ts"), checkpoint: true)
+        visits.note(site(type: "ts"), checkpoint: true)
 
         stub_monotonic(100.5)
-        result = visits.record(site(type: "val"), checkpoint: true)
+        result = visits.note(site(type: "val"), checkpoint: true)
 
         expect(result).to include(since_prev_ts: 0.5)
       end
@@ -166,14 +166,14 @@ RSpec.describe Lba::Internal::Run::Visits do
 
   describe "#flush" do
     # A site's cap is 500 records per window.
-    def record_past_cap(visits, site, destination, skipped:)
-      (500 + skipped).times { visits.record(site, destination:) }
+    def note_past_cap(visits, site, destination, skipped:)
+      (500 + skipped).times { visits.note(site, destination:) }
     end
 
     it "writes the still-open window's true skipped count for a capped site" do
       visits = described_class.new
       sink = StringIO.new
-      record_past_cap(visits, site, destination_to(sink), skipped: 8)
+      note_past_cap(visits, site, destination_to(sink), skipped: 8)
 
       visits.flush
 
@@ -188,8 +188,8 @@ RSpec.describe Lba::Internal::Run::Visits do
       order_sink = StringIO.new
       invoice_sink = StringIO.new
       invoice_site = site(file: "app/models/invoice.rb", line: 20)
-      record_past_cap(visits, site, destination_to(order_sink), skipped: 1)
-      record_past_cap(visits, invoice_site, destination_to(invoice_sink), skipped: 4)
+      note_past_cap(visits, site, destination_to(order_sink), skipped: 1)
+      note_past_cap(visits, invoice_site, destination_to(invoice_sink), skipped: 4)
 
       visits.flush
 
@@ -203,7 +203,7 @@ RSpec.describe Lba::Internal::Run::Visits do
     it "numbers the records it writes after the visits' last seq" do
       visits = described_class.new
       sink = StringIO.new
-      record_past_cap(visits, site, destination_to(sink), skipped: 1)
+      note_past_cap(visits, site, destination_to(sink), skipped: 1)
 
       visits.flush
 
@@ -213,7 +213,7 @@ RSpec.describe Lba::Internal::Run::Visits do
     it "writes nothing for a site under its cap" do
       visits = described_class.new
       sink = StringIO.new
-      visits.record(site, destination: destination_to(sink))
+      visits.note(site, destination: destination_to(sink))
 
       visits.flush
 
@@ -223,7 +223,7 @@ RSpec.describe Lba::Internal::Run::Visits do
     it "warns rather than raising when a capped site's sink was closed" do
       visits = described_class.new
       sink = StringIO.new
-      record_past_cap(visits, site, destination_to(sink), skipped: 1)
+      note_past_cap(visits, site, destination_to(sink), skipped: 1)
       sink.close
 
       expect { visits.flush }.to output(/lba: couldn't write a record/).to_stderr

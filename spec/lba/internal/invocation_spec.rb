@@ -49,7 +49,7 @@ RSpec.describe Lba::Internal::Invocation do
     context "when the call site is suppressed" do
       before do
         stub_const("Rails", mock_rails(production: false))
-        visits = instance_double(Lba::Internal::Run::Visits, record: :suppressed)
+        visits = instance_double(Lba::Internal::Run::Visits, note: :suppressed)
         allow(Lba::Internal::Run.current).to receive(:visits).and_return(visits)
 
         # Only #file and #line are stubbed, since the call site needs just
@@ -67,7 +67,7 @@ RSpec.describe Lba::Internal::Invocation do
 
         described_class.record(Lba::Internal::Records::Timestamp, sink: StringIO.new)
 
-        expect(Lba::Internal::Run.current.visits).to have_received(:record)
+        expect(Lba::Internal::Run.current.visits).to have_received(:note)
           .with(
             Lba::Internal::Site.new(type: "ts", file: "app.rb", line: 10),
             destination:, checkpoint: true
@@ -81,7 +81,7 @@ RSpec.describe Lba::Internal::Invocation do
 
         described_class.record(Lba::Internal::Records::Value, options:, sink: StringIO.new)
 
-        expect(Lba::Internal::Run.current.visits).to have_received(:record)
+        expect(Lba::Internal::Run.current.visits).to have_received(:note)
           .with(
             Lba::Internal::Site.new(type: "val", file: "app.rb", line: 10),
             destination:, checkpoint: false
@@ -116,7 +116,7 @@ RSpec.describe Lba::Internal::Invocation do
 
       before do
         stub_const("Rails", mock_rails(production: false))
-        visits = instance_double(Lba::Internal::Run::Visits, record: tracked)
+        visits = instance_double(Lba::Internal::Run::Visits, note: tracked)
         allow(Lba::Internal::Run.current).to receive(:visits).and_return(visits)
         allow(Lba::Internal::CallerBinding).to receive(:new).and_return(caller_binding)
         allow(Lba::Internal::Records::Timestamp)
@@ -176,7 +176,7 @@ RSpec.describe Lba::Internal::Invocation do
       it "raises into the calling code" do
         stub_const("Rails", mock_rails(production: false))
         visits = instance_double(Lba::Internal::Run::Visits)
-        allow(visits).to receive(:record).and_raise(RuntimeError, "visits bug")
+        allow(visits).to receive(:note).and_raise(RuntimeError, "visits bug")
         allow(Lba::Internal::Run.current).to receive(:visits).and_return(visits)
 
         expect { described_class.record(Lba::Internal::Records::Timestamp, sink: StringIO.new) }

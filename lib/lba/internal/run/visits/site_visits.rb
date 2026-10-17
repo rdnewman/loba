@@ -33,7 +33,7 @@ module Lba
           #   * +:site_seq+ [Integer] - the call's order among the site's records
           #   * +:diff+ [Float, nil] - seconds since the site's previous record, or
           #     +nil+ for its first
-          def record_call(now:, destination:, &)
+          def note(now:, destination:, &)
             remember_destination(destination)
             roll(now:, &)
             window.count_call
@@ -45,7 +45,7 @@ module Lba
           # Writes a record counting the calls the open window has skipped, if
           # any; for when the process exits.
           #
-          # @yieldreturn (see #record_call)
+          # @yieldreturn (see #note)
           # @return [void]
           def flush(&)
             write_suppression(window.skipped, &)

@@ -8,18 +8,18 @@ RSpec.describe Lba::Internal::Run::Visits::SiteVisits do
 
   let(:cap) { 500 }
 
-  describe "#record_call" do
+  describe "#note" do
     it "numbers the site's first call 1, with no diff" do
-      result = site_visits.record_call(now: 100.0, destination: destination_to(StringIO.new)) { 1 }
+      result = site_visits.note(now: 100.0, destination: destination_to(StringIO.new)) { 1 }
 
       expect(result).to eq(site_seq: 1, diff: nil)
     end
 
     it "numbers each later call in turn, with the time since the previous one" do
       destination = destination_to(StringIO.new)
-      site_visits.record_call(now: 100.0, destination:) { 1 }
+      site_visits.note(now: 100.0, destination:) { 1 }
 
-      result = site_visits.record_call(now: 100.25, destination:) { 1 }
+      result = site_visits.note(now: 100.25, destination:) { 1 }
 
       expect(result).to eq(site_seq: 2, diff: 0.25)
     end
@@ -27,10 +27,10 @@ RSpec.describe Lba::Internal::Run::Visits::SiteVisits do
     it "suppresses a call past the cap, asking for no number", :aggregate_failures do
       sink = StringIO.new
       destination = destination_to(sink)
-      cap.times { site_visits.record_call(now: 100.0, destination:) { 1 } }
+      cap.times { site_visits.note(now: 100.0, destination:) { 1 } }
       asked = false
 
-      result = site_visits.record_call(now: 100.0, destination:) { asked = true }
+      result = site_visits.note(now: 100.0, destination:) { asked = true }
 
       expect(result).to eq(:suppressed)
       expect(asked).to be(false)
@@ -45,9 +45,9 @@ RSpec.describe Lba::Internal::Run::Visits::SiteVisits do
         )
         sink = StringIO.new
         destination = destination_to(sink)
-        (cap + 2).times { site_visits.record_call(now: 100.0, destination:) { 1 } }
+        (cap + 2).times { site_visits.note(now: 100.0, destination:) { 1 } }
 
-        result = site_visits.record_call(now: 160.0, destination:) { 42 }
+        result = site_visits.note(now: 160.0, destination:) { 42 }
 
         expect(JSON.parse(sink.string, symbolize_names: true)).to include(
           seq: 42, type: "ts", file: "app/models/order.rb", line: 10,
@@ -59,11 +59,11 @@ RSpec.describe Lba::Internal::Run::Visits::SiteVisits do
       it "keeps numbering and timing from the site's last counted call" do
         sink = StringIO.new
         destination = destination_to(sink)
-        (cap - 1).times { site_visits.record_call(now: 100.0, destination:) { 1 } }
-        site_visits.record_call(now: 101.0, destination:) { 1 }
-        site_visits.record_call(now: 102.0, destination:) { 1 }
+        (cap - 1).times { site_visits.note(now: 100.0, destination:) { 1 } }
+        site_visits.note(now: 101.0, destination:) { 1 }
+        site_visits.note(now: 102.0, destination:) { 1 }
 
-        result = site_visits.record_call(now: 161.0, destination:) { 1 }
+        result = site_visits.note(now: 161.0, destination:) { 1 }
 
         expect(result).to eq(site_seq: cap + 1, diff: 60.0)
       end
@@ -71,10 +71,10 @@ RSpec.describe Lba::Internal::Run::Visits::SiteVisits do
       it "writes the record to the latest destination given, even if this call gives none" do
         first_destination = destination_to(StringIO.new)
         latest_sink = StringIO.new
-        cap.times { site_visits.record_call(now: 100.0, destination: first_destination) { 1 } }
-        site_visits.record_call(now: 100.0, destination: destination_to(latest_sink)) { 1 }
+        cap.times { site_visits.note(now: 100.0, destination: first_destination) { 1 } }
+        site_visits.note(now: 100.0, destination: destination_to(latest_sink)) { 1 }
 
-        site_visits.record_call(now: 160.0, destination: nil) { 1 }
+        site_visits.note(now: 160.0, destination: nil) { 1 }
 
         expect(JSON.parse(latest_sink.string)).to include("suppressed_count" => 1)
       end
@@ -84,10 +84,10 @@ RSpec.describe Lba::Internal::Run::Visits::SiteVisits do
       it "writes nothing and asks for no number", :aggregate_failures do
         sink = StringIO.new
         destination = destination_to(sink)
-        site_visits.record_call(now: 100.0, destination:) { 1 }
+        site_visits.note(now: 100.0, destination:) { 1 }
         asked = false
 
-        site_visits.record_call(now: 160.0, destination:) { asked = true }
+        site_visits.note(now: 160.0, destination:) { asked = true }
 
         expect(sink.string).to be_empty
         expect(asked).to be(false)
@@ -99,7 +99,7 @@ RSpec.describe Lba::Internal::Run::Visits::SiteVisits do
     it "writes a record counting the open window's skipped calls, numbered on request" do
       sink = StringIO.new
       destination = destination_to(sink)
-      (cap + 1).times { site_visits.record_call(now: 100.0, destination:) { 1 } }
+      (cap + 1).times { site_visits.note(now: 100.0, destination:) { 1 } }
 
       site_visits.flush { 7 }
 
@@ -111,7 +111,7 @@ RSpec.describe Lba::Internal::Run::Visits::SiteVisits do
        :aggregate_failures do
       sink = StringIO.new
       destination = destination_to(sink)
-      site_visits.record_call(now: 100.0, destination:) { 1 }
+      site_visits.note(now: 100.0, destination:) { 1 }
       asked = false
 
       site_visits.flush { asked = true }
@@ -121,7 +121,7 @@ RSpec.describe Lba::Internal::Run::Visits::SiteVisits do
     end
   end
 
-  it "exposes only #record_call and #flush" do
-    expect(described_class.public_instance_methods(false)).to contain_exactly(:record_call, :flush)
+  it "exposes only #note and #flush" do
+    expect(described_class.public_instance_methods(false)).to contain_exactly(:note, :flush)
   end
 end

@@ -40,11 +40,11 @@ module Lba
         #   * +:since_prev_ts+ [Float, nil] - checkpoints only: seconds since the
         #     process's previous checkpoint at any site, or +nil+ for its first.
         #     Suppression records don't count as a previous checkpoint.
-        def record(site, destination: nil, checkpoint: false)
+        def note(site, destination: nil, checkpoint: false)
           now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
           # A record counting the site's skipped calls takes its seq, through the
           # block, before this call takes the next one.
-          numbered = site_visits_for(site).record_call(now:, destination:) { advance_seq }
+          numbered = site_visits_for(site).note(now:, destination:) { advance_seq }
           return :suppressed if numbered == :suppressed
 
           { seq: advance_seq, mono_time: now, **numbered, **checkpoint_fields(checkpoint, now) }
