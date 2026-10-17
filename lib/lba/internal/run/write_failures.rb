@@ -1,3 +1,5 @@
+require_relative "write_failures/gap"
+
 module Lba
   module Internal
     class Run
@@ -30,11 +32,7 @@ module Lba
         # them.
         #
         # @param sink [IO, String] the sink about to be written
-        # @return [Hash{Symbol => Integer, String}, nil] +nil+ if none were
-        #   missed; otherwise:
-        #   * +:count+ [Integer] - how many records couldn't be written
-        #   * +:first_seq+, +:last_seq+ [Integer] - the +seq+ range they fell in
-        #   * +:error+ [String] - the first failure, as +"Class: message"+
+        # @return [Gap, nil] +nil+ if none were missed
         def unwritten(sink)
           @unwritten[sink]
         end
@@ -53,19 +51,19 @@ module Lba
         #
         # @return [void]
         def summarize
-          @unwritten.each do |sink, entry|
-            warn "lba: #{records(entry[:count])} couldn't be written to #{sink.inspect} " \
-                 "(first error: #{entry[:error]})"
+          @unwritten.each do |sink, gap|
+            warn "lba: #{gap.summary(sink:)}"
           end
         end
 
       private
 
         def count_unwritten(sink, error, seq)
-          entry = @unwritten[sink] ||= { count: 0, first_seq: seq, last_seq: seq,
-                                         error: "#{error.class}: #{error.message}" }
-          entry[:count] += 1
-          entry[:last_seq] = seq
+          if @unwritten.has_key?(sink)
+            @unwritten[sink].add(seq:)
+          else
+            @unwritten[sink] = Gap.new(error:, seq:)
+          end
         end
 
         def warn_once(sink, error)
@@ -75,14 +73,6 @@ module Lba
           warn "lba: couldn't write a record to #{sink.inspect} " \
                "(#{error.class}: #{error.message}); " \
                "later write failures in this process won't be reported"
-        end
-
-        def records(count)
-          if count == 1
-            "1 record"
-          else
-            "#{count} records"
-          end
         end
       end
     end

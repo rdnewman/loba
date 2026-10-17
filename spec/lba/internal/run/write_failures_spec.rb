@@ -31,7 +31,7 @@ RSpec.describe Lba::Internal::Run::WriteFailures do
       failures.report(sink: "a.jsonl", error: no_space, seq: 3)
       failures.report(sink: "a.jsonl", error: Errno::EACCES.new, seq: 4)
 
-      expect(failures.unwritten("a.jsonl")).to eq(
+      expect(failures.unwritten("a.jsonl").to_h).to eq(
         count: 2, first_seq: 3, last_seq: 4, error: "Errno::ENOSPC: No space left on device"
       )
     end

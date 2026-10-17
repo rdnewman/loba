@@ -129,13 +129,7 @@ module Lba
 
         def with_gap(fields, gap)
           if gap
-            # The gap qualifies the record's place in the run, so it goes right
-            # after the record's seq and type.
-            {
-              **fields.slice(:seq, :type),
-              unwritten: gap,
-              **fields.except(:seq, :type)
-            }
+            gap.noted_on(fields)
           else
             fields
           end
