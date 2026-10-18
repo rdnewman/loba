@@ -54,6 +54,23 @@ RSpec.describe Lba::Internal::Run::Visits do
       expect(result).to include(mono_time: 100.25)
     end
 
+    context "when threads note one site at once" do
+      it "numbers the site's records apart" do
+        visits = described_class.new
+        # Holds each thread inside starting the site's visits, where another
+        # could start them too.
+        allow(described_class::SiteVisits)
+          .to receive(:new).and_wrap_original do |original, *arguments|
+            sleep 0.05
+            original.call(*arguments)
+          end
+
+        results = Array.new(2) { Thread.new { visits.note(site) } }.map(&:value)
+
+        expect(results.map { _1[:site_seq] }).to contain_exactly(1, 2)
+      end
+    end
+
     describe "what counts as a separate call site" do
       it "gives another file its own site_seq and diff" do
         visits = described_class.new
@@ -208,6 +225,25 @@ RSpec.describe Lba::Internal::Run::Visits do
       visits.flush
 
       expect(JSON.parse(sink.string.lines.last)).to include("seq" => 501)
+    end
+
+    it "lets another thread note a new site while it flushes" do
+      visits = described_class.new
+      note_past_cap(visits, site, destination_to(StringIO.new), skipped: 1)
+      flushing = Queue.new
+      # Holds the flush partway through its sites.
+      allow(Lba::Internal::Records::Suppression)
+        .to receive(:fields).and_wrap_original do |original, **options|
+          flushing << true
+          sleep 0.05
+          original.call(**options)
+        end
+      flusher = Thread.new { visits.flush }
+      flushing.pop
+
+      noter = Thread.new { visits.note(site(file: "app/models/invoice.rb", line: 20)) }
+
+      expect { [flusher, noter].each(&:join) }.not_to raise_error
     end
 
     it "writes nothing for a site under its cap" do

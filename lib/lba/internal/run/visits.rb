@@ -1,3 +1,4 @@
+require_relative "lock"
 require_relative "visits/site_visits"
 
 module Lba
@@ -7,12 +8,18 @@ module Lba
       # per call site, and caps how many records one call site writes per
       # window of time. Keeps running counts and times, not the visits
       # themselves; the written records are the history.
+      #
+      # One thread at a time notes or flushes, so threads never share a number
+      # or split a site's visits. Records are numbered when noted, before they're
+      # built and written, so with several threads a sink's lines can be
+      # slightly out of +seq+ order; +seq+ is the order calls reached lba.
       class Visits
         # Starts with no call sites seen.
         def initialize
           @site_visits = {}
           @global_seq = 0
           @last_ts_mono_time = nil
+          @lock = Lock.new
         end
 
         # Counts one call at a site, unless the site is capped for its current
@@ -41,6 +48,26 @@ module Lba
         #     process's previous checkpoint at any site, or +nil+ for its first.
         #     Suppression records don't count as a previous checkpoint.
         def note(site, destination: nil, checkpoint: false)
+          lock.synchronize { note_exclusively(site, destination:, checkpoint:) }
+        end
+
+        # Writes, for each capped site, the record counting the calls it has
+        # skipped in its current window, as the run ends.
+        #
+        # @return [void]
+        def flush
+          lock.synchronize do
+            site_visits.each_value do |visits_at_site|
+              visits_at_site.flush { advance_seq }
+            end
+          end
+        end
+
+      private
+
+        attr_reader :site_visits, :lock
+
+        def note_exclusively(site, destination:, checkpoint:)
           now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
           # A record counting the site's skipped calls takes its seq, through the
           # block, before this call takes the next one.
@@ -49,20 +76,6 @@ module Lba
 
           { seq: advance_seq, mono_time: now, **numbered, **checkpoint_fields(checkpoint, now) }
         end
-
-        # Writes, for each capped site, the record counting the calls it has
-        # skipped in its current window, as the run ends.
-        #
-        # @return [void]
-        def flush
-          site_visits.each_value do |visits_at_site|
-            visits_at_site.flush { advance_seq }
-          end
-        end
-
-      private
-
-        attr_reader :site_visits
 
         def site_visits_for(site)
           site_visits[site] ||= SiteVisits.new(site)
