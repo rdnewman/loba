@@ -1,8 +1,7 @@
-require_relative "../record_stamp"
+require_relative "stamp"
 
 module Lba
   module Internal
-    # Classes that each build one kind of record's fields.
     module Records
       # Builds the fields of the record a capped call site writes to count the
       # calls it skipped.
@@ -30,7 +29,7 @@ module Lba
             line: site.line,
             suppressed: true,
             suppressed_count:,
-            **RecordStamp.fields
+            **Stamp.fields
           }
         end
 

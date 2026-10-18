@@ -1,4 +1,6 @@
 require "securerandom"
+require_relative "run/visits"
+require_relative "run/delivery"
 
 module Lba
   module Internal

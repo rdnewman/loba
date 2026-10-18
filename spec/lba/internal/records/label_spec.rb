@@ -1,4 +1,4 @@
-RSpec.describe Lba::Internal::Label do
+RSpec.describe Lba::Internal::Records::Label do
   describe ".infer" do
     context "when no explicit label is given" do
       it "infers the label from a Symbol argument" do

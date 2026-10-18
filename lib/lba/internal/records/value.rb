@@ -1,5 +1,5 @@
-require_relative "../record_stamp"
-require_relative "../label"
+require_relative "stamp"
+require_relative "label"
 require_relative "../serialization"
 require_relative "caller"
 
@@ -42,7 +42,7 @@ module Lba
         def fields
           # Stamped before the value is evaluated, so serializing a large value
           # doesn't delay wall_time.
-          stamp = RecordStamp.fields(mono_time: tracked[:mono_time])
+          stamp = Stamp.fields(mono_time: tracked[:mono_time])
           {
             seq: tracked[:seq],
             type: TYPE,

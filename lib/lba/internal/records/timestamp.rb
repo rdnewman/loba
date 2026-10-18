@@ -1,5 +1,5 @@
-require_relative "../record_stamp"
-require_relative "../label"
+require_relative "stamp"
+require_relative "label"
 require_relative "caller"
 
 module Lba
@@ -37,7 +37,7 @@ module Lba
             **Caller.fields(caller_binding),
             site_seq: tracked[:site_seq],
             since_prev_ts: tracked[:since_prev_ts],
-            **RecordStamp.fields(mono_time: tracked[:mono_time])
+            **Stamp.fields(mono_time: tracked[:mono_time])
           }
         end
 

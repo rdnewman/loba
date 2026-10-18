@@ -1,6 +1,5 @@
 module Lba
   module Internal
-    # Facts about the environment lba is running in.
     module Platform
       # Facts about the Rails app lba is running in, if any.
       module WithinRails

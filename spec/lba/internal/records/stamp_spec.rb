@@ -1,4 +1,4 @@
-RSpec.describe Lba::Internal::RecordStamp do
+RSpec.describe Lba::Internal::Records::Stamp do
   describe ".fields" do
     it "stamps the schema version and this process's run" do
       stamp = described_class.fields
