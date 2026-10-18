@@ -222,7 +222,7 @@ An unknown option raises Ruby's `ArgumentError` at the call.
 
 ## Limits
 
-To keep a record, and the cost of making it, bounded:
+These limits keep records bounded in size, and in number per call site:
 
 - Strings longer than 500 characters are cut to 500, followed by
   `" [+N chars]"`. Text from `#inspect` or `#to_s` is cut the same way.
@@ -249,6 +249,10 @@ To keep a record, and the cost of making it, bounded:
 mistaken for a complete one: `Lba.val :order` with 53 items gives
 `"cut":[{"path":["items"],"omitted":3,"unit":"entries"}]`, and `value` holds
 the first 50.
+
+The time to make a record isn't always bounded: text from `#inspect` or `#to_s`
+is built in full before it's cut, and a value that repeats the same large part
+many times is walked once per repeat.
 
 ## Errors
 
