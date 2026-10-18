@@ -5,7 +5,7 @@ module Lba
     class Invocation
       # The frames between the caller and #record: the public method (e.g.
       # +.value+), Invocation.record, and #record itself. Depth counts from where the
-      # CallerBinding is built, so it must be built directly in #record.
+      # CallerBinding is captured, so it must be captured directly in #record.
       DEPTH = 3
 
       # Records one call; shorthand for +new(...).record+.
@@ -35,7 +35,7 @@ module Lba
         return if Platform::Environment.production?
 
         @destination = Destination.for(sink:, log:, logger:)
-        @caller_binding = CallerBinding.new(depth: DEPTH)
+        @caller_binding = CallerBinding.capture(depth: DEPTH)
         @tracked = track
         return if tracked == :suppressed
 

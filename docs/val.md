@@ -109,14 +109,14 @@ A skipped record shouldn't look like code that never ran, so the next record
 that is written to the same sink notes what was missed, in `unwritten`:
 
 ```json
-{"seq":4,"type":"ts","unwritten":{"count":2,"first_seq":2,"last_seq":3,"error":"Errno::EACCES: Permission denied @ rb_sysopen - log/trace.jsonl"},"label":"after recovery"}
+{"seq":4,"type":"ts","unwritten":{"count":2,"first_seq":2,"last_seq":3,"error":"Errno::EACCES: Permission denied @ rb_sysopen - /app/log/trace.jsonl"},"label":"after recovery"}
 ```
 
 If no later record reaches that sink, the process reports the loss when it
-exits normally instead, on `$stderr`:
+exits instead (by any means but `exit!` or `kill -9`), on `$stderr`:
 
 ```text
-lba: 2 records couldn't be written to "log/trace.jsonl" (first error: Errno::EACCES: Permission denied @ rb_sysopen - log/trace.jsonl)
+lba: 2 records couldn't be written to "/app/log/trace.jsonl" (first error: Errno::EACCES: Permission denied @ rb_sysopen - /app/log/trace.jsonl)
 ```
 
 Inside Rails, the default is used only once the app has booted (`Rails.root` is
@@ -135,15 +135,15 @@ bookkeeping that repeats from line to line.
 |---|---|
 | `seq` | Order of this record among all records in the run: the order calls reached lba. Lines can be out of `seq` order when one lba call runs inside another (a Symbol naming a method that calls lba, say) or calls run in several threads; sort by `seq` to read them in call order. |
 | `type` | `"val"` |
-| `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `first_seq` and `last_seq` they fell between, and the first `error` (see [Where records go](#where-records-go)) |
+| `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `seq` of the first and last of them (`first_seq`, `last_seq`), and the first `error` (see [Where records go](#where-records-go)) |
 | `label` | The given or inferred label, or `null` |
 | `file`, `line` | Where `Lba.val` was called; `file` is the path Ruby loaded that file by, usually absolute inside an app |
 | `class_name` | The caller's class, or the class itself inside a class method; `"<anonymous class>"` for an unnamed one |
 | `method_name` | The caller's method; `"<anonymous method>"` outside any method |
 | `method_type` | `"instance"` or `"class"` |
 | `site_seq` | Order of this record among records from the same call site (file and line) |
-| `diff` | Seconds since the previous record from the same call site, exactly the difference between their `mono_time` values; `null` for the first |
-| `value_type` | The value's class name |
+| `diff` | Seconds since the previous record from the same call site, exactly the difference between their `mono_time` values; `null` for the first. A record counting skipped calls doesn't count as a previous record. |
+| `value_type` | The value's class name; for a subclass of String, Array, or Hash, that base class's name; `null` for an anonymous class |
 | `rendered` | Present only when some part of the value is recorded as text instead of as itself: one `{"path", "as"}` per part, where `as` says why (see below). The text can look exactly like a real String; this says which parts aren't |
 | `cut` | Present only when some part of the value was cut short: one `{"path", "omitted", "unit"}` per part, saying how many `"chars"`, `"entries"` (Array), or `"keys"` (Hash) were left out (see [Limits](#limits)) |
 | `errors` | Present only when evaluating the Symbol, or rendering any part of the value, raised: one `{"path", "message"}` per failure. Without `value`, nothing could be recorded; with it, only part couldn't (see [Errors](#errors)). A `path`, here and in `rendered`, is the part's Array indexes and Hash keys from the top; `[]` is the whole value. An entry about a Hash key itself, not the value under it, also has `"key": true` |
@@ -202,7 +202,7 @@ since it has no place in `value` to point to.
 | `label:` | inferred from a Symbol | A label for the record. A String or Symbol; anything else gives no label. Converted to UTF-8; bytes that aren't valid UTF-8 become `�` (U+FFFD). |
 | `inspect:` | `true` | For a value with no JSON form, `true` renders it with `#inspect`, `false` with `#to_s`. JSON-native values are unaffected. |
 | `log:` | `false`, or `true` if `logger:` is given | `true` also writes the record to `Rails.logger` (or `logger:`). `false` never logs, even if `logger:` is given. |
-| `logger:` | none | A `Logger` to also write the record to. Anything other than a `Logger` raises `Lba::InvalidLoggerOptionError`. |
+| `logger:` | none | A `Logger` to also write the record to. When the call would log, anything other than a `Logger` raises `Lba::InvalidLoggerOptionError` (not with `log: false`, and not in production, where nothing is written). |
 | `sink:` | this run's file | A path (String or `Pathname`) or IO to write to instead. |
 
 ```ruby
@@ -212,7 +212,7 @@ Lba.val :name, logger: Logger.new($stderr)
 ```
 
 A logged record is the same JSON as the one written to the sink, at `debug`
-level. The sink is always written; logging is an addition, not a replacement.
+level, except that `unwritten` appears only in the sink. The sink is always written; logging is an addition, not a replacement.
 The record counting a capped site's skipped calls (see [Limits](#limits)) is
 logged too, with the logging options of that site's latest call. Outside Rails
 there is no default logger, so `log: true` logs nothing unless `logger:` is
@@ -231,7 +231,8 @@ These limits keep records bounded in size, and in number per call site:
 - Nesting deeper than 5 levels is rendered as text.
 - Each call site writes at most 500 records a minute. Calls past that write
   nothing, and skip evaluating and serializing their value. The first call to
-  that site after the minute, or the process exiting normally, writes one record
+  that site after the minute, or the process exiting (by any means but `exit!` or
+  `kill -9`), writes one record
   noting how many calls were skipped:
 
   ```json
@@ -283,8 +284,9 @@ the outside in.
 {"label":"items","value_type":"Array","errors":[{"path":[0],"message":"NoMethodError: undefined method 'inspect' for an instance of BasicObject"},{"path":[2],"message":"ArgumentError: boom"}],"value":["(unrenderable)",1,"(unrenderable)"]}
 ```
 
-So `errors` is always the sign that something couldn't be recorded; a record
-without it was recorded in full. Exceptions outside `StandardError`, such as
+So `errors` is always the sign that something couldn't be rendered; a record
+without it had nothing that couldn't be. (What was cut short, or lost to a
+key collision, is listed in `cut` and `collided`.) Exceptions outside `StandardError`, such as
 `Interrupt`, are not caught, except a `ScriptError` (such as `SyntaxError`) from
 evaluating a Symbol.
 

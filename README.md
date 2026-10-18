@@ -72,8 +72,8 @@ appends two lines like these (again with some fields left out):
 {"type":"ts","label":"card charged","line":5,"class_name":"Cart","method_name":"checkout","site_seq":1,"since_prev_ts":0.25351782900543185}
 ```
 
-`since_prev_ts` is `null` for a run's first checkpoint; `site_seq` counts how
-many times each line has been reached. `label:` names a checkpoint. `Lba.ts` is
+`since_prev_ts` is `null` for a run's first checkpoint; `site_seq` numbers
+each line's records. `label:` names a checkpoint. `Lba.ts` is
 shorthand for `Lba.timestamp`.
 
 See [docs/ts.md](docs/ts.md) for the full record format, options, and limits.
@@ -101,7 +101,7 @@ group :development, :test do
 end
 ```
 
-Then run `bundle install`. Lba needs Ruby 3.2 or newer.
+Then run `bundle install`. Lba needs Ruby 3.3 or newer.
 
 ## Development
 

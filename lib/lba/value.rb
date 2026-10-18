@@ -26,7 +26,8 @@ module Lba
   #   override)
   # @return [void]
   # @raise [ArgumentError] for an unknown keyword, such as +production:+
-  # @raise [InvalidLoggerOptionError] if +logger+ is not a +Logger+
+  # @raise [InvalidLoggerOptionError] if the call would log and +logger+ is
+  #   neither +nil+ nor a +Logger+
   #
   # @example Using a Symbol as the argument
   #   class HelloWorld
@@ -36,8 +37,8 @@ module Lba
   #     end
   #   end
   #   HelloWorld.new.hello("Charlie")
-  #   #=> writes {"label":"name","value":"Charlie","class_name":"HelloWorld",
-  #   #           "method_name":"hello","line":3,...}
+  #   #=> writes {...,"label":"name",...,"line":3,"class_name":"HelloWorld",
+  #   #           "method_name":"hello",...,"value":"Charlie",...}
   # @example Using a value directly, with a label
   #   Lba.val order.total, label: "Order total"
   # @example Also writing to Rails.logger

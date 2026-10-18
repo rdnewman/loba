@@ -15,11 +15,11 @@ RSpec.describe Lba::Internal::Invocation do
       end
 
       it "does not snapshot the caller" do
-        allow(Lba::Internal::CallerBinding).to receive(:new)
+        allow(Lba::Internal::CallerBinding).to receive(:capture)
 
         described_class.record(Lba::Internal::Records::Timestamp)
 
-        expect(Lba::Internal::CallerBinding).not_to have_received(:new)
+        expect(Lba::Internal::CallerBinding).not_to have_received(:capture)
       end
 
       it "returns nil" do
@@ -56,7 +56,7 @@ RSpec.describe Lba::Internal::Invocation do
         # those. Any other call is the costly work this gate skips; the
         # double raises on it, and the "does not raise" example catches that.
         caller_binding = instance_double(Lba::Internal::CallerBinding, file: "app.rb", line: 10)
-        allow(Lba::Internal::CallerBinding).to receive(:new).and_return(caller_binding)
+        allow(Lba::Internal::CallerBinding).to receive(:capture).and_return(caller_binding)
 
         allow(Lba::Internal::Records::Timestamp).to receive(:fields)
       end
@@ -118,7 +118,7 @@ RSpec.describe Lba::Internal::Invocation do
         stub_const("Rails", mock_rails(production: false))
         visits = instance_double(Lba::Internal::Run::Visits, note: tracked)
         allow(Lba::Internal::Run.current).to receive(:visits).and_return(visits)
-        allow(Lba::Internal::CallerBinding).to receive(:new).and_return(caller_binding)
+        allow(Lba::Internal::CallerBinding).to receive(:capture).and_return(caller_binding)
         allow(Lba::Internal::Records::Timestamp)
           .to receive(:fields).and_return({ type: "ts", seq: 1 })
       end

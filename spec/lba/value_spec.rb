@@ -219,7 +219,7 @@ RSpec.describe Lba, ".value" do
   context "when called without the Lba namespace" do
     it "is not available as a bare val" do
       expect { Object.new.instance_eval { val(:anything) } }
-        .to raise_error(NoMethodError, /undefined method 'val'/)
+        .to raise_error(NoMethodError, /undefined method [`']val'/)
     end
   end
 
@@ -473,7 +473,7 @@ RSpec.describe Lba, ".value" do
 
       expect(written_record(sink)).to include(
         label: "proxy",
-        errors: [{ path: [], message: start_with("NoMethodError: undefined method 'inspect'") }]
+        errors: [{ path: [], message: match(/\ANoMethodError: undefined method [`']inspect'/) }]
       )
     end
 
@@ -484,7 +484,7 @@ RSpec.describe Lba, ".value" do
 
       expect(written_record(sink)).to include(
         value: [1, "(unrenderable)", 3],
-        errors: [{ path: [1], message: start_with("NoMethodError: undefined method 'inspect'") }]
+        errors: [{ path: [1], message: match(/\ANoMethodError: undefined method [`']inspect'/) }]
       )
     end
   end

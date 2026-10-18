@@ -65,7 +65,7 @@ Fields come in this order on every line, as with
 |---|---|
 | `seq` | Order of this record among all records in the run, values included: the order calls reached lba. Lines can be out of `seq` order when one lba call runs inside another (a Symbol naming a method that calls lba, say) or calls run in several threads; sort by `seq` to read them in call order. |
 | `type` | `"ts"` |
-| `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `first_seq` and `last_seq` they fell between, and the first `error` (see [Where records go](val.md#where-records-go)) |
+| `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `seq` of the first and last of them (`first_seq`, `last_seq`), and the first `error` (see [Where records go](val.md#where-records-go)) |
 | `label` | The given label, or `null` |
 | `file`, `line` | Where `Lba.ts` was called; `file` is the path Ruby loaded that file by, usually absolute inside an app |
 | `class_name` | The caller's class, or the class itself inside a class method; `"<anonymous class>"` for an unnamed one |
@@ -101,7 +101,7 @@ the *same* call site. Checkpoint records have no `diff`.
 |---|---|---|
 | `label:` | none | A name for the checkpoint. A String or Symbol, stripped of surrounding spaces; anything else gives no label. Converted to UTF-8; bytes that aren't valid UTF-8 become `�` (U+FFFD). |
 | `log:` | `false`, or `true` if `logger:` is given | `true` also writes the record to `Rails.logger` (or `logger:`). `false` never logs, even if `logger:` is given. |
-| `logger:` | none | A `Logger` to also write the record to. Anything other than a `Logger` raises `Lba::InvalidLoggerOptionError`. |
+| `logger:` | none | A `Logger` to also write the record to. When the call would log, anything other than a `Logger` raises `Lba::InvalidLoggerOptionError` (not with `log: false`, and not in production, where nothing is written). |
 | `sink:` | this run's file | A path (String or `Pathname`) or IO to write to instead. |
 
 ```ruby
@@ -110,8 +110,9 @@ Lba.ts log: true
 Lba.ts logger: Logger.new($stderr)
 ```
 
-Logging works as it does for `Lba.val`: the same JSON, at `debug` level, in
-addition to the sink. Outside Rails, `log: true` logs nothing unless `logger:`
+Logging works as it does for `Lba.val`: the same JSON (except that
+`unwritten` appears only in the sink), at `debug` level, in addition to the
+sink. Outside Rails, `log: true` logs nothing unless `logger:`
 is also given.
 
 An unknown option raises Ruby's `ArgumentError` at the call.
@@ -120,7 +121,8 @@ An unknown option raises Ruby's `ArgumentError` at the call.
 
 Each call site writes at most 500 checkpoints a minute, as with `Lba.val`.
 Calls past that write nothing; the first call to that site after the minute, or
-the process exiting normally, writes one record noting how many were skipped:
+the process exiting (by any means but `exit!` or `kill -9`), writes one record
+noting how many were skipped:
 
 ```json
 {"seq":501,"type":"ts","file":"app/models/cart.rb","line":10,"suppressed":true,"suppressed_count":3,"wall_time":1790776456.2902832,"mono_time":47675.468684261,"run_id":"20260930T135416Z-5-e7905d1f","schema":1}
@@ -131,14 +133,16 @@ its own `site_seq` and its own limit.
 
 ## Errors
 
-`Lba.ts` runs none of the caller's code, so it has nothing to record as an
-error. A record that can't be written (a full disk, a read-only file, a closed
-IO) is skipped and reported on `$stderr`, and the next record written to that
-sink notes the gap in `unwritten`, as for `Lba.val` (see
-[Where records go](val.md#where-records-go)). That matters for checkpoints in
-particular: a skipped checkpoint must not look like a line that was never
-reached. Any other error raised from inside lba is a bug in lba, and is raised
-at the call.
+The only caller code `Lba.ts` runs is a class's own `name` method, for
+`class_name`; if that fails, the class's constant name is used instead, so
+`Lba.ts` has nothing to record as an error. A record that can't be written (a
+full disk, a read-only file, a closed IO) is skipped. The first such failure in
+a process is reported on `$stderr`, the rest are summarized when it exits, and
+the next record written to that sink notes the gap in `unwritten`, as for
+`Lba.val` (see [Where records go](val.md#where-records-go)). That matters for
+checkpoints in particular: a skipped checkpoint must not look like a line that
+was never reached. Any other error is raised at the call: one raised by a
+`logger:` or IO you passed, or a bug in lba.
 
 ## Environment notes
 

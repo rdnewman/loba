@@ -6,7 +6,7 @@ require_relative "run/delivery"
 module Lba
   module Internal
     # One process's run: every record it writes carries the run's id, and its
-    # records share one sink file. A forked child is a run of its own.
+    # records share one default file. A forked child is a run of its own.
     class Run
       # Fails if anything, even a symlink, is already at the path.
       CREATE_FLAGS = File::WRONLY | File::CREAT | File::EXCL | File::NOFOLLOW

@@ -6,8 +6,9 @@ module Lba
       # key collisions. Each subclass supplies #children_of, #items,
       # #value_type, #omitted_unit, and #position.
       class ContainerNode
-        # Deeper containers fall back to #inspect. This also stops a cycle,
-        # which Ruby's own #inspect then handles safely. 5 is a guess.
+        # Deeper containers are rendered as text, by #inspect (or #to_s with
+        # inspect: false). This also stops a cycle, which Ruby's own #inspect
+        # then handles safely. 5 is a guess.
         MAX_DEPTH = 5
 
         # Entries past this are never walked; the container's :cut entry counts
@@ -23,7 +24,7 @@ module Lba
         # @return (see Lba::Internal::Serialization.serialize)
         def self.serialize(...) = new(...).serialize
 
-        # Serializes the container's first MAX_ENTRIES children, unless it is
+        # Serializes the container's first MAX_ENTRIES entries, unless it is
         # nested MAX_DEPTH or more deep.
         #
         # @param value [Array, Hash] the container to serialize
@@ -94,11 +95,13 @@ module Lba
         # This container's own key collisions; see HashNode.
         def collisions = NONE
 
-        # The entries in +list+ (+:rendered+, +:errors+, or +:collided+): this
+        # The entries in +list+ (+:rendered+, +:cut+, +:errors+, or +:collided+): this
         # container's +own+, then its counted children's. Keyed by +list+, or
         # nothing if there are none.
         def listed(list, own: NONE)
-          return {} if own.empty? && children.none? { _1[list] }
+          if own.empty? && children.none? { _1[list] }
+            return {}
+          end
 
           entries = children.each_with_index.flat_map do |child, index|
             next NONE unless counted?(index)

@@ -43,8 +43,9 @@ module Lba
         #     +:since_prev_ts+ are measured from, for the record to write, so
         #     they equal the gaps between written +mono_time+ values
         #   * +:site_seq+ [Integer] - its order among the site's records
-        #   * +:diff+ [Float, nil] - seconds since the site's previous record, or
-        #     +nil+ for its first
+        #   * +:diff+ [Float, nil] - seconds since the site's previous numbered
+        #     record (a record counting skipped calls doesn't count), or +nil+
+        #     for its first
         #   * +:since_prev_ts+ [Float, nil] - checkpoints only: seconds since the
         #     process's previous checkpoint at any site, or +nil+ for its first.
         #     Suppression records don't count as a previous checkpoint.

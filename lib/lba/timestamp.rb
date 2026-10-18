@@ -19,15 +19,16 @@ module Lba
   #   override)
   # @return [void]
   # @raise [ArgumentError] for an unknown keyword, such as +production:+
-  # @raise [InvalidLoggerOptionError] if +logger+ is not a +Logger+
+  # @raise [InvalidLoggerOptionError] if the call would log and +logger+ is
+  #   neither +nil+ nor a +Logger+
   #
   # @example Marking a point in the code
   #   def checkout
   #   Lba.ts # putting Lba statements at the far left helps you remember to remove them
   #     charge_card
   #   end
-  #   #=> writes {"type":"ts","since_prev_ts":null,"class_name":"Cart",
-  #   #           "method_name":"checkout","line":2,...}
+  #   #=> writes {...,"type":"ts",...,"line":2,"class_name":"Cart",
+  #   #           "method_name":"checkout",...,"since_prev_ts":null,...}
   # @example Naming the checkpoint
   #   Lba.ts label: "reached step A"
   def self.timestamp(label: nil, log: nil, logger: nil, sink: nil)

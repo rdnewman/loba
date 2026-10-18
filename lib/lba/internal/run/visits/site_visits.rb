@@ -31,8 +31,9 @@ module Lba
           # @return [Hash{Symbol => Integer, Float, nil}, :suppressed] +:suppressed+
           #   if the call is skipped; otherwise:
           #   * +:site_seq+ [Integer] - the call's order among the site's records
-          #   * +:diff+ [Float, nil] - seconds since the site's previous record, or
-          #     +nil+ for its first
+          #   * +:diff+ [Float, nil] - seconds since the site's previous numbered
+          #     record (a record counting skipped calls doesn't count), or +nil+
+          #     for its first
           def note(now:, destination:, &)
             remember_destination(destination)
             roll(now:, &)

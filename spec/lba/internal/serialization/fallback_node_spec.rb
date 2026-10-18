@@ -88,14 +88,14 @@ RSpec.describe Lba::Internal::Serialization::FallbackNode do
         result = described_class.serialize(value: BasicObject.new, use_inspect: false)
 
         expect(result[:errors].first[:message])
-          .to start_with("NoMethodError: undefined method 'to_s'")
+          .to match(/\ANoMethodError: undefined method [`']to_s'/)
       end
 
       it "reports a BasicObject, which has no #inspect" do
         result = described_class.serialize(value: BasicObject.new)
 
         expect(result[:errors].first[:message])
-          .to start_with("NoMethodError: undefined method 'inspect'")
+          .to match(/\ANoMethodError: undefined method [`']inspect'/)
       end
     end
 

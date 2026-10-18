@@ -27,7 +27,9 @@ module Lba
         #   with +#inspect+; +false+ to use +#to_s+
         # @return [Hash{Symbol => Object}] the serialized value:
         #   * +:value+ - the JSON-ready form of +value+
-        #   * +:value_type+ [String] - the class name of +value+
+        #   * +:value_type+ [String, nil] - the class name of +value+; for a
+        #     subclass of String, Array, or Hash, that base class's name; +nil+
+        #     for an anonymous class, or when rendering +value+ raised
         #   * +:rendered+ [Array<Hash>] - present only if any part is recorded as
         #     text rather than as itself: one +{ path:, as: }+ per part, where
         #     +as+ says why: +"inspect"+ or +"to_s"+ (no JSON form),
@@ -42,6 +44,12 @@ module Lba
         #     raised: one +{ path:, message: }+ per failure. A +path+, here and
         #     in +:rendered+, is the part's position (Array indexes and Hash
         #     keys) and +[]+ means the whole value. When the whole value failed it is the only key.
+        #   * +:collided+ [Array<Hash>] - present only if a Hash had keys that
+        #     JSON writes as the same text: one +{ path:, key:, pairs: }+ per
+        #     key, +pairs+ listing every colliding pair as +#inspect+ text;
+        #     +:value+ keeps the first pair
+        #   An entry in +:rendered+, +:cut+, or +:errors+ about a Hash key
+        #   itself, rather than its value, also has +key: true+.
         def serialize(value:, depth: 0, inspect: true)
           result = UnknownNode.serialize(value:, depth:, use_inspect: inspect)
 

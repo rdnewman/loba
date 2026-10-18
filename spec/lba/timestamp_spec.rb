@@ -124,7 +124,7 @@ RSpec.describe Lba, ".timestamp" do
   context "when called without the Lba namespace" do
     it "is not available as a bare ts" do
       expect { Object.new.instance_eval { ts } }
-        .to raise_error(NameError, /undefined local variable or method 'ts'/)
+        .to raise_error(NameError, /undefined local variable or method [`']ts'/)
     end
   end
 

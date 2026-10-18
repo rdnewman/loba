@@ -14,7 +14,7 @@ module Lba
         # Calls aren't checkpoints.
         CHECKPOINT = false
 
-        # The value is the one field with no size limit, so everything that
+        # The value is the field most likely to be long, so everything that
         # describes it comes first.
         VALUE_FIELDS = [:value_type, :rendered, :cut, :errors, :collided, :value].freeze
         private_constant :VALUE_FIELDS

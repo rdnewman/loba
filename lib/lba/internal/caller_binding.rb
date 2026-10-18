@@ -5,7 +5,10 @@ module Lba
     # A snapshot of one frame on the call stack: where it is, who +self+ is
     # there, and its binding, for reading the caller's values.
     class CallerBinding
-      # Skips the .open block and #initialize to reach whoever called .new.
+      # Skips DebugInspector.open's own frame and .capture to reach whoever
+      # called .capture. The snapshot is taken there, not in #initialize, so
+      # Class#new, which adds a frame of its own on Ruby 3.3 and 3.4, is never
+      # between it and the caller.
       FRAME_OFFSET = 2
 
       # Binding#local_variable_defined? raises for anything not shaped like a
@@ -14,21 +17,32 @@ module Lba
       INSTANCE_VARIABLE_NAME = /\A@[[:alpha:]_][[:alnum:]_]*\z/
       private_constant :LOCAL_NAME, :INSTANCE_VARIABLE_NAME
 
-      # Takes the snapshot of the frame that called +.new+, or of a frame above
-      # it. Build it directly in the frame to describe: depth counts from there.
+      # Takes the snapshot of the frame that called +.capture+, or of a frame
+      # above it. Capture it directly in the frame to describe: depth counts
+      # from there.
       #
       # Each .open snapshots the whole stack, costing time in proportion to its
       # depth, so everything is read from the frame in one open.
       #
-      # @param depth [Integer] how many frames above the caller of +.new+ to
-      #   describe; +0+ describes that caller itself
-      def initialize(depth: 0)
+      # @param depth [Integer] how many frames above the caller of +.capture+
+      #   to describe; +0+ describes that caller itself
+      # @return [CallerBinding]
+      def self.capture(depth: 0)
         RubyVM::DebugInspector.open do |context|
           frame = depth + FRAME_OFFSET
-          @location = context.backtrace_locations[frame]
-          @frame_self = context.frame_self(frame)
-          @frame_binding = context.frame_binding(frame)
+          location = context.backtrace_locations[frame]
+          frame_self = context.frame_self(frame)
+          frame_binding = context.frame_binding(frame)
+          new(location:, frame_self:, frame_binding:)
         end
+      end
+
+      private_class_method :new
+
+      def initialize(location:, frame_self:, frame_binding:)
+        @location = location
+        @frame_self = frame_self
+        @frame_binding = frame_binding
       end
 
       # @return [String] the frame's class, or the class or module itself inside
@@ -96,7 +110,8 @@ module Lba
       # @raise [SyntaxError] if a +Symbol+ isn't valid Ruby, e.g. +:"1abc"+
       # @raise [StandardError] whatever a method named by +argument+ raises
       def evaluate(argument)
-        return argument unless argument.is_a?(Symbol)
+        # Module#=== rather than #is_a?, which a BasicObject argument lacks.
+        return argument unless Symbol === argument # rubocop:disable Style/CaseEquality
 
         if instance_variable_name?(argument)
           instance_variable_of_frame_self(argument)
