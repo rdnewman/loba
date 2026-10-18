@@ -42,7 +42,18 @@ module Lba
       end
 
       def normalize(value)
-        value.to_s.strip
+        utf8(value.to_s).strip
+      end
+
+      # JSON text is UTF-8. A binary label's bytes are read as UTF-8, and any
+      # bytes that aren't valid there become U+FFFD, so a label always writes.
+      # Converting UTF-8 to UTF-8 checks nothing, so #scrub follows #encode.
+      def utf8(text)
+        if text.encoding == Encoding::BINARY
+          text.dup.force_encoding(Encoding::UTF_8).scrub
+        else
+          text.encode(Encoding::UTF_8, invalid: :replace, undef: :replace).scrub
+        end
       end
     end
   end

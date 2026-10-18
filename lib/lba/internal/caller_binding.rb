@@ -34,11 +34,7 @@ module Lba
       # @return [String] the frame's class, or the class or module itself inside
       #   a class or module method; +"<anonymous class>"+ if it has no name
       def class_name
-        value = if module_self?
-                  frame_self.name
-                else
-                  class_of_frame_self.name
-                end
+        value = name_of(frame_module)
 
         if value.nil? || value.empty?
           "<anonymous class>"
@@ -97,6 +93,7 @@ module Lba
       # @return [Object] the named value, or +argument+ itself if it isn't a
       #   +Symbol+
       # @raise [NameError] if a +Symbol+ names nothing in the frame
+      # @raise [SyntaxError] if a +Symbol+ isn't valid Ruby, e.g. +:"1abc"+
       # @raise [StandardError] whatever a method named by +argument+ raises
       def evaluate(argument)
         return argument unless argument.is_a?(Symbol)
@@ -123,6 +120,32 @@ module Lba
       def class_of_frame_self
         ::Kernel.instance_method(:class).bind_call(frame_self)
       end
+
+      def frame_module
+        if module_self?
+          frame_self
+        else
+          class_of_frame_self
+        end
+      end
+
+      # A class's own name method comes first, since it can name an anonymous
+      # class (as specs often do); it runs the traced program's code, so if it
+      # raises or returns something other than a String, the constant's name
+      # is used.
+      def name_of(mod)
+        given = mod.name
+
+        if ::String === given # rubocop:disable Style/CaseEquality -- see module_self?
+          given
+        else
+          constant_name_of(mod)
+        end
+      rescue StandardError
+        constant_name_of(mod)
+      end
+
+      def constant_name_of(mod) = ::Module.instance_method(:name).bind_call(mod)
 
       def instance_variable_of_frame_self(name)
         ::Kernel.instance_method(:instance_variable_get).bind_call(frame_self, name)

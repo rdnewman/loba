@@ -99,7 +99,7 @@ the *same* call site. Checkpoint records have no `diff`.
 
 | Option | Default | Effect |
 |---|---|---|
-| `label:` | none | A name for the checkpoint. A String or Symbol, stripped of surrounding spaces; anything else gives no label. |
+| `label:` | none | A name for the checkpoint. A String or Symbol, stripped of surrounding spaces; anything else gives no label. Converted to UTF-8; bytes that aren't valid UTF-8 become `�` (U+FFFD). |
 | `log:` | `false`, or `true` if `logger:` is given | `true` also writes the record to `Rails.logger` (or `logger:`). `false` never logs, even if `logger:` is given. |
 | `logger:` | none | A `Logger` to also write the record to. Anything other than a `Logger` raises `Lba::InvalidLoggerOptionError`. |
 | `sink:` | this run's file | A path (String or `Pathname`) or IO to write to instead. |

@@ -197,7 +197,7 @@ since it has no place in `value` to point to.
 
 | Option | Default | Effect |
 |---|---|---|
-| `label:` | inferred from a Symbol | A label for the record. A String or Symbol; anything else gives no label. |
+| `label:` | inferred from a Symbol | A label for the record. A String or Symbol; anything else gives no label. Converted to UTF-8; bytes that aren't valid UTF-8 become `�` (U+FFFD). |
 | `inspect:` | `true` | For a value with no JSON form, `true` renders it with `#inspect`, `false` with `#to_s`. JSON-native values are unaffected. |
 | `log:` | `false`, or `true` if `logger:` is given | `true` also writes the record to `Rails.logger` (or `logger:`). `false` never logs, even if `logger:` is given. |
 | `logger:` | none | A `Logger` to also write the record to. Anything other than a `Logger` raises `Lba::InvalidLoggerOptionError`. |
@@ -250,8 +250,8 @@ the first 50.
 
 ## Errors
 
-A Symbol that names nothing, or names a method that raises, doesn't break the
-code being traced. The record keeps its call-site fields and label and records
+A Symbol that names nothing, isn't valid Ruby, or names a method that raises,
+doesn't break the code being traced. The record keeps its call-site fields and label and records
 the error in `errors` instead of a value. A `path` of `[]` means the whole
 value:
 
@@ -260,7 +260,8 @@ value:
 ```
 
 The same happens when the value can't be rendered as text: its `#inspect` (or
-`#to_s`, with `inspect: false`) raises, or it has none, like a `BasicObject`.
+`#to_s`, with `inspect: false`) raises or returns something other than a String,
+or it has none, like a `BasicObject`.
 There is no fallback from one to the other.
 
 ```json
@@ -278,7 +279,8 @@ the outside in.
 
 So `errors` is always the sign that something couldn't be recorded; a record
 without it was recorded in full. Exceptions outside `StandardError`, such as
-`Interrupt`, are not caught.
+`Interrupt`, are not caught, except a `ScriptError` (such as `SyntaxError`) from
+evaluating a Symbol.
 
 ## Environment notes
 

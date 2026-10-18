@@ -108,6 +108,26 @@ class PlainBasicObject < BasicObject
   end
 end
 
+class ClassWithNameTakingArgument
+  def self.name(_style) = "unused"
+
+  def self.caller_binding
+    Lba::Internal::CallerBinding.new
+  end
+
+  def caller_binding
+    Lba::Internal::CallerBinding.new
+  end
+end
+
+class ClassWithNonStringName
+  def self.name = 42
+
+  def caller_binding
+    Lba::Internal::CallerBinding.new
+  end
+end
+
 class CallerBindingReader
   def method_name_of(caller_binding)
     caller_binding.method_name
@@ -179,6 +199,38 @@ RSpec.describe Lba::Internal::CallerBinding do
         caller_binding = PlainBasicObject.new.caller_binding
 
         expect(caller_binding.class_name).to eq("PlainBasicObject")
+      end
+    end
+
+    context "when built in an instance of an anonymous class that names itself" do
+      it "returns the name the class gives" do
+        self_named_class = Class.new(PlainOldRubyObject) { def self.name = "User" }
+
+        caller_binding = self_named_class.new.caller_binding
+
+        expect(caller_binding.class_name).to eq("User")
+      end
+    end
+
+    context "when built in a class whose own name method raises" do
+      it "returns the class's constant name from an instance method" do
+        caller_binding = ClassWithNameTakingArgument.new.caller_binding
+
+        expect(caller_binding.class_name).to eq("ClassWithNameTakingArgument")
+      end
+
+      it "returns the class's constant name from a class method" do
+        caller_binding = ClassWithNameTakingArgument.caller_binding
+
+        expect(caller_binding.class_name).to eq("ClassWithNameTakingArgument")
+      end
+    end
+
+    context "when built in a class whose own name method returns something other than a String" do
+      it "returns the class's constant name" do
+        caller_binding = ClassWithNonStringName.new.caller_binding
+
+        expect(caller_binding.class_name).to eq("ClassWithNonStringName")
       end
     end
 

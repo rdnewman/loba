@@ -34,6 +34,40 @@ RSpec.describe Lba::Internal::Label do
       end
     end
 
+    context "when an explicit String label isn't valid UTF-8" do
+      it "replaces the invalid bytes with U+FFFD" do
+        result = described_class.infer(argument: :foo, label: "a\xFFb")
+
+        expect(result).to eq("a\u{FFFD}b")
+      end
+
+      it "reads a binary label's bytes as UTF-8 when they're valid there" do
+        result = described_class.infer(argument: :foo, label: "caf\xC3\xA9".b)
+
+        expect(result).to eq("café")
+      end
+
+      it "replaces a binary label's bytes with U+FFFD when they aren't valid UTF-8" do
+        result = described_class.infer(argument: :foo, label: "a\xFFb".b)
+
+        expect(result).to eq("a\u{FFFD}b")
+      end
+
+      it "converts a label in another encoding to UTF-8" do
+        latin1_label = String.new("caf\xE9", encoding: Encoding::ISO_8859_1)
+
+        result = described_class.infer(argument: :foo, label: latin1_label)
+
+        expect(result).to eq("café")
+      end
+
+      it "strips surrounding whitespace" do
+        result = described_class.infer(argument: :foo, label: "  a\xFFb  ")
+
+        expect(result).to eq("a\u{FFFD}b")
+      end
+    end
+
     context "when an explicit Symbol label is given" do
       it "coerces it to a String" do
         result = described_class.infer(argument: :foo, label: :custom)

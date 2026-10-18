@@ -98,5 +98,30 @@ RSpec.describe Lba::Internal::Serialization::FallbackNode do
           .to start_with("NoMethodError: undefined method 'inspect'")
       end
     end
+
+    context "when rendering returns something other than a String" do
+      it "marks it unrenderable and reports what #inspect returned" do
+        result = described_class.serialize(value: RenderedAs.new(nil))
+
+        expect(result).to eq(
+          value: "(unrenderable)", value_type: nil,
+          errors: [{ path: [], message: "TypeError: #inspect returned NilClass, not a String" }]
+        )
+      end
+
+      it "reports what #to_s returned when use_inspect is false" do
+        result = described_class.serialize(value: RenderedAs.new(:text), use_inspect: false)
+
+        expect(result[:errors])
+          .to eq([{ path: [], message: "TypeError: #to_s returned Symbol, not a String" }])
+      end
+
+      it "names the class of a returned BasicObject, which has no #class" do
+        result = described_class.serialize(value: RenderedAs.new(BasicObject.new))
+
+        expect(result[:errors].first[:message])
+          .to eq("TypeError: #inspect returned BasicObject, not a String")
+      end
+    end
   end
 end

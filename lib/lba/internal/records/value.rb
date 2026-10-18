@@ -59,12 +59,14 @@ module Lba
 
         attr_reader :caller_binding, :tracked, :argument, :label, :inspect
 
-        # Evaluating a Symbol runs the caller's code, which can raise; that is
-        # recorded rather than raised, so tracing never breaks the traced code.
-        # Only evaluation is rescued, so lba's own bugs still surface.
+        # Evaluating a Symbol runs the caller's code, which can raise, or fail
+        # to compile (a SyntaxError, which is a ScriptError, not a
+        # StandardError); that is recorded rather than raised, so tracing never
+        # breaks the traced code. Only evaluation is rescued, so lba's own bugs
+        # still surface.
         def evaluated_fields
           evaluated = caller_binding.evaluate(argument)
-        rescue StandardError => e
+        rescue StandardError, ScriptError => e
           { errors: [{ path: [], message: "#{e.class}: #{e.message}" }] }
         else
           Serialization.serialize(value: evaluated, inspect:).slice(*VALUE_FIELDS)

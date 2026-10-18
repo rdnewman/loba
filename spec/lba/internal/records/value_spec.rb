@@ -76,6 +76,18 @@ RSpec.describe Lba::Internal::Records::Value do
         expect(fields.keys).not_to include(:value, :value_type)
       end
 
+      it "records a Symbol that isn't valid Ruby, which raises a SyntaxError" do
+        failing_binding = caller_binding
+        allow(failing_binding).to receive(:evaluate).and_raise(SyntaxError, "syntax errors found")
+
+        fields = described_class.fields(
+          caller_binding: failing_binding, tracked:, argument: :"1abc", label: nil, inspect: true
+        )
+
+        expect(fields)
+          .to include(errors: [{ path: [], message: "SyntaxError: syntax errors found" }])
+      end
+
       it "lets exceptions outside StandardError, such as Interrupt, through" do
         interrupting_binding = caller_binding
         allow(interrupting_binding).to receive(:evaluate).and_raise(Interrupt)
