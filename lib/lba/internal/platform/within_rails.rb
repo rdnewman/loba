@@ -22,6 +22,12 @@ module Lba
           ::Rails.env.production?
         end
 
+        # @return [Pathname, nil] +Rails.root+; +nil+ when Rails isn't loaded,
+        #   or before an app has booted
+        def self.root
+          ::Rails.root if rails_responds_to?(:root)
+        end
+
         # Gems such as rails-html-sanitizer define a Rails namespace without
         # Rails itself, so a defined Rails constant isn't enough.
         def self.rails_responds_to?(name)

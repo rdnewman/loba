@@ -90,15 +90,13 @@ module Lba
           end
 
           def default_path
-            if within_rails?
-              File.join(::Rails.root, "tmp", "lba", "runs", "#{Run.current.id}.jsonl")
+            rails_root = Platform::WithinRails.root
+
+            if rails_root
+              File.join(rails_root, "tmp", "lba", "runs", "#{Run.current.id}.jsonl")
             else
               File.join(Run.current.start_dir, ".lba", "runs", "#{Run.current.id}.jsonl")
             end
-          end
-
-          def within_rails?
-            defined?(::Rails) && ::Rails.respond_to?(:root) && ::Rails.root
           end
 
           def directory_refusal(path, **)

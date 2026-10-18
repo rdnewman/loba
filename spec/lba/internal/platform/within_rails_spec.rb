@@ -83,4 +83,36 @@ RSpec.describe Lba::Internal::Platform::WithinRails do
       end
     end
   end
+
+  describe ".root" do
+    context "when not in Rails" do
+      it "returns nil" do
+        hide_const("Rails")
+
+        expect(described_class.root).to be_nil
+      end
+    end
+
+    context "when in Rails" do
+      it "returns Rails.root" do
+        stub_const("Rails", double(root: "/app"))
+
+        expect(described_class.root).to eq("/app")
+      end
+
+      it "returns nil when Rails has no root (no app booted)" do
+        stub_const("Rails", double(root: nil))
+
+        expect(described_class.root).to be_nil
+      end
+    end
+
+    context "when only a Rails namespace is defined" do
+      it "returns nil" do
+        stub_const("Rails", Module.new)
+
+        expect(described_class.root).to be_nil
+      end
+    end
+  end
 end
