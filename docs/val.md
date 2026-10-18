@@ -82,7 +82,8 @@ Each process run writes to its own file, named for its run id:
 The `LBA_SINK` environment variable overrides that path for the whole process
 (an empty `LBA_SINK` is ignored), and the `sink:` option overrides it for one
 call, with a path (a String or `Pathname`) or any IO (such as `$stdout` or a
-`StringIO`). If the directory can't be created or written to, records go to
+`StringIO`). A relative path is taken from the current directory when the call
+is made. If the directory can't be created or written to, records go to
 `$stdout` instead.
 
 Records hold captured values as-is, so a file lba creates is readable and
@@ -90,6 +91,13 @@ writable only by its owner (mode `0600`), as are the directories it creates
 for a run's own file (`0700`). Files and directories that already exist keep
 their permissions. If anything, even a symlink, is already at a run's own file
 path when the run first writes there, records go to `$stdout` instead.
+
+The first time records go to `$stdout` instead of a path, the process says so
+once on `$stderr`, naming the path and why it couldn't be used:
+
+```
+lba: can't use "/app/log/trace.jsonl" (its directory isn't writable); writing records to $stdout instead; later fallbacks in this process won't be reported
+```
 
 If a record still can't be written (a full disk, a read-only file, a closed
 IO), it is skipped, and the first such failure in the process is reported once

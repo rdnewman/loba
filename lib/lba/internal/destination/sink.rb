@@ -16,9 +16,13 @@ module Lba
           # The sink for the +sink:+ option given. In order: an IO given; a
           # path given; the +LBA_SINK+ environment variable; the run's file
           # (under +tmp/lba/runs/+ in Rails, otherwise +.lba/runs/+ in the
-          # current directory). Falls back to +$stdout+ if the chosen path's
-          # directory can't be created or written, or if something other than
-          # this run already put a file at the run's path (see Run#claim_file).
+          # current directory). A relative path given or in +LBA_SINK+ is taken
+          # from the current directory.
+          #
+          # Falls back to +$stdout+ if the chosen path's directory can't be
+          # created or written, or if something other than this run already put
+          # a file at the run's path (see Run#claim_file), and has the run
+          # report it (see Run#report_fallback).
           #
           # Directories created for the run's file are accessible only by their
           # owner, since records hold unredacted values.
@@ -28,26 +32,36 @@ module Lba
           def for(option)
             return new(option) if io?(option)
 
-            path = given_path(option) || default_path
-
-            if usable?(path, given: given_path(option))
-              new(path)
-            else
-              new($stdout)
-            end
+            given = given_path(option)
+            for_path(given || default_path, given:)
           end
 
         private
 
-          def given_path(option)
-            explicit_path(option) || env_path
+          def for_path(path, given:)
+            reason = refusal(path, given:)
+
+            if reason
+              Run.current.report_fallback(path:, reason:)
+              new($stdout)
+            else
+              new(path)
+            end
           end
 
-          def usable?(path, given:)
+          # An absolute copy, so neither a later chdir nor a change to the
+          # caller's String changes which file the sink is.
+          def given_path(option)
+            path = explicit_path(option) || env_path
+            File.absolute_path(path) if path
+          end
+
+          # Why the path can't be used, or +nil+ if it can.
+          def refusal(path, given:)
             if given
-              ensure_writable(path)
+              directory_refusal(path)
             else
-              ensure_writable(path, mode: RUN_DIR_MODE) && Run.current.claim_file(path)
+              directory_refusal(path, mode: RUN_DIR_MODE) || claim_refusal(path)
             end
           end
 
@@ -86,12 +100,16 @@ module Lba
             defined?(::Rails) && ::Rails.respond_to?(:root) && ::Rails.root
           end
 
-          def ensure_writable(path, **)
+          def directory_refusal(path, **)
             dir = File.dirname(path)
             FileUtils.mkdir_p(dir, **)
-            File.writable?(dir)
-          rescue SystemCallError
-            false
+            "its directory isn't writable" unless File.writable?(dir)
+          rescue SystemCallError => e
+            "#{e.class}: #{e.message}"
+          end
+
+          def claim_refusal(path)
+            "this run couldn't create it as a new file" unless Run.current.claim_file(path)
           end
         end
 

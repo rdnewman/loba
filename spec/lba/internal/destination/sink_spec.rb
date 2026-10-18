@@ -9,7 +9,8 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
   describe ".for" do
     let(:run) do
-      instance_double(Lba::Internal::Run, id: "20260830T143012Z-4242-ab12cd34", claim_file: true)
+      instance_double(Lba::Internal::Run, id: "20260830T143012Z-4242-ab12cd34", claim_file: true,
+                                          report_fallback: nil)
     end
 
     around do |example|
@@ -67,6 +68,33 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
         expect(run).not_to have_received(:claim_file)
       end
+
+      # A relative path names a different file after a chdir, and two names
+      # for one file would keep two separate gaps.
+      it "takes a relative path from the working directory when given" do
+        sink = Dir.chdir(tmp_dir) { described_class.for("records.jsonl") }
+
+        expect(sink).to eq(described_class.new(File.join(File.realpath(tmp_dir), "records.jsonl")))
+      end
+
+      # As File.open does; expanding it would raise for a user that doesn't
+      # exist.
+      it "takes a leading ~ as part of a relative path, not a home directory" do
+        sink = Dir.chdir(tmp_dir) { described_class.for("~nosuchuser/records.jsonl") }
+
+        expected_path = File.join(File.realpath(tmp_dir), "~nosuchuser", "records.jsonl")
+        expect(sink).to eq(described_class.new(expected_path))
+      end
+
+      it "keeps its own copy of the path, unaffected by later changes to the String" do
+        path = File.join(tmp_dir, "records.jsonl")
+        given = path.dup
+        sink = described_class.for(given)
+
+        given.replace(File.join(tmp_dir, "other.jsonl"))
+
+        expect(sink).to eq(described_class.new(path))
+      end
     end
 
     context "when given no sink" do
@@ -76,6 +104,14 @@ RSpec.describe Lba::Internal::Destination::Sink do
         described_class.for(nil).append("record\n")
 
         expect(File.read(ENV.fetch("LBA_SINK"))).to eq("record\n")
+      end
+
+      it "takes a relative LBA_SINK from the working directory when given" do
+        ENV["LBA_SINK"] = "records.jsonl"
+
+        sink = Dir.chdir(tmp_dir) { described_class.for(nil) }
+
+        expect(sink).to eq(described_class.new(File.join(File.realpath(tmp_dir), "records.jsonl")))
       end
 
       it "ignores an empty LBA_SINK" do
@@ -134,6 +170,7 @@ RSpec.describe Lba::Internal::Destination::Sink do
       it "writes to $stdout when a symlink was planted at the run's file" do
         hide_const("Rails")
         real_run = Lba::Internal::Run.new
+        allow(real_run).to receive(:warn)
         allow(Lba::Internal::Run).to receive(:current).and_return(real_run)
         allow(Dir).to receive(:pwd).and_return(tmp_dir)
         runs_dir = File.join(tmp_dir, ".lba", "runs")
@@ -159,6 +196,46 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
         expect { described_class.for(nil).append("record\n") }
           .to output("record\n").to_stdout
+      end
+    end
+
+    context "when falling back to $stdout" do
+      it "reports a given path whose directory can't be created, with the error" do
+        path = File.join(tmp_dir, "explicit", "records.jsonl")
+        allow(FileUtils).to receive(:mkdir_p).and_raise(Errno::EACCES)
+
+        described_class.for(path)
+
+        expect(run).to have_received(:report_fallback)
+          .with(path:, reason: "Errno::EACCES: Permission denied")
+      end
+
+      it "reports a directory that isn't writable" do
+        hide_const("Rails")
+        allow(Dir).to receive(:pwd).and_return(tmp_dir)
+        allow(File).to receive(:writable?).and_return(false)
+
+        described_class.for(nil)
+
+        expect(run).to have_received(:report_fallback)
+          .with(path: run_file(".lba", "runs"), reason: "its directory isn't writable")
+      end
+
+      it "reports the run's file when the run can't claim it" do
+        hide_const("Rails")
+        allow(Dir).to receive(:pwd).and_return(tmp_dir)
+        allow(run).to receive(:claim_file).and_return(false)
+
+        described_class.for(nil)
+
+        expect(run).to have_received(:report_fallback)
+          .with(path: run_file(".lba", "runs"), reason: "this run couldn't create it as a new file")
+      end
+
+      it "reports nothing when the path can be used" do
+        described_class.for(File.join(tmp_dir, "explicit", "records.jsonl"))
+
+        expect(run).not_to have_received(:report_fallback)
       end
     end
 

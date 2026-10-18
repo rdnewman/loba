@@ -103,6 +103,29 @@ RSpec.describe Lba::Internal::Run do
     end
   end
 
+  # Someone opening the file they asked for would otherwise find nothing, and
+  # conclude the code never ran.
+  describe "#report_fallback" do
+    it "warns on $stderr, naming the path and why it couldn't be used" do
+      run = described_class.new
+      reason = "its directory isn't writable"
+
+      expect { run.report_fallback(path: "/app/trace.jsonl", reason:) }
+        .to output(
+          "lba: can't use \"/app/trace.jsonl\" (its directory isn't writable); " \
+          "writing records to $stdout instead; " \
+          "later fallbacks in this process won't be reported\n"
+        ).to_stderr
+    end
+
+    it "stays quiet about later fallbacks, for any path", :aggregate_failures do
+      run = described_class.new
+      expect { run.report_fallback(path: "/a.jsonl", reason: "x") }.to output.to_stderr
+
+      expect { run.report_fallback(path: "/b.jsonl", reason: "y") }.not_to output.to_stderr
+    end
+  end
+
   describe "#visits" do
     it "is the run's Visits, the same one on every call" do
       run = described_class.new
@@ -193,6 +216,16 @@ RSpec.describe Lba::Internal::Run do
         expect { run_exit_hooks.first.call }
           .to output(/lba: 1 record couldn't be written/).to_stderr
       end
+
+      it "still summarizes when writing the skipped-call counts raises" do
+        run = described_class.current
+        fail_quietly(run.delivery, sink: failing_sink("a.jsonl"))
+        allow(run.visits).to receive(:flush).and_raise(RuntimeError, "lba bug")
+
+        expect { run_exit_hooks.first.call }
+          .to raise_error(RuntimeError, "lba bug")
+          .and output(/lba: 1 record couldn't be written to "a.jsonl"/).to_stderr
+      end
     end
 
     context "when the process forks after .current is memoized" do
@@ -236,6 +269,20 @@ RSpec.describe Lba::Internal::Run do
         end
 
         expect(warned_in_child).to start_with("lba: couldn't write a record")
+      end
+
+      it "lets the child warn about its own first fallback" do
+        allow(described_class.current).to receive(:warn)
+        described_class.current.report_fallback(path: "/a.jsonl", reason: "x")
+
+        warned_in_child = in_forked_child do
+          captured = StringIO.new
+          $stderr = captured # rubocop:disable RSpec/ExpectOutput
+          described_class.current.report_fallback(path: "/a.jsonl", reason: "x")
+          captured.string
+        end
+
+        expect(warned_in_child).to start_with("lba: can't use")
       end
 
       it "writes nothing when the child runs the exit hook it inherited" do

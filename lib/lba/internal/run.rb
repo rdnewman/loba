@@ -47,6 +47,7 @@ module Lba
         @pid = Process.pid
         @id = generate_id
         @claimed_paths = []
+        @fallback_reported = false
         @visits = Visits.new
         @delivery = Delivery.new
       end
@@ -64,6 +65,22 @@ module Lba
         claimed_paths.include?(path) || claim(path)
       end
 
+      # Warns on $stderr, the first time in the process, that records meant for
+      # +path+ go to $stdout instead, so an empty file isn't mistaken for code
+      # that never ran.
+      #
+      # @param path [String] the path that couldn't be used
+      # @param reason [String] why not, e.g. +"its directory isn't writable"+
+      # @return [void]
+      def report_fallback(path:, reason:)
+        return if @fallback_reported
+
+        @fallback_reported = true
+        warn "lba: can't use #{path.inspect} (#{reason}); " \
+             "writing records to $stdout instead; " \
+             "later fallbacks in this process won't be reported"
+      end
+
     private
 
       attr_reader :claimed_paths
@@ -79,9 +96,11 @@ module Lba
       end
 
       # Summarizes write failures only after flushing, so a skipped-call record
-      # that can't be written is counted in the summary rather than lost.
+      # that can't be written is counted in the summary rather than lost; and
+      # even if flushing raises, so the summary isn't lost either.
       def shut_down
         visits.flush
+      ensure
         delivery.summarize
       end
 
