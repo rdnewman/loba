@@ -36,6 +36,11 @@ module Lba
       # @return [Integer] the id of the process that started the run
       attr_reader :pid
 
+      # @return [String] the working directory when the run started, which
+      #   relative sink paths are taken from, so a later chdir doesn't send the
+      #   rest of the run's records to another file
+      attr_reader :start_dir
+
       # @return [Visits] the run's visits to call sites
       attr_reader :visits
 
@@ -46,6 +51,7 @@ module Lba
       def initialize
         @pid = Process.pid
         @id = generate_id
+        @start_dir = Dir.pwd
         @claimed_paths = []
         @fallback_reported = false
         @visits = Visits.new

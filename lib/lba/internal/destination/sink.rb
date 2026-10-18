@@ -16,8 +16,9 @@ module Lba
           # The sink for the +sink:+ option given. In order: an IO given; a
           # path given; the +LBA_SINK+ environment variable; the run's file
           # (under +tmp/lba/runs/+ in Rails, otherwise +.lba/runs/+ in the
-          # current directory). A relative path given or in +LBA_SINK+ is taken
-          # from the current directory.
+          # directory the run started in). A relative path given or in
+          # +LBA_SINK+ is taken from the directory the run started in (see
+          # Run#start_dir), not the current one.
           #
           # Falls back to +$stdout+ if the chosen path's directory can't be
           # created or written, or if something other than this run already put
@@ -53,7 +54,7 @@ module Lba
           # caller's String changes which file the sink is.
           def given_path(option)
             path = explicit_path(option) || env_path
-            File.absolute_path(path) if path
+            File.absolute_path(path, Run.current.start_dir) if path
           end
 
           # Why the path can't be used, or +nil+ if it can.
@@ -92,7 +93,7 @@ module Lba
             if within_rails?
               File.join(::Rails.root, "tmp", "lba", "runs", "#{Run.current.id}.jsonl")
             else
-              File.join(Dir.pwd, ".lba", "runs", "#{Run.current.id}.jsonl")
+              File.join(Run.current.start_dir, ".lba", "runs", "#{Run.current.id}.jsonl")
             end
           end
 

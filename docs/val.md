@@ -77,13 +77,15 @@ Lba.val name, label: "Name"
 Each process run writes to its own file, named for its run id:
 
 - inside Rails: `tmp/lba/runs/<run_id>.jsonl` under `Rails.root`
-- otherwise: `.lba/runs/<run_id>.jsonl` under the current directory
+- otherwise: `.lba/runs/<run_id>.jsonl` under the directory the run started in:
+  the working directory at the process's first lba call
 
 The `LBA_SINK` environment variable overrides that path for the whole process
 (an empty `LBA_SINK` is ignored), and the `sink:` option overrides it for one
 call, with a path (a String or `Pathname`) or any IO (such as `$stdout` or a
-`StringIO`). A relative path is taken from the current directory when the call
-is made. If the directory can't be created or written to, records go to
+`StringIO`). A relative path is taken from the directory the run started in, so
+a later `Dir.chdir` doesn't send the rest of the run's records to another file.
+If the directory can't be created or written to, records go to
 `$stdout` instead.
 
 Records hold captured values as-is, so a file lba creates is readable and
@@ -118,7 +120,7 @@ lba: 2 records couldn't be written to "log/trace.jsonl" (first error: Errno::EAC
 ```
 
 Inside Rails, the default is used only once the app has booted (`Rails.root` is
-set); before that, records go under the current directory.
+set); before that, records go under the directory the run started in.
 
 A forked child process, such as a Puma or Unicorn worker, starts its own run and
 file.

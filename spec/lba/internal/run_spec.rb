@@ -23,6 +23,19 @@ RSpec.describe Lba::Internal::Run do
     end
   end
 
+  describe "#start_dir" do
+    it "is the working directory when the run started, unchanged by a later chdir" do
+      tmp_dir = Dir.mktmpdir
+      run = Dir.chdir(tmp_dir) { described_class.new }
+
+      start_dir = run.start_dir
+
+      expect(start_dir).to eq(File.realpath(tmp_dir))
+    ensure
+      FileUtils.remove_entry(tmp_dir)
+    end
+  end
+
   describe "#claim_file" do
     let(:tmp_dir) { Dir.mktmpdir }
 
@@ -52,7 +65,7 @@ RSpec.describe Lba::Internal::Run do
       expect(run.claim_file(path)).to be true
     end
 
-    it "claims a second path separately, as after a chdir", :aggregate_failures do
+    it "claims a second path separately", :aggregate_failures do
       first_path = File.join(tmp_dir, "first.jsonl")
       second_path = File.join(tmp_dir, "second.jsonl")
       run = described_class.new

@@ -88,7 +88,8 @@ stored as-is, so leaving tracing on in production could persist secrets or
 personal data indefinitely.
 
 Records go to `tmp/lba/runs/` under `Rails.root` in Rails, or `.lba/runs/` under
-the current directory otherwise. Add that directory to `.gitignore`.
+the working directory at the first lba call otherwise. Add that directory to
+`.gitignore`.
 
 ## Installation
 

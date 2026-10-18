@@ -20,13 +20,20 @@ RSpec.describe Lba::Internal::Destination::Sink do
       ENV["LBA_SINK"] = original_lba_sink if original_lba_sink
     end
 
-    before { allow(Lba::Internal::Run).to receive(:current).and_return(run) }
+    before do
+      allow(Lba::Internal::Run).to receive(:current).and_return(run)
+      allow(run).to receive(:start_dir).and_return(tmp_dir)
+    end
 
     def run_file(*dirs) = File.join(tmp_dir, *dirs, "#{run.id}.jsonl")
 
+    # A directory other than the run's start directory, to chdir into.
+    def elsewhere_dir
+      File.join(tmp_dir, "elsewhere").tap { |dir| FileUtils.mkdir_p(dir) }
+    end
+
     context "when given an IO" do
       it "writes to it, without touching the filesystem", :aggregate_failures do
-        allow(Dir).to receive(:pwd).and_return(tmp_dir)
         io = StringIO.new
 
         described_class.for(io).append("record\n")
@@ -71,18 +78,18 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
       # A relative path names a different file after a chdir, and two names
       # for one file would keep two separate gaps.
-      it "takes a relative path from the working directory when given" do
-        sink = Dir.chdir(tmp_dir) { described_class.for("records.jsonl") }
+      it "takes a relative path from the directory the run started in, not the current one" do
+        sink = Dir.chdir(elsewhere_dir) { described_class.for("records.jsonl") }
 
-        expect(sink).to eq(described_class.new(File.join(File.realpath(tmp_dir), "records.jsonl")))
+        expect(sink).to eq(described_class.new(File.join(tmp_dir, "records.jsonl")))
       end
 
       # As File.open does; expanding it would raise for a user that doesn't
       # exist.
       it "takes a leading ~ as part of a relative path, not a home directory" do
-        sink = Dir.chdir(tmp_dir) { described_class.for("~nosuchuser/records.jsonl") }
+        sink = described_class.for("~nosuchuser/records.jsonl")
 
-        expected_path = File.join(File.realpath(tmp_dir), "~nosuchuser", "records.jsonl")
+        expected_path = File.join(tmp_dir, "~nosuchuser", "records.jsonl")
         expect(sink).to eq(described_class.new(expected_path))
       end
 
@@ -106,17 +113,24 @@ RSpec.describe Lba::Internal::Destination::Sink do
         expect(File.read(ENV.fetch("LBA_SINK"))).to eq("record\n")
       end
 
-      it "takes a relative LBA_SINK from the working directory when given" do
+      it "takes a relative LBA_SINK from the directory the run started in, not the current one" do
         ENV["LBA_SINK"] = "records.jsonl"
 
-        sink = Dir.chdir(tmp_dir) { described_class.for(nil) }
+        sink = Dir.chdir(elsewhere_dir) { described_class.for(nil) }
 
-        expect(sink).to eq(described_class.new(File.join(File.realpath(tmp_dir), "records.jsonl")))
+        expect(sink).to eq(described_class.new(File.join(tmp_dir, "records.jsonl")))
+      end
+
+      it "writes the run's file under the directory the run started in, after a chdir" do
+        hide_const("Rails")
+
+        Dir.chdir(elsewhere_dir) { described_class.for(nil).append("record\n") }
+
+        expect(File.read(run_file(".lba", "runs"))).to eq("record\n")
       end
 
       it "ignores an empty LBA_SINK" do
         ENV["LBA_SINK"] = ""
-        allow(Dir).to receive(:pwd).and_return(tmp_dir)
 
         described_class.for(nil).append("record\n")
 
@@ -133,7 +147,6 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
       it "writes under the working directory when Rails has no root (no app booted)" do
         stub_const("Rails", double(root: nil))
-        allow(Dir).to receive(:pwd).and_return(tmp_dir)
 
         described_class.for(nil).append("record\n")
 
@@ -142,7 +155,6 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
       it "writes to the run's file under .lba/runs in the working directory, outside Rails" do
         hide_const("Rails")
-        allow(Dir).to receive(:pwd).and_return(tmp_dir)
 
         described_class.for(nil).append("record\n")
 
@@ -151,7 +163,6 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
       it "has the run claim its own file before using it" do
         hide_const("Rails")
-        allow(Dir).to receive(:pwd).and_return(tmp_dir)
 
         described_class.for(nil)
 
@@ -160,7 +171,6 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
       it "writes to $stdout when the run can't claim its file" do
         hide_const("Rails")
-        allow(Dir).to receive(:pwd).and_return(tmp_dir)
         allow(run).to receive(:claim_file).and_return(false)
 
         expect { described_class.for(nil).append("record\n") }
@@ -169,10 +179,9 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
       it "writes to $stdout when a symlink was planted at the run's file" do
         hide_const("Rails")
-        real_run = Lba::Internal::Run.new
+        real_run = Dir.chdir(tmp_dir) { Lba::Internal::Run.new }
         allow(real_run).to receive(:warn)
         allow(Lba::Internal::Run).to receive(:current).and_return(real_run)
-        allow(Dir).to receive(:pwd).and_return(tmp_dir)
         runs_dir = File.join(tmp_dir, ".lba", "runs")
         FileUtils.mkdir_p(runs_dir)
         File.symlink(File.join(tmp_dir, "target"), File.join(runs_dir, "#{real_run.id}.jsonl"))
@@ -191,7 +200,6 @@ RSpec.describe Lba::Internal::Destination::Sink do
       end
 
       it "writes to $stdout when the directory exists but isn't writable" do
-        allow(Dir).to receive(:pwd).and_return(tmp_dir)
         allow(File).to receive(:writable?).and_return(false)
 
         expect { described_class.for(nil).append("record\n") }
@@ -212,7 +220,6 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
       it "reports a directory that isn't writable" do
         hide_const("Rails")
-        allow(Dir).to receive(:pwd).and_return(tmp_dir)
         allow(File).to receive(:writable?).and_return(false)
 
         described_class.for(nil)
@@ -223,7 +230,6 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
       it "reports the run's file when the run can't claim it" do
         hide_const("Rails")
-        allow(Dir).to receive(:pwd).and_return(tmp_dir)
         allow(run).to receive(:claim_file).and_return(false)
 
         described_class.for(nil)
@@ -249,7 +255,6 @@ RSpec.describe Lba::Internal::Destination::Sink do
 
       it "creates the run's directories accessible only by their owner" do
         hide_const("Rails")
-        allow(Dir).to receive(:pwd).and_return(tmp_dir)
 
         described_class.for(nil)
 
