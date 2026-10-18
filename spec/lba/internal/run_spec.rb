@@ -79,6 +79,21 @@ RSpec.describe Lba::Internal::Run do
 
     # Someone with write access to the directory could plant a symlink at the
     # run's path, so that records are appended to a file of their choosing.
+    it "claims a path for every thread claiming it at once" do
+      path = File.join(tmp_dir, "run.jsonl")
+      run = described_class.new
+      # Holds each thread just before creating the file, after it has checked
+      # whether the run already claimed it.
+      allow(run).to receive(:create_exclusively).and_wrap_original do |original, claimed_path|
+        sleep 0.05
+        original.call(claimed_path)
+      end
+
+      claims = Array.new(2) { Thread.new { run.claim_file(path) } }.map(&:value)
+
+      expect(claims).to eq([true, true])
+    end
+
     it "refuses a symlink already at the path, leaving its target alone", :aggregate_failures do
       target = File.join(tmp_dir, "target")
       File.write(target, "original")
@@ -196,6 +211,21 @@ RSpec.describe Lba::Internal::Run do
       described_class.new
 
       expect(run_exit_hooks).to be_empty
+    end
+
+    context "when threads ask for it at once" do
+      it "creates one run for all of them", :aggregate_failures do
+        # Holds each thread inside creating the run, where another could start one.
+        allow(SecureRandom).to receive(:hex).and_wrap_original do |original, *arguments|
+          sleep 0.05
+          original.call(*arguments)
+        end
+
+        runs = Array.new(2) { Thread.new { described_class.current } }.map(&:value)
+
+        expect(runs.first).to equal(runs.last)
+        expect(run_exit_hooks.size).to eq(1)
+      end
     end
 
     context "when its exit hook runs" do

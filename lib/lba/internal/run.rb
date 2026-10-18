@@ -1,4 +1,5 @@
 require "securerandom"
+require_relative "run/lock"
 require_relative "run/visits"
 require_relative "run/delivery"
 
@@ -9,7 +10,10 @@ module Lba
     class Run
       # Fails if anything, even a symlink, is already at the path.
       CREATE_FLAGS = File::WRONLY | File::CREAT | File::EXCL | File::NOFOLLOW
-      private_constant :CREATE_FLAGS
+
+      # Lets one thread at a time create the process's run.
+      CREATION_LOCK = Lock.new
+      private_constant :CREATE_FLAGS, :CREATION_LOCK
 
       class << self
         # This process's run, created on first use. Creating it registers the
@@ -17,16 +21,29 @@ module Lba
         # capped site, then summarizes records that couldn't be written.
         #
         # A forked child inherits this memo; the pid check gives it its own run
-        # and file.
+        # and file. Threads asking at once share one run: only creating it
+        # takes a lock, and the check is repeated inside it.
         #
         # @return [Run]
         def current
-          if @current&.pid == Process.pid
+          if current_in_this_process?
             return @current
           end
 
-          @current = new.tap do |run|
-            run.send(:register_at_exit)
+          CREATION_LOCK.synchronize { @current = current_or_new }
+        end
+
+      private
+
+        def current_in_this_process?
+          @current&.pid == Process.pid
+        end
+
+        def current_or_new
+          if current_in_this_process?
+            @current
+          else
+            new.tap { |run| run.send(:register_at_exit) }
           end
         end
       end
@@ -55,6 +72,7 @@ module Lba
         @id = generate_id
         @start_dir = Dir.pwd
         @claimed_paths = []
+        @claim_lock = Lock.new
         @fallback_reported = false
         @visits = Visits.new
         @delivery = Delivery.new
@@ -65,12 +83,15 @@ module Lba
       #
       # A file or symlink already at the path wasn't made by this run (the
       # random part of the id makes the path hard to guess ahead of time), so
-      # the path is refused rather than appended to.
+      # the path is refused rather than appended to. Threads claiming one path
+      # at once all get it.
       #
       # @param path [String] where the run's file goes
       # @return [Boolean] whether this run created the file at +path+
       def claim_file(path)
-        claimed_paths.include?(path) || claim(path)
+        claim_lock.synchronize do
+          claimed_paths.include?(path) || claim(path)
+        end
       end
 
       # Warns on $stderr, the first time in the process, that records meant for
@@ -91,7 +112,7 @@ module Lba
 
     private
 
-      attr_reader :claimed_paths
+      attr_reader :claimed_paths, :claim_lock
 
       # Forked children inherit this hook; the pid check keeps them from
       # re-flushing the parent's capped sites or repeating its summary.
