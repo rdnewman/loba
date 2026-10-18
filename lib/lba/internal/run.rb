@@ -72,7 +72,7 @@ module Lba
         @id = generate_id
         @start_dir = Dir.pwd
         @claimed_paths = []
-        @claim_lock = Lock.new
+        @lock = Lock.new
         @fallback_reported = false
         @visits = Visits.new
         @delivery = Delivery.new
@@ -89,7 +89,7 @@ module Lba
       # @param path [String] where the run's file goes
       # @return [Boolean] whether this run created the file at +path+
       def claim_file(path)
-        claim_lock.synchronize do
+        lock.synchronize do
           claimed_paths.include?(path) || claim(path)
         end
       end
@@ -102,9 +102,8 @@ module Lba
       # @param reason [String] why not, e.g. +"its directory isn't writable"+
       # @return [void]
       def report_fallback(path:, reason:)
-        return if @fallback_reported
+        return unless first_fallback?
 
-        @fallback_reported = true
         warn "lba: can't use #{path.inspect} (#{reason}); " \
              "writing records to $stdout instead; " \
              "later fallbacks in this process won't be reported"
@@ -112,7 +111,17 @@ module Lba
 
     private
 
-      attr_reader :claimed_paths, :claim_lock
+      attr_reader :claimed_paths, :lock
+
+      # Checks and sets the flag under the lock, so threads falling back at
+      # once warn once; the warning itself is written after releasing it.
+      def first_fallback?
+        lock.synchronize do
+          unreported = !@fallback_reported
+          @fallback_reported = true
+          unreported
+        end
+      end
 
       # Forked children inherit this hook; the pid check keeps them from
       # re-flushing the parent's capped sites or repeating its summary.

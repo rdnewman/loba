@@ -63,7 +63,7 @@ Fields come in this order on every line, as with
 
 | Field | Meaning |
 |---|---|
-| `seq` | Order of this record among all records in the run, values included |
+| `seq` | Order of this record among all records in the run, values included: the order calls reached lba. Lines can be out of `seq` order when one lba call runs inside another (a Symbol naming a method that calls lba, say) or calls run in several threads; sort by `seq` to read them in call order. |
 | `type` | `"ts"` |
 | `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `first_seq` and `last_seq` they fell between, and the first `error` (see [Where records go](val.md#where-records-go)) |
 | `label` | The given label, or `null` |

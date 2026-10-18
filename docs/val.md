@@ -133,7 +133,7 @@ bookkeeping that repeats from line to line.
 
 | Field | Meaning |
 |---|---|
-| `seq` | Order of this record among all records in the run |
+| `seq` | Order of this record among all records in the run: the order calls reached lba. Lines can be out of `seq` order when one lba call runs inside another (a Symbol naming a method that calls lba, say) or calls run in several threads; sort by `seq` to read them in call order. |
 | `type` | `"val"` |
 | `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `first_seq` and `last_seq` they fell between, and the first `error` (see [Where records go](#where-records-go)) |
 | `label` | The given or inferred label, or `null` |

@@ -11,8 +11,9 @@ module Lba
       #
       # One thread at a time notes or flushes, so threads never share a number
       # or split a site's visits. Records are numbered when noted, before they're
-      # built and written, so with several threads a sink's lines can be
-      # slightly out of +seq+ order; +seq+ is the order calls reached lba.
+      # built and written, so a sink's lines can be out of +seq+ order when one
+      # lba call runs inside another (a Symbol naming a method that calls lba)
+      # or calls run in several threads; +seq+ is the order calls reached lba.
       class Visits
         # Starts with no call sites seen.
         def initialize

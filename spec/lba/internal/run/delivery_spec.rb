@@ -150,6 +150,26 @@ RSpec.describe Lba::Internal::Run::Delivery do
         expect(written_lines(other)).to eq([{ "seq" => 4 }])
       end
 
+      it "notes them on only one record when threads write there at once" do
+        io = StringIO.new
+        failures = [Errno::ENOSPC]
+        # Fails once, then holds each write long enough for another thread to
+        # find the same gap.
+        allow(io).to receive(:write).and_wrap_original do |original, line|
+          raise failures.shift unless failures.empty?
+
+          sleep 0.05
+          original.call(line)
+        end
+        delivery = quiet_delivery
+        sink = sink_to(io)
+        delivery.write({ seq: 3 }, to: sink)
+
+        [4, 5].map { |seq| Thread.new { delivery.write({ seq: }, to: sink) } }.each(&:join)
+
+        expect(written_lines(io).count { _1.has_key?("unwritten") }).to eq(1)
+      end
+
       # An error that isn't a write failure (a Timeout, say) can interrupt the
       # write that would have noted them.
       it "keeps them for the next record when that write raises", :aggregate_failures do
@@ -189,6 +209,23 @@ RSpec.describe Lba::Internal::Run::Delivery do
         "lba: 1 record couldn't be written to \"b.jsonl\" " \
         "(first error: Errno::EACCES: Permission denied)\n"
       ).to_stderr
+    end
+
+    it "lets another thread miss a record while it warns" do
+      delivery = quiet_delivery
+      delivery.write({ seq: 3 }, to: failing_sink("a.jsonl"))
+      warning = Queue.new
+      # Holds the summary partway through its warnings.
+      allow(delivery).to receive(:warn) do
+        warning << true
+        sleep 0.05
+      end
+      summarizer = Thread.new { delivery.summarize }
+      warning.pop
+
+      writer = Thread.new { delivery.write({ seq: 4 }, to: failing_sink("b.jsonl")) }
+
+      expect { [summarizer, writer].each(&:join) }.not_to raise_error
     end
 
     it "warns about nothing for a sink whose gap was since noted" do
