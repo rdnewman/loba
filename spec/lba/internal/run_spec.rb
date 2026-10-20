@@ -77,8 +77,6 @@ RSpec.describe Lba::Internal::Run do
       expect(File.exist?(second_path)).to be true
     end
 
-    # Someone with write access to the directory could plant a symlink at the
-    # run's path, so that records are appended to a file of their choosing.
     it "claims a path for every thread claiming it at once" do
       path = File.join(tmp_dir, "run.jsonl")
       run = described_class.new
@@ -94,6 +92,8 @@ RSpec.describe Lba::Internal::Run do
       expect(claims).to eq([true, true])
     end
 
+    # Someone with write access to the directory could plant a symlink at the
+    # run's path, so that records are appended to a file of their choosing.
     it "refuses a symlink already at the path, leaving its target alone", :aggregate_failures do
       target = File.join(tmp_dir, "target")
       File.write(target, "original")

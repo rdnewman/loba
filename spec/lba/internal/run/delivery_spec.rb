@@ -211,7 +211,7 @@ RSpec.describe Lba::Internal::Run::Delivery do
       ).to_stderr
     end
 
-    it "lets another thread miss a record while it warns" do
+    it "lets another thread miss a record while it warns", :aggregate_failures do
       delivery = quiet_delivery
       delivery.write({ seq: 3 }, to: failing_sink("a.jsonl"))
       warning = Queue.new
@@ -221,10 +221,11 @@ RSpec.describe Lba::Internal::Run::Delivery do
         sleep 0.05
       end
       summarizer = Thread.new { delivery.summarize }
-      warning.pop
+      held = warning.pop(timeout: 5)
 
       writer = Thread.new { delivery.write({ seq: 4 }, to: failing_sink("b.jsonl")) }
 
+      expect(held).to be true
       expect { [summarizer, writer].each(&:join) }.not_to raise_error
     end
 

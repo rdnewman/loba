@@ -227,7 +227,7 @@ RSpec.describe Lba::Internal::Run::Visits do
       expect(JSON.parse(sink.string.lines.last)).to include("seq" => 501)
     end
 
-    it "lets another thread note a new site while it flushes" do
+    it "lets another thread note a new site while it flushes", :aggregate_failures do
       visits = described_class.new
       note_past_cap(visits, site, destination_to(StringIO.new), skipped: 1)
       flushing = Queue.new
@@ -239,10 +239,11 @@ RSpec.describe Lba::Internal::Run::Visits do
           original.call(**options)
         end
       flusher = Thread.new { visits.flush }
-      flushing.pop
+      held = flushing.pop(timeout: 5)
 
       noter = Thread.new { visits.note(site(file: "app/models/invoice.rb", line: 20)) }
 
+      expect(held).to be true
       expect { [flusher, noter].each(&:join) }.not_to raise_error
     end
 
