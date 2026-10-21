@@ -1,7 +1,7 @@
 require "securerandom"
 require_relative "run/lock"
 require_relative "run/visits"
-require_relative "run/delivery"
+require_relative "run/recorder"
 
 module Lba
   module Internal
@@ -63,8 +63,8 @@ module Lba
       # @return [Visits] the run's visits to call sites
       attr_reader :visits
 
-      # @return [Delivery] the run's writing of records to their sinks
-      attr_reader :delivery
+      # @return [Recorder] writes the run's records to their sinks
+      attr_reader :recorder
 
       # Starts a run for the current process.
       def initialize
@@ -75,7 +75,7 @@ module Lba
         @lock = Lock.new
         @fallback_reported = false
         @visits = Visits.new
-        @delivery = Delivery.new
+        @recorder = Recorder.new
       end
 
       # Claims a file for this run's records: creates it, readable and writable
@@ -139,7 +139,7 @@ module Lba
       def shut_down
         visits.flush
       ensure
-        delivery.summarize
+        recorder.summarize
       end
 
       def claim(path)

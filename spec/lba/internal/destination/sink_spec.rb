@@ -336,7 +336,7 @@ RSpec.describe Lba::Internal::Destination::Sink do
       end
     end
 
-    # Deciding what a failed append means is Run::Delivery's job.
+    # Deciding what a failed append means is Run::Recorder's job.
     context "when the target can't be written" do
       it "raises for a read-only file, leaving it untouched", :aggregate_failures do
         path = File.join(tmp_dir, "read_only.jsonl")

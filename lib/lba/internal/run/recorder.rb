@@ -1,11 +1,11 @@
 require "json"
 require_relative "lock"
-require_relative "delivery/gap"
+require_relative "recorder/gap"
 
 module Lba
   module Internal
     class Run
-      # The run's writing of records to their sinks. A sink that can't be
+      # Writes the run's records to their sinks. A sink that can't be
       # written (a full disk, a read-only file, a closed IO) never breaks the
       # traced code: the record is skipped, and the first such failure in the
       # process is reported on $stderr. So that a dropped record isn't mistaken
@@ -16,7 +16,7 @@ module Lba
       # One thread at a time writes, so a gap is noted on exactly one record.
       # Warnings are written after the lock is released, so a blocked $stderr
       # holds up only the thread warning.
-      class Delivery
+      class Recorder
         # Starts with nothing missed and no failure reported.
         def initialize
           @reported = false
@@ -34,7 +34,7 @@ module Lba
         # @param to [Destination::Sink] where the record goes
         # @return [void]
         def write(fields, to:)
-          unreported_error = lock.synchronize { deliver(fields, to) }
+          unreported_error = lock.synchronize { attempt(fields, to) }
           report_failure(to, unreported_error) if unreported_error
         end
 
@@ -58,7 +58,7 @@ module Lba
 
         # Returns the write's error if it's the process's first failure, so
         # the caller reports it; otherwise nil.
-        def deliver(fields, sink)
+        def attempt(fields, sink)
           append(fields, sink)
           nil
         rescue SystemCallError, IOError => e

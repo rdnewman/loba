@@ -91,11 +91,12 @@ module Lba
 
           def default_path
             rails_root = Platform::WithinRails.root
+            run = Run.current
 
             if rails_root
-              File.join(rails_root, "tmp", "lba", "runs", "#{Run.current.id}.jsonl")
+              File.join(rails_root, "tmp", "lba", "runs", "#{run.id}.jsonl")
             else
-              File.join(Run.current.start_dir, ".lba", "runs", "#{Run.current.id}.jsonl")
+              File.join(run.start_dir, ".lba", "runs", "#{run.id}.jsonl")
             end
           end
 
@@ -118,7 +119,8 @@ module Lba
         end
 
         # Writes the line to the target, flushing an IO so the line isn't held
-        # in a buffer.
+        # in a buffer. Meant for Run::Recorder only, which notes on a sink's
+        # next record any records the sink missed.
         #
         # @param line [String] a record's line, newline included
         # @return [void]

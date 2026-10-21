@@ -119,7 +119,7 @@ RSpec.describe Lba::Internal::Destination do
       log_output = StringIO.new
       log_mirror = Lba::Internal::Destination::LogMirror.new(logger: Logger.new(log_output))
       destination = described_class.new(sink: Lba::Internal::Destination::Sink.new(io), log_mirror:)
-      allow(Lba::Internal::Run.current.delivery).to receive(:warn)
+      allow(Lba::Internal::Run.current.recorder).to receive(:warn)
 
       [1, 2].each { |seq| destination.write({ seq: }) }
 

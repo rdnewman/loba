@@ -162,11 +162,11 @@ RSpec.describe Lba::Internal::Run do
     end
   end
 
-  describe "#delivery" do
-    it "is the run's Delivery, the same one on every call" do
+  describe "#recorder" do
+    it "is the run's Recorder, the same one on every call" do
       run = described_class.new
 
-      expect(run.delivery).to be_a(Lba::Internal::Run::Delivery).and equal(run.delivery)
+      expect(run.recorder).to be_a(Lba::Internal::Run::Recorder).and equal(run.recorder)
     end
   end
 
@@ -186,10 +186,10 @@ RSpec.describe Lba::Internal::Run do
       end
     end
 
-    def fail_quietly(delivery, sink:)
-      allow(delivery).to receive(:warn)
-      delivery.write({ seq: 3 }, to: sink)
-      allow(delivery).to receive(:warn).and_call_original
+    def fail_quietly(recorder, sink:)
+      allow(recorder).to receive(:warn)
+      recorder.write({ seq: 3 }, to: sink)
+      allow(recorder).to receive(:warn).and_call_original
     end
 
     it "returns a Run instance" do
@@ -242,7 +242,7 @@ RSpec.describe Lba::Internal::Run do
 
       it "summarizes the records that couldn't be written" do
         run = described_class.current
-        fail_quietly(run.delivery, sink: failing_sink("a.jsonl"))
+        fail_quietly(run.recorder, sink: failing_sink("a.jsonl"))
 
         expect { run_exit_hooks.first.call }
           .to output(/lba: 1 record couldn't be written to "a.jsonl"/).to_stderr
@@ -262,7 +262,7 @@ RSpec.describe Lba::Internal::Run do
 
       it "still summarizes when writing the skipped-call counts raises" do
         run = described_class.current
-        fail_quietly(run.delivery, sink: failing_sink("a.jsonl"))
+        fail_quietly(run.recorder, sink: failing_sink("a.jsonl"))
         allow(run.visits).to receive(:flush).and_raise(RuntimeError, "lba bug")
 
         expect { run_exit_hooks.first.call }
@@ -299,15 +299,15 @@ RSpec.describe Lba::Internal::Run do
         expect(child_result).to include(since_prev_ts: nil)
       end
 
-      it "gives the child a fresh delivery, so it warns about its own first failure" do
-        fail_quietly(described_class.current.delivery, sink: failing_sink("a.jsonl"))
+      it "gives the child a fresh recorder, so it warns about its own first failure" do
+        fail_quietly(described_class.current.recorder, sink: failing_sink("a.jsonl"))
 
         # An expectation inside the child can't report back to the parent, so
         # the child captures $stderr itself and returns what it got.
         warned_in_child = in_forked_child do
           captured = StringIO.new
           $stderr = captured # rubocop:disable RSpec/ExpectOutput
-          described_class.current.delivery.write({ seq: 3 }, to: failing_sink("a.jsonl"))
+          described_class.current.recorder.write({ seq: 3 }, to: failing_sink("a.jsonl"))
           captured.string
         end
 
@@ -341,7 +341,7 @@ RSpec.describe Lba::Internal::Run do
       end
 
       it "writes no summary when the child runs the exit hook it inherited" do
-        fail_quietly(described_class.current.delivery, sink: failing_sink("a.jsonl"))
+        fail_quietly(described_class.current.recorder, sink: failing_sink("a.jsonl"))
 
         summary_in_child = in_forked_child do
           captured = StringIO.new

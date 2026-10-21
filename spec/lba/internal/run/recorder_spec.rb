@@ -1,7 +1,7 @@
 require "json"
 require "stringio"
 
-RSpec.describe Lba::Internal::Run::Delivery do
+RSpec.describe Lba::Internal::Run::Recorder do
   def sink_to(target) = Lba::Internal::Destination::Sink.new(target)
 
   # A sink on the path whose every append fails.
@@ -25,8 +25,8 @@ RSpec.describe Lba::Internal::Run::Delivery do
   def written_lines(io) = io.string.lines.map { JSON.parse(_1) }
 
   # For examples about something other than the warning.
-  def quiet_delivery
-    described_class.new.tap { |delivery| allow(delivery).to receive(:warn) }
+  def quiet_recorder
+    described_class.new.tap { |recorder| allow(recorder).to receive(:warn) }
   end
 
   describe "#write" do
@@ -52,10 +52,10 @@ RSpec.describe Lba::Internal::Run::Delivery do
       end
 
       it "stays quiet about later failures, to any sink", :aggregate_failures do
-        delivery = described_class.new
-        expect { delivery.write({ seq: 3 }, to: failing_sink("a.jsonl")) }.to output.to_stderr
+        recorder = described_class.new
+        expect { recorder.write({ seq: 3 }, to: failing_sink("a.jsonl")) }.to output.to_stderr
 
-        expect { delivery.write({ seq: 4 }, to: failing_sink("b.jsonl")) }
+        expect { recorder.write({ seq: 4 }, to: failing_sink("b.jsonl")) }
           .not_to output.to_stderr
       end
 
@@ -84,10 +84,10 @@ RSpec.describe Lba::Internal::Run::Delivery do
     context "when earlier records to the sink couldn't be written" do
       it "notes them on the next record written there" do
         io = flaky_io(Errno::ENOSPC, Errno::ENOSPC)
-        delivery = quiet_delivery
+        recorder = quiet_recorder
         sink = sink_to(io)
 
-        [3, 4, 5].each { |seq| delivery.write({ seq: }, to: sink) }
+        [3, 4, 5].each { |seq| recorder.write({ seq: }, to: sink) }
 
         expect(written_lines(io)).to eq(
           [{ "seq" => 5, "unwritten" => {
@@ -99,10 +99,10 @@ RSpec.describe Lba::Internal::Run::Delivery do
 
       it "notes the first error for them all" do
         io = flaky_io(Errno::ENOSPC, Errno::EACCES)
-        delivery = quiet_delivery
+        recorder = quiet_recorder
         sink = sink_to(io)
 
-        [3, 4, 5].each { |seq| delivery.write({ seq: }, to: sink) }
+        [3, 4, 5].each { |seq| recorder.write({ seq: }, to: sink) }
 
         expect(written_lines(io).last["unwritten"])
           .to include("count" => 2, "error" => "Errno::ENOSPC: No space left on device")
@@ -110,10 +110,10 @@ RSpec.describe Lba::Internal::Run::Delivery do
 
       it "notes them on the next record from another Sink to the same target" do
         io = flaky_io(Errno::ENOSPC)
-        delivery = quiet_delivery
-        delivery.write({ seq: 3 }, to: sink_to(io))
+        recorder = quiet_recorder
+        recorder.write({ seq: 3 }, to: sink_to(io))
 
-        delivery.write({ seq: 4 }, to: sink_to(io))
+        recorder.write({ seq: 4 }, to: sink_to(io))
 
         expect(written_lines(io).last).to include("unwritten" => include("count" => 1))
       end
@@ -122,30 +122,30 @@ RSpec.describe Lba::Internal::Run::Delivery do
       # the record's seq and type, before anything that could make a line long.
       it "notes them right after the record's seq and type" do
         io = flaky_io(Errno::ENOSPC)
-        delivery = quiet_delivery
+        recorder = quiet_recorder
         sink = sink_to(io)
 
-        [3, 4].each { |seq| delivery.write({ seq:, type: "ts", label: "after" }, to: sink) }
+        [3, 4].each { |seq| recorder.write({ seq:, type: "ts", label: "after" }, to: sink) }
 
         expect(written_lines(io).last.keys).to eq(["seq", "type", "unwritten", "label"])
       end
 
       it "notes them only once" do
         io = flaky_io(Errno::ENOSPC)
-        delivery = quiet_delivery
+        recorder = quiet_recorder
         sink = sink_to(io)
 
-        [3, 4, 5].each { |seq| delivery.write({ seq: }, to: sink) }
+        [3, 4, 5].each { |seq| recorder.write({ seq: }, to: sink) }
 
         expect(written_lines(io).last).to eq("seq" => 5)
       end
 
       it "notes them only on the sink that missed them" do
         other = StringIO.new
-        delivery = quiet_delivery
-        delivery.write({ seq: 3 }, to: sink_to(flaky_io(Errno::ENOSPC)))
+        recorder = quiet_recorder
+        recorder.write({ seq: 3 }, to: sink_to(flaky_io(Errno::ENOSPC)))
 
-        delivery.write({ seq: 4 }, to: sink_to(other))
+        recorder.write({ seq: 4 }, to: sink_to(other))
 
         expect(written_lines(other)).to eq([{ "seq" => 4 }])
       end
@@ -161,11 +161,11 @@ RSpec.describe Lba::Internal::Run::Delivery do
           sleep 0.05
           original.call(line)
         end
-        delivery = quiet_delivery
+        recorder = quiet_recorder
         sink = sink_to(io)
-        delivery.write({ seq: 3 }, to: sink)
+        recorder.write({ seq: 3 }, to: sink)
 
-        [4, 5].map { |seq| Thread.new { delivery.write({ seq: }, to: sink) } }.each(&:join)
+        [4, 5].map { |seq| Thread.new { recorder.write({ seq: }, to: sink) } }.each(&:join)
 
         expect(written_lines(io).count { _1.has_key?("unwritten") }).to eq(1)
       end
@@ -174,12 +174,12 @@ RSpec.describe Lba::Internal::Run::Delivery do
       # write that would have noted them.
       it "keeps them for the next record when that write raises", :aggregate_failures do
         io = flaky_io(Errno::ENOSPC, RuntimeError.new("interrupted"))
-        delivery = quiet_delivery
+        recorder = quiet_recorder
         sink = sink_to(io)
-        delivery.write({ seq: 3 }, to: sink)
-        expect { delivery.write({ seq: 4 }, to: sink) }.to raise_error(RuntimeError)
+        recorder.write({ seq: 3 }, to: sink)
+        expect { recorder.write({ seq: 4 }, to: sink) }.to raise_error(RuntimeError)
 
-        delivery.write({ seq: 5 }, to: sink)
+        recorder.write({ seq: 5 }, to: sink)
 
         expect(written_lines(io).last["unwritten"]).to include("count" => 1, "last_seq" => 3)
       end
@@ -197,13 +197,13 @@ RSpec.describe Lba::Internal::Run::Delivery do
 
   describe "#summarize" do
     it "warns on $stderr about each sink's records never noted there, one line per sink" do
-      delivery = quiet_delivery
-      delivery.write({ seq: 3 }, to: failing_sink("a.jsonl"))
-      delivery.write({ seq: 4 }, to: failing_sink("a.jsonl"))
-      delivery.write({ seq: 5 }, to: failing_sink("b.jsonl", error: Errno::EACCES.new))
-      allow(delivery).to receive(:warn).and_call_original
+      recorder = quiet_recorder
+      recorder.write({ seq: 3 }, to: failing_sink("a.jsonl"))
+      recorder.write({ seq: 4 }, to: failing_sink("a.jsonl"))
+      recorder.write({ seq: 5 }, to: failing_sink("b.jsonl", error: Errno::EACCES.new))
+      allow(recorder).to receive(:warn).and_call_original
 
-      expect { delivery.summarize }.to output(
+      expect { recorder.summarize }.to output(
         "lba: 2 records couldn't be written to \"a.jsonl\" " \
         "(first error: Errno::ENOSPC: No space left on device)\n" \
         "lba: 1 record couldn't be written to \"b.jsonl\" " \
@@ -212,18 +212,18 @@ RSpec.describe Lba::Internal::Run::Delivery do
     end
 
     it "lets another thread miss a record while it warns", :aggregate_failures do
-      delivery = quiet_delivery
-      delivery.write({ seq: 3 }, to: failing_sink("a.jsonl"))
+      recorder = quiet_recorder
+      recorder.write({ seq: 3 }, to: failing_sink("a.jsonl"))
       warning = Queue.new
       # Holds the summary partway through its warnings.
-      allow(delivery).to receive(:warn) do
+      allow(recorder).to receive(:warn) do
         warning << true
         sleep 0.05
       end
-      summarizer = Thread.new { delivery.summarize }
+      summarizer = Thread.new { recorder.summarize }
       held = warning.pop(timeout: 5)
 
-      writer = Thread.new { delivery.write({ seq: 4 }, to: failing_sink("b.jsonl")) }
+      writer = Thread.new { recorder.write({ seq: 4 }, to: failing_sink("b.jsonl")) }
 
       expect(held).to be true
       expect { [summarizer, writer].each(&:join) }.not_to raise_error
@@ -231,11 +231,11 @@ RSpec.describe Lba::Internal::Run::Delivery do
 
     it "warns about nothing for a sink whose gap was since noted" do
       io = flaky_io(Errno::ENOSPC)
-      delivery = quiet_delivery
-      [3, 4].each { |seq| delivery.write({ seq: }, to: sink_to(io)) }
-      allow(delivery).to receive(:warn).and_call_original
+      recorder = quiet_recorder
+      [3, 4].each { |seq| recorder.write({ seq: }, to: sink_to(io)) }
+      allow(recorder).to receive(:warn).and_call_original
 
-      expect { delivery.summarize }.not_to output.to_stderr
+      expect { recorder.summarize }.not_to output.to_stderr
     end
   end
 end
