@@ -1,22 +1,11 @@
-module LobaSpecSupport
-  module MockedRails
-    def mock_rails(production:, logger: nil)
-      mock_rails = double # impossible to define verifying double w/o Rails already defined
-      allow(mock_rails).to receive_messages(env: double, logger: logger)
-      allow(mock_rails.env).to receive(:production?).and_return(production)
-
-      mock_rails
-    end
-    module_function :mock_rails
-
-    def mock_rails_logger(present:, output:)
-      mock_rails_logger_class = Class.new(Logger) { def present?; end }
-      mock_logger = mock_rails_logger_class.new(output)
-      allow(mock_logger).to receive(:present?).and_return(!!present)
-      allow(mock_logger).to receive(:debug).and_call_original
-
-      mock_logger
-    end
-    module_function :mock_rails_logger
+module MockedRails
+  # rubocop:disable-next RSpec/VerifiedDoubles -- Rails isn't loaded, so there's
+  # no real constant to verify a double against
+  def mock_rails(production: false, logger: nil)
+    double("Rails", env: double("Rails.env", production?: production), logger:)
   end
+
+  # rubocop:disable-next RSpec/VerifiedDoubles -- stands in for a real Rails.logger,
+  # which has no fixed class to verify a double against
+  def fake_rails_logger = double("Rails.logger")
 end

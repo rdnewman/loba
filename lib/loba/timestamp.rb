@@ -1,80 +1,39 @@
-module Loba # rubocop:disable Style/Documentation
-  # Outputs a timestamped notice, useful for quick traces to see the code path.
-  # Also does a simple elapsed time check since the previous timestamp notice to
-  # help with quick, minimalist profiling.
-  # @param production [boolean]
-  #   set to +true+ if this timestamp notice is to be recorded
-  #   when running in a Rails production environment
-  # @param log [boolean]
-  #   set to +false+ if no logging is ever wanted
-  #   (default when not in Rails and +logger+ is nil);
-  #   set to +true+ if logging is always wanted (default when in Rails or
-  #   when +logger+ is set or +out+ is false);
-  # @param logger [Logger] override logging with specified Ruby Logger
-  # @param logdev [nil, String, IO, File::NULL]
-  #   custom log device to use (when not in Rails); ignored if +logger+ is set;
-  #   must be filename or IO object
-  # @param out [boolean]
-  #   set to +false+ if console output is to be suppressed
-  # @return [NilClass] nil
-  # @example Basic use
-  #   def hello
-  #     Loba.timestamp
+module Loba
+  # Records a checkpoint: that this line was reached, with the class, method,
+  # file, and line it was called from, and the seconds since the previous
+  # checkpoint, as one JSON line in this run's sink.
+  #
+  # Does nothing in a production environment (Rails production, or +RACK_ENV+,
+  # +APP_ENV+, or +RAILS_ENV+ set to +production+ outside Rails); there is no
+  # override.
+  #
+  # @param label [String, Symbol] a name for the checkpoint, e.g. +"reached step A"+;
+  #   recorded as +label+, or +null+ when not given
+  # @param log [Boolean] +true+ to also write the record to +Rails.logger+ (or
+  #   +logger+, if given); +false+ to never log, even if +logger+ is given
+  #   [default: +false+, unless +logger+ is given]
+  # @param logger [Logger] a +Logger+ to also write the record to; implies
+  #   +log: true+ unless +log: false+ is given
+  # @param sink [IO, String, Pathname] where to write instead of the default: an IO, or a
+  #   file path (see the +LOBA_SINK+ environment variable for a process-wide
+  #   override)
+  # @return [void]
+  # @raise [ArgumentError] for an unknown keyword, such as +production:+
+  # @raise [InvalidLoggerOptionError] if the call would log and +logger+ is
+  #   neither +nil+ nor a +Logger+
+  #
+  # @example Marking a point in the code
+  #   def checkout
+  #   Loba.ts # putting Loba statements at the far left helps you remember to remove them
+  #     charge_card
   #   end
-  #   #=> [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411, in=/path/to/file.rb:2:in 'hello'
-  # @example Forced to output when in production environment
-  #   def hello
-  #     Loba.ts production: true # Loba.ts is a shorthand alias for Loba.timestamp
-  #   end
-  #   #=> [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411, in=/path/to/file.rb:2:in 'hello'
-  # @example Forced to output to log in addition to $stdout
-  #   def hello
-  #     Loba.timestamp log: true
-  #   end
-  #   #=> [TIMESTAMP] #=0001, diff=0.000463, at=1451615389.505411, in=/path/to/file.rb:2:in 'hello'
-  # @note To avoid doubled output, if a non-Rails logger is to be logged to and +logdev+ is
-  #   set to +$stdout+, then output will be suppressed (i.e., +settings.out+ is +false+).
-  #   Doubled output can still occur; in that case, explicitly use +out: false+.
-  def timestamp( # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
-    production: false,
-    log: false,
-    logger: nil,
-    logdev: nil,
-    out: true
-  )
-    settings = Internal::Settings.new(
-      log: log, logger: logger, logdev: logdev, out: out, production: production
+  #   #=> writes {...,"type":"ts",...,"line":2,"class_name":"Cart",
+  #   #           "method_name":"checkout",...,"since_prev_ts":null,...}
+  # @example Naming the checkpoint
+  #   Loba.ts label: "reached step A"
+  def self.timestamp(label: nil, log: nil, logger: nil, sink: nil)
+    Internal::Invocation.record(
+      Internal::Records::Timestamp, options: { label: }, log:, logger:, sink:
     )
-
-    return unless settings.enabled?
-
-    # NOTE: while tempting, memoizing loba_logger can lead to surprises if
-    #   Rails presence isn't constant
-    writer = Internal::Platform.writer(settings: settings)
-
-    begin
-      stats = Internal::TimeKeeper.instance.ping
-      writer.call(
-        # 60: light_black / grey
-        "#{Rainbow('[TIMESTAMP]').black.bg(60)}" \
-        "#{Rainbow(' #=').yellow.bg(:default)}" \
-        "#{format('%04d', stats[:number])}" \
-        "#{Rainbow(', diff=').yellow}" \
-        "#{format('%.6f', stats[:change])}" \
-        "#{Rainbow(', at=').yellow}" \
-        "#{format('%.6f', stats[:now].round(6).to_f)}" \
-        "#{Rainbow("    \t(in #{caller(1..1).first})").color(60)}" # warning: nested interpolation
-      )
-    rescue StandardError => e
-      writer.call Rainbow("[TIMESTAMP] #=FAIL, in=#{caller(1..1).first}, err=#{e}").red
-    end
-
-    nil
   end
-  module_function :timestamp
-
-  # Shorthand alias for Loba.timestamp.
-  # @!method ts(production: false, log: false, logger: nil, logdev: nil, out: true)
-  alias ts timestamp
-  module_function :ts
 end

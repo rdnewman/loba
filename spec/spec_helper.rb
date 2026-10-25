@@ -1,4 +1,30 @@
+require "simplecov"
+SimpleCov.start { skip "spec/" }
+
+require "loba"
+
+Dir.glob(
+  File.join(__dir__, "support", "**", "*.rb")
+).each do |file|
+  require file
+end
+
 RSpec.configure do |config|
+  config.include MockedRails
+  config.include AllocationHelpers
+  config.include AtExitHelpers
+  config.include DestinationHelpers
+  config.include ForkHelpers
+  config.include MemoizedCurrentHelpers
+  config.include RunHelpers
+  config.include SerializationHelpers
+
+  # Every record is stamped with Run.current's id, so most examples create a
+  # run. Capture the exit hook each run registers, which would otherwise fire
+  # at the suite's exit, and start every example without a current run.
+  config.before { @run_exit_hooks = capture_at_exit_hooks(Loba::Internal::Run) }
+  config.after { reset_current(Loba::Internal::Run) }
+
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
   end
@@ -11,10 +37,14 @@ RSpec.configure do |config|
 
   config.shared_context_metadata_behavior = :apply_to_host_groups
   config.filter_run_when_matching :focus
+
+  # Timing checks depend on the machine running them; run them deliberately
+  # with `bundle exec rspec --tag performance`.
+  config.filter_run_excluding performance: true
   config.disable_monkey_patching!
   config.warnings = true
 
-  config.default_formatter = 'doc' if config.files_to_run.one?
+  config.default_formatter = "doc" if config.files_to_run.one?
 
   config.profile_examples = 10
   config.order = :random
