@@ -1,15 +1,15 @@
-# Value records: `Lba.val`
+# Value records: `Loba.val`
 
-`Lba.val` records a value, along with the class, method, file, and line it was
+`Loba.val` records a value, along with the class, method, file, and line it was
 called from, as one JSON object per line in the current run's sink.
 
 ```ruby
-Lba.val :var_sym                     # a Symbol names something in the caller: a local, an instance variable, a method...
-Lba.val some_value                   # anything else is recorded as given
-Lba.val some_value, label: "Name"    # a label for a value that can't name itself
+Loba.val :var_sym                     # a Symbol names something in the caller: a local, an instance variable, a method...
+Loba.val some_value                   # anything else is recorded as given
+Loba.val some_value, label: "Name"    # a label for a value that can't name itself
 ```
 
-`Lba.val` is shorthand for `Lba.value`.
+`Loba.val` is shorthand for `Loba.value`.
 
 ## Examples
 
@@ -21,7 +21,7 @@ fields listed under [The record](#the-record).
 ```ruby
 class HelloWorld
   def hello(name)
-Lba.val :name       # put Lba statements at the far left to help remember to remove them
+Loba.val :name       # put Loba statements at the far left to help remember to remove them
     "Hello, #{name}!"
   end
 end
@@ -33,18 +33,18 @@ HelloWorld.new.hello("Charlie")
 ```
 
 The label comes from the Symbol. A Symbol can also name an instance variable
-(`Lba.val :@total`), a method (`Lba.val :current_user`), `:self`, or a constant.
+(`Loba.val :@total`), a method (`Loba.val :current_user`), `:self`, or a constant.
 
 A Symbol argument is always treated as a name, never as the value to record, so
-a variable that holds a Symbol has to be passed by name (`Lba.val :status`), not
-directly (`Lba.val status`).
+a variable that holds a Symbol has to be passed by name (`Loba.val :status`), not
+directly (`Loba.val status`).
 
 ### Example 2: an expression as a Symbol
 
 An expression a bare Symbol can't spell works when written as a String and cast:
 
 ```ruby
-Lba.val "my_hash[:name]".to_sym
+Loba.val "my_hash[:name]".to_sym
 ```
 
 It's evaluated in the caller, and the label is the expression itself
@@ -53,7 +53,7 @@ It's evaluated in the caller, and the label is the expression itself
 ### Example 3: a value given directly, without a label
 
 ```ruby
-Lba.val name
+Loba.val name
 ```
 
 ```json
@@ -65,7 +65,7 @@ A value given directly can't name itself, so `label` is `null`.
 ### Example 4: a value given directly, with a label
 
 ```ruby
-Lba.val name, label: "Name"
+Loba.val name, label: "Name"
 ```
 
 ```json
@@ -76,19 +76,19 @@ Lba.val name, label: "Name"
 
 Each process run writes to its own file, named for its run id:
 
-- inside Rails: `tmp/lba/runs/<run_id>.jsonl` under `Rails.root`
-- otherwise: `.lba/runs/<run_id>.jsonl` under the directory the run started in:
-  the working directory at the process's first lba call
+- inside Rails: `tmp/loba/runs/<run_id>.jsonl` under `Rails.root`
+- otherwise: `.loba/runs/<run_id>.jsonl` under the directory the run started in:
+  the working directory at the process's first loba call
 
-The `LBA_SINK` environment variable overrides that path for the whole process
-(an empty `LBA_SINK` is ignored), and the `sink:` option overrides it for one
+The `LOBA_SINK` environment variable overrides that path for the whole process
+(an empty `LOBA_SINK` is ignored), and the `sink:` option overrides it for one
 call, with a path (a String or `Pathname`) or any IO (such as `$stdout` or a
 `StringIO`). A relative path is taken from the directory the run started in, so
 a later `Dir.chdir` doesn't send the rest of the run's records to another file.
 If the directory can't be created or written to, records go to
 `$stdout` instead.
 
-Records hold captured values as-is, so a file lba creates is readable and
+Records hold captured values as-is, so a file loba creates is readable and
 writable only by its owner (mode `0600`), as are the directories it creates
 for a run's own file (`0700`). Files and directories that already exist keep
 their permissions. If anything, even a symlink, is already at a run's own file
@@ -98,7 +98,7 @@ The first time records go to `$stdout` instead of a path, the process says so
 once on `$stderr`, naming the path and why it couldn't be used:
 
 ```
-lba: can't use "/app/log/trace.jsonl" (its directory isn't writable); writing records to $stdout instead; later fallbacks in this process won't be reported
+loba: can't use "/app/log/trace.jsonl" (its directory isn't writable); writing records to $stdout instead; later fallbacks in this process won't be reported
 ```
 
 If a record still can't be written (a full disk, a read-only file, a closed
@@ -116,7 +116,7 @@ If no later record reaches that sink, the process reports the loss when it
 exits instead (by any means but `exit!` or `kill -9`), on `$stderr`:
 
 ```text
-lba: 2 records couldn't be written to "/app/log/trace.jsonl" (first error: Errno::EACCES: Permission denied @ rb_sysopen - /app/log/trace.jsonl)
+loba: 2 records couldn't be written to "/app/log/trace.jsonl" (first error: Errno::EACCES: Permission denied @ rb_sysopen - /app/log/trace.jsonl)
 ```
 
 Inside Rails, the default is used only once the app has booted (`Rails.root` is
@@ -133,11 +133,11 @@ bookkeeping that repeats from line to line.
 
 | Field | Meaning |
 |---|---|
-| `seq` | Order of this record among all records in the run: the order calls reached lba. Lines can be out of `seq` order when one lba call runs inside another (a Symbol naming a method that calls lba, say) or calls run in several threads; sort by `seq` to read them in call order. |
+| `seq` | Order of this record among all records in the run: the order calls reached loba. Lines can be out of `seq` order when one loba call runs inside another (a Symbol naming a method that calls loba, say) or calls run in several threads; sort by `seq` to read them in call order. |
 | `type` | `"val"` |
 | `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `seq` of the first and last of them (`first_seq`, `last_seq`), and the first `error` (see [Where records go](#where-records-go)) |
 | `label` | The given or inferred label, or `null` |
-| `file`, `line` | Where `Lba.val` was called; `file` is the path Ruby loaded that file by, usually absolute inside an app |
+| `file`, `line` | Where `Loba.val` was called; `file` is the path Ruby loaded that file by, usually absolute inside an app |
 | `class_name` | The caller's class, or the class itself inside a class method; `"<anonymous class>"` for an unnamed one |
 | `method_name` | The caller's method; `"<anonymous method>"` outside any method |
 | `method_type` | `"instance"` or `"class"` |
@@ -172,7 +172,7 @@ named in `rendered`:
 - A container nested more than 5 levels deep is rendered whole as text, with
   `as` `"too_deep"` (see [Limits](#limits)).
 
-For example, `Lba.val :order` where `order` is
+For example, `Loba.val :order` where `order` is
 `{total: Float::NAN, note: "NaN", items: [1, Point.new(2)]}`:
 
 ```json
@@ -186,7 +186,7 @@ Two keys that JSON writes as the same text would leave a duplicate key, and a
 JSON reader keeps only one, so a pair would vanish without a trace. The first
 pair stays in `value`, and `collided` lists them all as `#inspect` text, even
 with `inspect: false`, so a Symbol key and a String key stay apart.
-`Lba.val({id: 1, "id" => 2})` gives:
+`Loba.val({id: 1, "id" => 2})` gives:
 
 ```json
 {"value_type":"Hash","collided":[{"path":[],"key":"id","pairs":[[":id","1"],["\"id\"","2"]]}],"value":{"id":1}}
@@ -202,13 +202,13 @@ since it has no place in `value` to point to.
 | `label:` | inferred from a Symbol | A label for the record. A String or Symbol; anything else gives no label. Converted to UTF-8; bytes that aren't valid UTF-8 become `�` (U+FFFD). |
 | `inspect:` | `true` | For a value with no JSON form, `true` renders it with `#inspect`, `false` with `#to_s`. JSON-native values are unaffected. |
 | `log:` | `false`, or `true` if `logger:` is given | `true` also writes the record to `Rails.logger` (or `logger:`). `false` never logs, even if `logger:` is given. |
-| `logger:` | none | A `Logger` to also write the record to. When the call would log, anything other than a `Logger` raises `Lba::InvalidLoggerOptionError` (not with `log: false`, and not in production, where nothing is written). |
+| `logger:` | none | A `Logger` to also write the record to. When the call would log, anything other than a `Logger` raises `Loba::InvalidLoggerOptionError` (not with `log: false`, and not in production, where nothing is written). |
 | `sink:` | this run's file | A path (String or `Pathname`) or IO to write to instead. |
 
 ```ruby
-Lba.val name, label: "Name", inspect: false
-Lba.val :name, log: true
-Lba.val :name, logger: Logger.new($stderr)
+Loba.val name, label: "Name", inspect: false
+Loba.val :name, log: true
+Loba.val :name, logger: Logger.new($stderr)
 ```
 
 A logged record is the same JSON as the one written to the sink, at `debug`
@@ -247,7 +247,7 @@ These limits keep records bounded in size, and in number per call site:
   loses that last count.
 
 `cut` lists every part these cut short, by path, so a cut value can't be
-mistaken for a complete one: `Lba.val :order` with 53 items gives
+mistaken for a complete one: `Loba.val :order` with 53 items gives
 `"cut":[{"path":["items"],"omitted":3,"unit":"entries"}]`, and `value` holds
 the first 50.
 
@@ -292,7 +292,7 @@ evaluating a Symbol.
 
 ## Environment notes
 
-`Lba.val` does nothing in a production environment, and there is no override.
+`Loba.val` does nothing in a production environment, and there is no override.
 Inside Rails, that means `Rails.env.production?`; outside Rails, any of
 `RACK_ENV`, `APP_ENV`, or `RAILS_ENV` set to `production`. A record is written
 to a file meant to be read later, so in production it could persist secrets or

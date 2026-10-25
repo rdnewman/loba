@@ -1,8 +1,8 @@
-# Lba
+# Loba
 
 Structured, AI-consumable trace-debugging.
 
-Lba's primary reader is an AI coding agent (or a human pairing alongside one),
+Loba's primary reader is an AI coding agent (or a human pairing alongside one),
 not a human scanning terminal output.
 
 Status: early build, not yet released.
@@ -11,21 +11,21 @@ _This documentation was drafted with AI assistance and reviewed by the author._
 
 ## Overview
 
-Lba statements (`Lba.val`, `Lba.ts`) are terse, minimally-invasive, and meant to be
+Loba statements (`Loba.val`, `Loba.ts`) are terse, minimally-invasive, and meant to be
 removed when you're done. Each one appends a structured JSON record, one per
 line, to a per-run log file, so the trace can be aggregated, diffed across runs,
-and queried by the `lba` CLI (planned) instead of read raw.
+and queried by the `loba` CLI (planned) instead of read raw.
 
 ## Usage
 
-### Value records: `Lba.val`
+### Value records: `Loba.val`
 
 Records a value, with the class, method, file, and line it was called from:
 
 ```ruby
 class HelloWorld
   def hello(name)
-Lba.val :name       # put Lba statements at the far left to help remember to remove them
+Loba.val :name       # put Loba statements at the far left to help remember to remove them
     "Hello, #{name}!"
   end
 end
@@ -41,7 +41,7 @@ out; run as `ruby hello_world.rb`, so `file` is the path Ruby loaded it by):
 
 A Symbol names something in the caller (a local, an instance variable, a method,
 or an expression); anything else is recorded as given. `label:` sets the
-record's label either way. `Lba.val` is shorthand for `Lba.value`.
+record's label either way. `Loba.val` is shorthand for `Loba.value`.
 
 A Symbol is evaluated as code in the caller, so pass only Symbols you wrote,
 never one built from outside input (see [docs/val.md](docs/val.md#caution-what-gets-recorded)).
@@ -50,7 +50,7 @@ See [docs/val.md](docs/val.md) for the full record format, options (including
 logging to `Rails.logger` or any `Logger`), where records are written, and
 limits.
 
-### Timestamp records: `Lba.ts`
+### Timestamp records: `Loba.ts`
 
 Records a checkpoint: that a line was reached, with the same caller details and
 the seconds since the previous checkpoint:
@@ -58,9 +58,9 @@ the seconds since the previous checkpoint:
 ```ruby
 class Cart
   def checkout
-Lba.ts
+Loba.ts
     charge_card
-Lba.ts label: "card charged"
+Loba.ts label: "card charged"
   end
 end
 ```
@@ -73,35 +73,35 @@ appends two lines like these (again with some fields left out):
 ```
 
 `since_prev_ts` is `null` for a run's first checkpoint; `site_seq` numbers
-each line's records. `label:` names a checkpoint. `Lba.ts` is
-shorthand for `Lba.timestamp`.
+each line's records. `label:` names a checkpoint. `Loba.ts` is
+shorthand for `Loba.timestamp`.
 
 See [docs/ts.md](docs/ts.md) for the full record format, options, and limits.
 
 ## Environment notes
 
-Lba statements are meant for development and test. In a production environment
+Loba statements are meant for development and test. In a production environment
 they do nothing (inside Rails, `Rails.env.production?`; outside it, `RACK_ENV`,
 `APP_ENV`, or `RAILS_ENV` set to `production`), and there is no override:
 records are written to files meant to be read later, and captured values are
 stored as-is, so leaving tracing on in production could persist secrets or
 personal data indefinitely.
 
-Records go to `tmp/lba/runs/` under `Rails.root` in Rails, or `.lba/runs/` under
-the working directory at the first lba call otherwise. Add that directory to
+Records go to `tmp/loba/runs/` under `Rails.root` in Rails, or `.loba/runs/` under
+the working directory at the first loba call otherwise. Add that directory to
 `.gitignore`.
 
 ## Installation
 
-Lba isn't published yet. To try it from source, add to your Gemfile:
+Loba isn't published yet. To try it from source, add to your Gemfile:
 
 ```ruby
 group :development, :test do
-  gem "lba", git: "https://github.com/rdnewman/lba"
+  gem "loba", git: "https://github.com/rdnewman/loba"
 end
 ```
 
-Then run `bundle install`. Lba needs Ruby 3.3 or newer.
+Then run `bundle install`. Loba needs Ruby 3.3 or newer.
 
 ## Development
 

@@ -1,7 +1,7 @@
 require "simplecov"
 SimpleCov.start { skip "spec/" }
 
-require "lba"
+require "loba"
 
 Dir.glob(
   File.join(__dir__, "support", "**", "*.rb")
@@ -22,8 +22,8 @@ RSpec.configure do |config|
   # Every record is stamped with Run.current's id, so most examples create a
   # run. Capture the exit hook each run registers, which would otherwise fire
   # at the suite's exit, and start every example without a current run.
-  config.before { @run_exit_hooks = capture_at_exit_hooks(Lba::Internal::Run) }
-  config.after { reset_current(Lba::Internal::Run) }
+  config.before { @run_exit_hooks = capture_at_exit_hooks(Loba::Internal::Run) }
+  config.after { reset_current(Loba::Internal::Run) }
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true

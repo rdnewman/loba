@@ -7,6 +7,6 @@
 /pkg/
 /spec/reports/
 /tmp/
-/.lba/
-/lba-?.?.?.gem
+/.loba/
+/loba-*.gem
 /.claude/
