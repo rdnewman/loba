@@ -1,4 +1,4 @@
 module Loba
-  # Semantic version number
-  VERSION = '2.1.0'.freeze
+  # The gem's version.
+  VERSION = "3.0.0.pre".freeze
 end

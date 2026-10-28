@@ -1,2 +1,2 @@
 --color
---require loba_helper
+--require spec_helper

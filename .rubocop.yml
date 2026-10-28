@@ -1,12 +1,13 @@
-require:
+plugins:
   - rubocop-performance
+  - rubocop-rspec
 
 AllCops:
   NewCops: enable
-  TargetRubyVersion: 3.0.6
+  TargetRubyVersion: 3.3
 
 Layout/AccessModifierIndentation:
-  Enabled: true
+  EnforcedStyle: outdent
 
 Layout/LineLength:
   Max: 100
@@ -14,12 +15,26 @@ Layout/LineLength:
 Metrics/BlockLength:
   Max: 25
 
+Metrics/MethodLength:
+  Max: 15
+
+RSpec/ExampleLength:
+  Max: 15
+
 Style/DoubleNegation:
+  Enabled: false
+
+Style/Documentation:
   Enabled: false
 
 Style/FrozenStringLiteralComment:
   Enabled: true
   EnforcedStyle: never
+
+# Conditional modifiers are limited to short, simple cases by judgment; this
+# cop only ever pushes toward more of them.
+Style/IfUnlessModifier:
+  Enabled: false
 
 Style/OptionalBooleanParameter:
   Enabled: false
@@ -28,14 +43,11 @@ Style/PreferredHashMethods:
   Enabled: true
   EnforcedStyle: verbose
 
-Style/RegexpLiteral:
-  Enabled: true
-  EnforcedStyle: slashes
-  AllowInnerSlashes: true
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
 
 Style/SymbolArray:
-  Enabled: true
   EnforcedStyle: brackets
 
 Style/WordArray:
-  Enabled: false
+  EnforcedStyle: brackets

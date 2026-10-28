@@ -1,14 +1,18 @@
-require 'loba/version'
-require 'loba/error'
-require 'loba/internal'
+require_relative "loba/version"
+require_relative "loba/errors"
+require_relative "loba/internal"
+require_relative "loba/value"
+require_relative "loba/timestamp"
 
-require 'binding_of_caller'
-require 'rainbow'
-
-require 'loba/timestamp'
-require 'loba/value'
-
-# Loba module for quick tracing of Ruby and Rails.
-# Will write to $stdout (generally) and, optionally, a log.
+# loba: structured, AI-consumable trace-debugging.
 module Loba
+  class << self
+    # Alias for Loba.value.
+    # @!method val(argument, label: nil, inspect: true, log: nil, logger: nil, sink: nil)
+    alias val value
+
+    # Alias for Loba.timestamp.
+    # @!method ts(label: nil, log: nil, logger: nil, sink: nil)
+    alias ts timestamp
+  end
 end

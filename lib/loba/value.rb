@@ -1,104 +1,52 @@
-module Loba # rubocop:disable Style/Documentation
-  # Outputs a value notice showing value of provided argument including method and
-  # class identification.
-  # @param argument [various] (required) the value to be evaluated and shown; if given as
-  #   a +Symbol+, a label based on the argument will proceed the value the argument refers to
-  # @param label [String] explicit label to be used instead of attempting
-  #   to infer from the argument; default is to attempt to infer a label from the argument
-  # @param inspect [boolean] +true+ if this value notice is to use +#inspect+ against the
-  #   content being evaluated; otherwise, +false+
-  # @param production [boolean]
-  #   set to +true+ if the value notice is to be recorded
-  #   when running in a Rails production environment
-  # @param log [boolean]
-  #   set to +false+ if no logging is ever wanted
-  #   (default when not in Rails and +logger+ is nil);
-  #   set to +true+ if logging is always wanted (default when in Rails or
-  #   when +logger+ is set or +out+ is false);
-  # @param logger [Logger] override logging with specified Ruby Logger
-  # @param logdev [nil, String, IO, File::NULL]
-  #   custom log device to use (when not in Rails); ignored if +logger+ is set;
-  #   must be filename or IO object
-  # @param out [boolean]
-  #   set to +false+ if console output is to be suppressed
-  # @return [NilClass] nil
-  # @example Using Symbol as argument
+module Loba
+  # rubocop:disable Metrics/ParameterLists -- one keyword per public option
+
+  # Records a value, with the class, method, file, and line it was called from,
+  # as one JSON line in this run's sink.
+  #
+  # Does nothing in a production environment (Rails production, or +RACK_ENV+,
+  # +APP_ENV+, or +RAILS_ENV+ set to +production+ outside Rails); there is no
+  # override.
+  #
+  # @param argument [Symbol, Object] (required) a +Symbol+ names a local variable,
+  #   instance variable, method, or expression in the caller, which is evaluated
+  #   there; anything else is recorded as given. A +Symbol+ is evaluated as code, so
+  #   it must be one you wrote, never one built from untrusted input.
+  # @param label [String, Symbol] explicit label for the record; default is to infer
+  #   one from a +Symbol+ argument (a non-+Symbol+ argument gets no label)
+  # @param inspect [Boolean] +true+ to render a value that has no JSON form with
+  #   +#inspect+; +false+ to use +#to_s+. Has no effect on JSON-native values.
+  # @param log [Boolean] +true+ to also write the record to +Rails.logger+ (or
+  #   +logger+, if given); +false+ to never log, even if +logger+ is given
+  #   [default: +false+, unless +logger+ is given]
+  # @param logger [Logger] a +Logger+ to also write the record to; implies
+  #   +log: true+ unless +log: false+ is given
+  # @param sink [IO, String, Pathname] where to write instead of the default: an IO, or a
+  #   file path (see the +LOBA_SINK+ environment variable for a process-wide
+  #   override)
+  # @return [void]
+  # @raise [ArgumentError] for an unknown keyword, such as +production:+
+  # @raise [InvalidLoggerOptionError] if the call would log and +logger+ is
+  #   neither +nil+ nor a +Logger+
+  #
+  # @example Using a Symbol as the argument
   #   class HelloWorld
   #     def hello(name)
-  #   Loba.value :name # putting Loba statement to far left helps remember to remove later
-  #       puts "Hello, #{name}!"
+  #   Loba.val :name # putting Loba statements at the far left helps you remember to remove them
+  #       "Hello, #{name}!"
   #     end
   #   end
   #   HelloWorld.new.hello("Charlie")
-  #   #=> [HelloWorld#hello] name: Charlie        (at /path/to/file/hello_world.rb:3:in 'hello')
-  #   #=> Hello, Charlie!
-  # @example Using non-Symbol as argument
-  #   class HelloWorld
-  #     def hello(name)
-  #   Loba.val name # Loba.val is a shorthand alias for Loba.value
-  #       puts "Hello, #{name}!"
-  #     end
-  #   end
-  #   HelloWorld.new.hello("Charlie")
-  #   #=> [HelloWorld#hello] Charlie        (at /path/to/file/hello_world.rb:3:in 'hello')
-  #   #=> Hello, Charlie!
-  # @example Using non-Symbol as argument with a label
-  #   class HelloWorld
-  #     def hello(name)
-  #   Loba.value name, "Name:"
-  #       puts "Hello, #{name}!"
-  #     end
-  #   end
-  #   HelloWorld.new.hello("Charlie")
-  #   #=> [HelloWorld#hello] Name: Charlie        (at /path/to/file/hello_world.rb:3:in 'hello')
-  #   #=> Hello, Charlie!
-  # @note To avoid doubled output, if a non-Rails logger is to be logged to and +logdev+ is
-  #   set to +$stdout+, then output will be suppressed (i.e., +settings.out+ is +false+).
-  #   Doubled output can still occur; in that case, explicitly use +out: false+.
-  def value( # rubocop:disable Metrics/AbcSize, Metrics/MethodLength, Metrics/ParameterLists
-    argument,
-    label: nil,
-    inspect: true,
-    production: false,
-    log: false,
-    logger: nil,
-    logdev: nil,
-    out: true
-  )
-    settings = Internal::Settings.new(
-      log: log, logger: logger, logdev: logdev, out: out, production: production
+  #   #=> writes {...,"label":"name",...,"line":3,"class_name":"HelloWorld",
+  #   #           "method_name":"hello",...,"value":"Charlie",...}
+  # @example Using a value directly, with a label
+  #   Loba.val order.total, label: "Order total"
+  # @example Also writing to Rails.logger
+  #   Loba.val :name, log: true
+  def self.value(argument, label: nil, inspect: true, log: nil, logger: nil, sink: nil)
+    Internal::Invocation.record(
+      Internal::Records::Value, options: { argument:, label:, inspect: }, log:, logger:, sink:
     )
-
-    return unless settings.enabled?
-
-    text = Internal::Value.phrases(
-      argument: (argument.nil? ? :nil : argument),
-      label: label,
-      inspect: inspect,
-      depth_offset: 1
-    )
-
-    Internal::Platform.writer(settings: settings).call(
-      # NOTE: while tempting, memoizing Internal::Platform.logger can lead to surprises
-      #   if Rails presence isn't constant
-      #
-      # warning: nested interpolation below (slight help to performance)
-      # 60: light_black
-      # 62: light_green
-      "#{Rainbow("#{text[:tag]} ").green.bg(:default)}" \
-      "#{Rainbow("#{text[:label]} ").color(62)}" \
-      "#{text[:value]}" \
-      "#{Rainbow("    \t(in #{text[:line]})").color(60)}"
-    )
-
-    nil
   end
-  module_function :value
-
-  # rubocop:disable Layout/LineLength
-  # Shorthand alias for Loba.value.
-  # @!method val(argument, label: nil, inspect: true, production: false, log: false, logger: nil, logdev:nil, out: true)
-  alias val value
-  module_function :val
-  # rubocop:enable Layout/LineLength
+  # rubocop:enable Metrics/ParameterLists
 end
