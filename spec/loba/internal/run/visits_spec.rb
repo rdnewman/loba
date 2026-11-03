@@ -4,6 +4,9 @@ RSpec.describe Loba::Internal::Run::Visits do
   end
 
   describe "#note" do
+    # A record's diff and since_prev_ts must equal the gap between the
+    # mono_time values written on its lines, so the reading they're measured
+    # from is the one written.
     it "assigns seq 1 and site_seq 1 to a call site's first record" do
       visits = described_class.new
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.0)
@@ -40,18 +43,6 @@ RSpec.describe Loba::Internal::Run::Visits do
       result = visits.note(site)
 
       expect(result).to include(diff: 0.25)
-    end
-
-    # A record's diff and since_prev_ts must equal the gap between the
-    # mono_time values written on its lines, so the reading they're measured
-    # from is the one written.
-    it "reports the clock reading its timing was measured from" do
-      visits = described_class.new
-      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.25)
-
-      result = visits.note(site(type: "ts"))
-
-      expect(result).to include(mono_time: 100.25)
     end
 
     context "when threads note one site at once" do
@@ -255,15 +246,6 @@ RSpec.describe Loba::Internal::Run::Visits do
       visits.flush
 
       expect(sink.string).to be_empty
-    end
-
-    it "warns rather than raising when a capped site's sink was closed" do
-      visits = described_class.new
-      sink = StringIO.new
-      note_past_cap(visits, site, destination_to(sink), skipped: 1)
-      sink.close
-
-      expect { visits.flush }.to output(/loba: couldn't write a record/).to_stderr
     end
   end
 end

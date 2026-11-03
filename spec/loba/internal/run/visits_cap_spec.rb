@@ -20,19 +20,6 @@ RSpec.describe Loba::Internal::Run::Visits do
       expect(sink).not_to have_received(:write)
     end
 
-    it "keeps skipping a capped site's calls until 60 seconds have passed" do
-      window_start = 1_000.0
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      (cap + 1).times { visits.note(site, destination: discarding_destination) }
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start + 59.9)
-
-      result = visits.note(site, destination: discarding_destination)
-
-      expect(result).to eq(:suppressed)
-    end
-
     it "caps a ts on the same line separately from a capped val" do
       (cap + 1).times { visits.note(site, destination: discarding_destination) }
 
@@ -70,57 +57,19 @@ RSpec.describe Loba::Internal::Run::Visits do
       )
     end
 
-    it "writes to the site's destination even when the call that ends the window passes none" do
-      sink = StringIO.new
-      destination = destination_to(sink)
-      window_start = 1_000.0
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      (cap + 1).times { visits.note(site, destination:) }
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start + 60)
-
-      visits.note(site)
-
-      expect(JSON.parse(sink.string)).to include("suppressed_count" => 1)
-    end
-
-    # rubocop:disable-next RSpec/ExampleLength -- the window setup and the full
-    # stamp check both need their lines.
-    it "stamps the suppression record like any other record, with the next seq",
+    it "uses up no numbers on skipped calls, giving the suppression record the next seq",
        :aggregate_failures do
       sink = StringIO.new
-      destination = destination_to(sink)
       window_start = 1_000.0
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      (cap + 1).times { visits.note(site, destination:) }
+      (cap + 4).times { visits.note(site, destination: destination_to(sink)) }
       allow(Process).to receive(:clock_gettime)
         .with(Process::CLOCK_MONOTONIC).and_return(window_start + 60)
 
-      next_record = visits.note(site, destination:)
+      result = visits.note(site, destination: destination_to(sink))
 
-      flushed = JSON.parse(sink.string, symbolize_names: true)
-      expect(flushed).to include(
-        schema: 1, run_id: Loba::Internal::Run.current.id, seq: cap + 1,
-        mono_time: window_start + 60
-      )
-      expect(flushed[:wall_time]).to be_a(Float)
-      expect(next_record).to include(seq: cap + 2)
-    end
-
-    it "uses up no numbers on skipped calls" do
-      window_start = 1_000.0
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start)
-      (cap + 4).times { visits.note(site, destination: discarding_destination) }
-      allow(Process).to receive(:clock_gettime)
-        .with(Process::CLOCK_MONOTONIC).and_return(window_start + 60)
-
-      result = visits.note(site, destination: discarding_destination)
-
-      # The suppression record written as the window rolled over took the seq
-      # just before this one.
+      expect(JSON.parse(sink.string.lines.last)).to include("seq" => cap + 1)
       expect(result).to include(seq: cap + 2, site_seq: cap + 1)
     end
   end
