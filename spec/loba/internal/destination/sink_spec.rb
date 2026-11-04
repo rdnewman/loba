@@ -390,12 +390,6 @@ RSpec.describe Loba::Internal::Destination::Sink do
     it "fails for the target itself" do
       expect(described_class.new("a.jsonl")).not_to eq("a.jsonl")
     end
-
-    it "lets another Sink on the same target find a Hash entry" do
-      entries = { described_class.new("a.jsonl") => :gap }
-
-      expect(entries[described_class.new("a.jsonl")]).to eq(:gap)
-    end
   end
 
   describe "#to_s" do

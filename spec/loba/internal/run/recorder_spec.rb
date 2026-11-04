@@ -82,8 +82,8 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
     # So a record that was dropped isn't mistaken for code that never ran.
     context "when earlier records to the sink couldn't be written" do
-      it "notes them on the next record written there" do
-        io = flaky_io(Errno::ENOSPC, Errno::ENOSPC)
+      it "notes them, with the first error, on the next record written there" do
+        io = flaky_io(Errno::ENOSPC, Errno::EACCES)
         recorder = quiet_recorder
         sink = sink_to(io)
 
@@ -95,17 +95,6 @@ RSpec.describe Loba::Internal::Run::Recorder do
             "error" => "Errno::ENOSPC: No space left on device"
           } }]
         )
-      end
-
-      it "notes the first error for them all" do
-        io = flaky_io(Errno::ENOSPC, Errno::EACCES)
-        recorder = quiet_recorder
-        sink = sink_to(io)
-
-        [3, 4, 5].each { |seq| recorder.write({ seq: }, to: sink) }
-
-        expect(written_lines(io).last["unwritten"])
-          .to include("count" => 2, "error" => "Errno::ENOSPC: No space left on device")
       end
 
       it "notes them on the next record from another Sink to the same target" do

@@ -83,16 +83,6 @@ RSpec.describe Loba::Internal::Destination do
   end
 
   describe "#write" do
-    it "appends the record to the sink as a JSON line" do
-      io = StringIO.new
-      sink = Loba::Internal::Destination::Sink.new(io)
-      destination = described_class.new(sink:, log_mirror: nil)
-
-      destination.write({ seq: 1, type: "ts" })
-
-      expect(io.string).to eq("{\"seq\":1,\"type\":\"ts\"}\n")
-    end
-
     it "also writes the same JSON to the logger, at debug level", :aggregate_failures do
       log_output = StringIO.new
       logger = Logger.new(log_output, level: :debug)

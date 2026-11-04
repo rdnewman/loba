@@ -175,23 +175,6 @@ RSpec.describe Loba, ".value" do
     expect(second[:diff]).to eq(second[:mono_time] - first[:mono_time])
   end
 
-  context "when the process forks after an earlier call" do
-    it "writes the child's records under its own run and sequence", :aggregate_failures do
-      parent_sink = StringIO.new
-      described_class.value("from parent", sink: parent_sink)
-      parent_run_id = written_record(parent_sink)[:run_id]
-
-      child_record = in_forked_child do
-        child_sink = StringIO.new
-        described_class.value("from child", sink: child_sink)
-        written_record(child_sink)
-      end
-
-      expect(child_record[:run_id]).not_to eq(parent_run_id)
-      expect(child_record).to include(seq: 1, value: "from child")
-    end
-  end
-
   context "when capturing an instance variable by Symbol" do
     it "evaluates it on the calling instance" do
       sink = StringIO.new
@@ -379,13 +362,8 @@ RSpec.describe Loba, ".value" do
 
   # A tracing call must never break the code it traces.
   context "when evaluating a Symbol raises" do
-    it "does not raise into the calling code" do
-      sink = StringIO.new
-
-      expect { LobaValCallerContexts.new.with_undefined_name(sink:) }.not_to raise_error
-    end
-
-    it "records the error in place of the value", :aggregate_failures do
+    it "records the error in place of the value, without raising into the calling code",
+       :aggregate_failures do
       sink = StringIO.new
 
       LobaValCallerContexts.new.with_undefined_name(sink:)

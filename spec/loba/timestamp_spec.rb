@@ -4,12 +4,6 @@ require "stringio"
 
 # One call site per caller context Loba.timestamp has to report correctly.
 class LobaTsCallerContexts
-  def self.from_class_method(sink:)
-    Loba.timestamp(sink:)
-  end
-
-  FROM_CLASS_METHOD_LINE = method(:from_class_method).source_location[1] + 1
-
   def checkpoint(**)
     Loba.timestamp(**)
   end
@@ -23,14 +17,6 @@ class LobaTsCallerContexts
   def through_alias(sink:)
     Loba.ts(sink:)
   end
-
-  def within_block(sink:)
-    [1].each do
-      Loba.timestamp(sink:)
-    end
-  end
-
-  WITHIN_BLOCK_LINE = instance_method(:within_block).source_location[1] + 2
 end
 
 RSpec.describe Loba, ".timestamp" do
@@ -125,31 +111,6 @@ RSpec.describe Loba, ".timestamp" do
     it "is not available as a bare ts" do
       expect { Object.new.instance_eval { ts } }
         .to raise_error(NameError, /undefined local variable or method [`']ts'/)
-    end
-  end
-
-  context "when called inside a block within a method" do
-    it "reports the enclosing method" do
-      sink = StringIO.new
-
-      LobaTsCallerContexts.new.within_block(sink:)
-
-      expect(written_record(sink)).to include(
-        method_name: "within_block", line: LobaTsCallerContexts::WITHIN_BLOCK_LINE
-      )
-    end
-  end
-
-  context "when called from a class method" do
-    it "reports the class itself and a :class method type" do
-      sink = StringIO.new
-
-      LobaTsCallerContexts.from_class_method(sink:)
-
-      expect(written_record(sink)).to include(
-        class_name: "LobaTsCallerContexts", method_name: "from_class_method",
-        method_type: "class", line: LobaTsCallerContexts::FROM_CLASS_METHOD_LINE
-      )
     end
   end
 

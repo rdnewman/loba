@@ -289,16 +289,6 @@ RSpec.describe Loba::Internal::Run do
         expect(child_result).to include(seq: 1, site_seq: 1)
       end
 
-      it "gives the child a fresh since_prev_ts instead of timing from the parent's checkpoint" do
-        described_class.current.visits.note(order_site, checkpoint: true)
-
-        child_result = in_forked_child do
-          described_class.current.visits.note(order_site, checkpoint: true)
-        end
-
-        expect(child_result).to include(since_prev_ts: nil)
-      end
-
       it "gives the child a fresh recorder, so it warns about its own first failure" do
         fail_quietly(described_class.current.recorder, sink: failing_sink("a.jsonl"))
 

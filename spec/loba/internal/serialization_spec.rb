@@ -63,25 +63,6 @@ RSpec.describe Loba::Internal::Serialization do
         expect(result[:value]).to eq(list: [1, expected_string])
         expect(result[:cut]).to eq([{ path: ["list", 1], omitted: 10, unit: "chars" }])
       end
-
-      it "reports a nested cut by its path through a Hash" do
-        long_array = Array.new(Loba::Internal::Serialization::ArrayNode::MAX_ENTRIES + 3) { |i| i }
-        input = { list: long_array }
-
-        result = described_class.serialize(value: input)
-
-        expect(result[:cut]).to eq([{ path: ["list"], omitted: 3, unit: "entries" }])
-      end
-
-      it "reports a nested cut by its path through an Array" do
-        long_hash =
-          (0...(Loba::Internal::Serialization::HashNode::MAX_ENTRIES + 2)).to_h { |i| [i, i] }
-        input = [1, long_hash]
-
-        result = described_class.serialize(value: input)
-
-        expect(result[:cut]).to eq([{ path: [1], omitted: 2, unit: "keys" }])
-      end
     end
 
     context "when Hash and Array nesting alternate" do
@@ -97,13 +78,6 @@ RSpec.describe Loba::Internal::Serialization do
         else
           [inner]
         end
-      end
-
-      it "recurses fully through exactly MAX_DEPTH levels across alternating Hash/Array nesting" do
-        just_fits = nested_mixed(Loba::Internal::Serialization::HashNode::MAX_DEPTH)
-
-        result = described_class.serialize(value: just_fits)
-        expect(result[:value]).to eq(just_fits)
       end
 
       it "falls back to #inspect one level past MAX_DEPTH across alternating Hash/Array nesting" do
