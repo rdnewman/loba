@@ -1,5 +1,8 @@
 require "simplecov"
-SimpleCov.start { skip "spec/" }
+SimpleCov.start do
+  skip "spec/"
+  enable_coverage :branch
+end
 
 require "loba"
 
