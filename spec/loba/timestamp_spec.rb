@@ -76,6 +76,21 @@ RSpec.describe Loba, ".timestamp" do
     expect(second_record).to include(method_name: "later_checkpoint", since_prev_ts: 0.5)
   end
 
+  it "times a checkpoint from the previous checkpoint, not from a Loba.value call between" do
+    sink = StringIO.new
+    caller_contexts = LobaTsCallerContexts.new
+    allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.0)
+    caller_contexts.checkpoint(sink:)
+    allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.25)
+    described_class.value("between", sink:)
+    allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.5)
+
+    caller_contexts.later_checkpoint(sink:)
+
+    last_record = JSON.parse(sink.string.lines.last, symbolize_names: true)
+    expect(last_record).to include(since_prev_ts: 0.5)
+  end
+
   it "times a checkpoint exactly as the gap between the two lines' mono_time" do
     sink = StringIO.new
     caller_contexts = LobaTsCallerContexts.new

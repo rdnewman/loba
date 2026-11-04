@@ -161,6 +161,17 @@ RSpec.describe Loba::Internal::Invocation do
         expect(log_output.string).to include('{"type":"ts","seq":1}')
       end
 
+      it "writes nothing to the logger when log: is false" do
+        log_output = StringIO.new
+
+        described_class.record(
+          Loba::Internal::Records::Timestamp,
+          options: { label: nil }, log: false, logger: Logger.new(log_output), sink: StringIO.new
+        )
+
+        expect(log_output.string).to be_empty
+      end
+
       it "returns nil" do
         result = described_class.record(
           Loba::Internal::Records::Timestamp, options: { label: nil }, sink: StringIO.new
