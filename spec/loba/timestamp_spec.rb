@@ -181,6 +181,23 @@ RSpec.describe Loba, ".timestamp" do
     end
   end
 
+  # Run refuses the path and Sink falls back; the promise is the two together.
+  context "when a symlink was planted at the run's own file" do
+    it "leaves the link's target alone, and sends the record to stdout", :aggregate_failures do
+      hide_const("Rails")
+      Dir.mktmpdir do |dir|
+        target = File.join(dir, "target")
+        File.write(target, "someone else's file\n")
+
+        output = output_with_symlink_at_run_file(target) { described_class.timestamp }
+
+        expect(File.read(target)).to eq("someone else's file\n")
+        expect(JSON.parse(output[:stdout], symbolize_names: true)).to include(type: "ts")
+        expect(output[:stderr]).to include("writing records to $stdout instead")
+      end
+    end
+  end
+
   # Misusing loba's own API fails loudly at the line just written.
   context "when misused" do
     it "raises for an option it doesn't take, such as production:" do

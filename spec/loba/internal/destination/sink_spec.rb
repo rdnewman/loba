@@ -176,19 +176,6 @@ RSpec.describe Loba::Internal::Destination::Sink do
         expect { described_class.for(nil).append("record\n") }
           .to output("record\n").to_stdout
       end
-
-      it "writes to $stdout when a symlink was planted at the run's file" do
-        hide_const("Rails")
-        real_run = Dir.chdir(tmp_dir) { Loba::Internal::Run.new }
-        allow(real_run).to receive(:warn)
-        allow(Loba::Internal::Run).to receive(:current).and_return(real_run)
-        runs_dir = File.join(tmp_dir, ".loba", "runs")
-        FileUtils.mkdir_p(runs_dir)
-        File.symlink(File.join(tmp_dir, "target"), File.join(runs_dir, "#{real_run.id}.jsonl"))
-
-        expect { described_class.for(nil).append("record\n") }
-          .to output("record\n").to_stdout
-      end
     end
 
     context "when the chosen directory can't be used" do

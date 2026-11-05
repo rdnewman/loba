@@ -179,6 +179,15 @@ RSpec.describe Loba::Internal::Invocation do
 
         expect(result).to be_nil
       end
+
+      it "returns nil when logging too, not what the logger returned" do
+        result = described_class.record(
+          Loba::Internal::Records::Timestamp,
+          options: { label: nil }, logger: Logger.new(StringIO.new), sink: StringIO.new
+        )
+
+        expect(result).to be_nil
+      end
     end
 
     # An invocation's own steps run none of the caller's code, so a failure in them
