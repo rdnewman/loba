@@ -1,6 +1,7 @@
 require_relative "serialization/native_node"
 require_relative "serialization/float_node"
 require_relative "serialization/string_node"
+require_relative "serialization/symbol_node"
 require_relative "serialization/container_node"
 require_relative "serialization/array_node"
 require_relative "serialization/hash_node"
@@ -33,8 +34,8 @@ module Loba
         #   * +:rendered+ [Array<Hash>] - present only if any part is recorded as
         #     text rather than as itself: one +{ path:, as: }+ per part, where
         #     +as+ says why: +"inspect"+ or +"to_s"+ (no JSON form),
-        #     +"non_finite"+ (NaN, Infinity), +"not_utf8"+ (a String that isn't
-        #     text), or +"too_deep"+ (a container nested too deeply, rendered
+        #     +"non_finite"+ (NaN, Infinity), +"not_utf8"+ (a String or Symbol that
+        #     isn't text), or +"too_deep"+ (a container nested too deeply, rendered
         #     whole). A part whose rendering raised is in +:errors+ instead.
         #   * +:cut+ [Array<Hash>] - present only if any part was cut short: one
         #     +{ path:, omitted:, unit: }+ per part, +unit+ being +"chars"+ (a

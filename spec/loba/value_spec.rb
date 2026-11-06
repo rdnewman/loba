@@ -95,6 +95,16 @@ class LobaValCallerContexts
     Loba.value(:items, sink:)
   end
 
+  def with_non_utf8_error(sink:, **)
+    Loba.value(:non_utf8_raising_method, sink:, **)
+  end
+
+  define_method("with_binary_name_\xFF".b) { |sink:| Loba.value(1, sink:) }
+
+  def non_utf8_raising_method
+    raise ArgumentError, "bad \xFF".b
+  end
+
   def raising_method
     raise ArgumentError, "boom"
   end
@@ -406,6 +416,105 @@ RSpec.describe Loba, ".value" do
       sink = StringIO.new
 
       expect { LobaValCallerContexts.new.with_interrupting_method(sink:) }.to raise_error(Interrupt)
+    end
+  end
+
+  # JSON text is UTF-8, and each of these once raised into the traced code while
+  # writing the record's JSON line. Bytes that can't be read as UTF-8 become U+FFFD.
+  context "when text describing the call or a failure isn't valid UTF-8" do
+    it "records a traced method's error message" do
+      sink = StringIO.new
+
+      LobaValCallerContexts.new.with_non_utf8_error(sink:)
+
+      expect(written_record(sink))
+        .to include(errors: [{ path: [], message: "ArgumentError: bad �" }])
+    end
+
+    it "records the error message of a part that couldn't be rendered" do
+      sink = StringIO.new
+      unrenderable = Object.new
+      def unrenderable.inspect = raise(ArgumentError, "bad \xFF".b)
+
+      described_class.value([1, unrenderable], sink:)
+
+      expect(written_record(sink)).to include(
+        value: [1, "(unrenderable)"],
+        errors: [{ path: [1], message: "ArgumentError: bad �" }]
+      )
+    end
+
+    it "records the value's class name" do
+      sink = StringIO.new
+      binary_named = Class.new { def self.name = "K\xFF".b }
+
+      described_class.value(binary_named.new, sink:)
+
+      expect(written_record(sink)).to include(value_type: "K�")
+    end
+
+    it "records the calling method's name" do
+      sink = StringIO.new
+
+      LobaValCallerContexts.new.public_send("with_binary_name_\xFF".b, sink:)
+
+      expect(written_record(sink)).to include(method_name: "with_binary_name_�")
+    end
+
+    it "records the calling class's name" do
+      sink = StringIO.new
+      binary_named = Class.new do
+        def self.name = "K\xFF".b
+        def trace(sink:) = Loba.value(1, sink:)
+      end
+
+      binary_named.new.trace(sink:)
+
+      expect(written_record(sink)).to include(class_name: "K�")
+    end
+
+    it "records the calling file's path" do
+      sink = StringIO.new
+
+      eval("Loba.value(1, sink:)", binding, "f\xFF.rb".b, 1) # rubocop:disable Style/EvalWithLocation -- names the file
+
+      expect(written_record(sink)[:file]).to end_with("f�.rb")
+    end
+
+    it "mirrors the same record to the logger", :aggregate_failures do
+      sink = StringIO.new
+      log_output = StringIO.new
+
+      LobaValCallerContexts.new.with_non_utf8_error(sink:, logger: Logger.new(log_output))
+
+      expect(logged_record(log_output))
+        .to include(errors: [{ path: [], message: "ArgumentError: bad �" }])
+      expect(logged_record(log_output)).to eq(written_record(sink))
+    end
+  end
+
+  # Unlike text about the call, these are the value itself, so the record says
+  # they aren't what was given.
+  context "when a Symbol in the value isn't text" do
+    it "records it as its #inspect text, and names it", :aggregate_failures do
+      sink = StringIO.new
+
+      described_class.value(["k\xFF".b.to_sym], sink:)
+
+      record = written_record(sink)
+      expect(record[:value]).to eq([":\"k\\xFF\""])
+      expect(record[:rendered]).to eq([{ path: [0], as: "not_utf8" }])
+    end
+
+    it "records a key the same way, and names it as a key", :aggregate_failures do
+      sink = StringIO.new
+
+      described_class.value({ "k\xFF".b.to_sym => 1 }, sink:)
+
+      record = JSON.parse(sink.string)
+      expect(record["value"]).to eq(":\"k\\xFF\"" => 1)
+      expect(record["rendered"])
+        .to eq([{ "path" => [":\"k\\xFF\""], "as" => "not_utf8", "key" => true }])
     end
   end
 

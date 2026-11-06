@@ -1,4 +1,4 @@
-require "json"
+require_relative "../records/json"
 require_relative "lock"
 require_relative "recorder/gap"
 
@@ -83,7 +83,7 @@ module Loba
         end
 
         def line(fields)
-          "#{JSON.generate(fields)}\n"
+          "#{Records::Json.generate(fields)}\n"
         end
 
         def count_unwritten(sink, error, seq)

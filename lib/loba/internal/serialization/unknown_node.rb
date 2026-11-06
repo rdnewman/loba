@@ -1,4 +1,5 @@
 require_relative "native_node"
+require_relative "symbol_node"
 require_relative "float_node"
 require_relative "string_node"
 require_relative "array_node"
@@ -29,12 +30,14 @@ module Loba
         # `find` and `any?` dominate dispatch, which runs once per node. Native
         # types are listed inline because `when *SOME_ARRAY` is about twice as
         # slow.
-        def self.node_class(value)
+        def self.node_class(value) # rubocop:disable Metrics/MethodLength -- one when per kind of value
           case value
           when String
             StringNode
-          when Integer, TrueClass, FalseClass, NilClass, Symbol
+          when Integer, TrueClass, FalseClass, NilClass
             NativeNode
+          when Symbol
+            SymbolNode
           when Float
             FloatNode
           when Array

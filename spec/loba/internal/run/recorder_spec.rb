@@ -174,12 +174,43 @@ RSpec.describe Loba::Internal::Run::Recorder do
       end
     end
 
+    context "when a record's text isn't valid UTF-8" do
+      it "writes the record, with U+FFFD for the bad bytes" do
+        io = StringIO.new
+
+        described_class.new.write({ seq: 1, label: "bad \xFF".b }, to: sink_to(io))
+
+        expect(written_lines(io)).to eq([{ "seq" => 1, "label" => "bad �" }])
+      end
+
+      it "still writes the next record when a failed write's message is the text" do
+        io = flaky_io(IOError.new("disk \xFF".b))
+        recorder = quiet_recorder
+        sink = sink_to(io)
+
+        [1, 2].each { |seq| recorder.write({ seq: }, to: sink) }
+
+        expect(written_lines(io)).to eq(
+          [{ "seq" => 2, "unwritten" => {
+            "count" => 1, "first_seq" => 1, "last_seq" => 1, "error" => "IOError: disk �"
+          } }]
+        )
+      end
+    end
+
     context "when writing fails for any other reason" do
       it "raises, since that's a bug in loba" do
         sink = failing_sink("a.jsonl", error: RuntimeError.new("loba bug"))
 
         expect { described_class.new.write({ seq: 1 }, to: sink) }
           .to raise_error(RuntimeError, "loba bug")
+      end
+
+      it "raises for a record JSON can't write, whatever its text" do
+        recorder = described_class.new
+
+        expect { recorder.write({ seq: Float::NAN }, to: sink_to(StringIO.new)) }
+          .to raise_error(JSON::GeneratorError)
       end
     end
   end

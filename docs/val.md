@@ -167,6 +167,8 @@ named in `rendered`:
 - A String that isn't text (binary data, or invalid UTF-8) is recorded as its
   `#inspect` text, e.g. `"\"\\xFF\\xFE\""`, with `as` `"not_utf8"`. A String in
   another encoding that converts to UTF-8 is recorded converted.
+- A Symbol that is binary data is recorded the same way, e.g. `":\"k\\xFF\""`,
+  with `as` `"not_utf8"`, as a Hash key too.
 - `NaN` and `Infinity` are recorded as `"NaN"`, `"Infinity"`, and `"-Infinity"`,
   with `as` `"non_finite"`.
 - A container nested more than 5 levels deep is rendered whole as text, with
@@ -289,6 +291,10 @@ without it had nothing that couldn't be. (What was cut short, or lost to a
 key collision, is listed in `cut` and `collided`.) Exceptions outside `StandardError`, such as
 `Interrupt`, are not caught, except a `ScriptError` (such as `SyntaxError`) from
 evaluating a Symbol.
+
+Text describing the call or a failure doesn't break the traced code either. In
+an error message, a class or method name, or a file path, bytes that aren't valid
+UTF-8 become `�` (U+FFFD).
 
 ## Environment notes
 

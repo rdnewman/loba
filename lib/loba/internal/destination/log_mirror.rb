@@ -1,4 +1,4 @@
-require "json"
+require_relative "../records/json"
 
 module Loba
   module Internal
@@ -64,7 +64,7 @@ module Loba
         # @param fields [Hash] the record
         # @return [void]
         def write(fields)
-          logger&.debug(JSON.generate(fields))
+          logger&.debug(Records::Json.generate(fields))
         end
 
       private

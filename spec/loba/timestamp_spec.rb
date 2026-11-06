@@ -17,6 +17,8 @@ class LobaTsCallerContexts
   def through_alias(sink:)
     Loba.ts(sink:)
   end
+
+  define_method("with_binary_name_\xFF".b) { |sink:| Loba.timestamp(sink:) }
 end
 
 RSpec.describe Loba, ".timestamp" do
@@ -100,6 +102,15 @@ RSpec.describe Loba, ".timestamp" do
 
     first, second = sink.string.lines.map { JSON.parse(_1, symbolize_names: true) }
     expect(second[:since_prev_ts]).to eq(second[:mono_time] - first[:mono_time])
+  end
+
+  # JSON text is UTF-8, and this once raised into the traced code.
+  it "records a calling method's name that isn't valid UTF-8, with U+FFFD for the bad bytes" do
+    sink = StringIO.new
+
+    LobaTsCallerContexts.new.public_send("with_binary_name_\xFF".b, sink:)
+
+    expect(written_record(sink)).to include(method_name: "with_binary_name_�")
   end
 
   context "when given a label" do
