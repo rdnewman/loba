@@ -32,6 +32,13 @@ RSpec.describe Loba::Internal::Destination::Sink do
       File.join(tmp_dir, "elsewhere").tap { |dir| FileUtils.mkdir_p(dir) }
     end
 
+    def with_umask(umask)
+      original_umask = File.umask(umask)
+      yield
+    ensure
+      File.umask(original_umask)
+    end
+
     context "when given an IO" do
       it "writes to it, without touching the filesystem", :aggregate_failures do
         io = StringIO.new
@@ -102,10 +109,24 @@ RSpec.describe Loba::Internal::Destination::Sink do
 
         expect(sink).to eq(described_class.new(path))
       end
+
+      it "creates its directory with the usual mode, under the common umask of 022" do
+        path = File.join(tmp_dir, "explicit", "records.jsonl")
+
+        with_umask(0o022) { described_class.for(path) }
+
+        expect(File.stat(File.dirname(path)).mode & 0o777).to eq(0o755)
+      end
+
+      it "reports nothing when the path can be used" do
+        described_class.for(File.join(tmp_dir, "explicit", "records.jsonl"))
+
+        expect(run).not_to have_received(:report_fallback)
+      end
     end
 
-    context "when given no sink" do
-      it "writes to LOBA_SINK's path, creating its directory" do
+    context "when given no sink, with LOBA_SINK set" do
+      it "writes to its path, creating its directory" do
         ENV["LOBA_SINK"] = File.join(tmp_dir, "env", "records.jsonl")
 
         described_class.for(nil).append("record\n")
@@ -113,7 +134,7 @@ RSpec.describe Loba::Internal::Destination::Sink do
         expect(File.read(ENV.fetch("LOBA_SINK"))).to eq("record\n")
       end
 
-      it "takes a relative LOBA_SINK from the directory the run started in, not the current one" do
+      it "takes a relative path from the directory the run started in, not the current one" do
         ENV["LOBA_SINK"] = "records.jsonl"
 
         sink = Dir.chdir(elsewhere_dir) { described_class.for(nil) }
@@ -121,18 +142,20 @@ RSpec.describe Loba::Internal::Destination::Sink do
         expect(sink).to eq(described_class.new(File.join(tmp_dir, "records.jsonl")))
       end
 
+      it "ignores an empty value" do
+        ENV["LOBA_SINK"] = ""
+
+        described_class.for(nil).append("record\n")
+
+        expect(File.read(run_file(".loba", "runs"))).to eq("record\n")
+      end
+    end
+
+    context "when given neither a sink nor LOBA_SINK" do
       it "writes the run's file under the directory the run started in, after a chdir" do
         hide_const("Rails")
 
         Dir.chdir(elsewhere_dir) { described_class.for(nil).append("record\n") }
-
-        expect(File.read(run_file(".loba", "runs"))).to eq("record\n")
-      end
-
-      it "ignores an empty LOBA_SINK" do
-        ENV["LOBA_SINK"] = ""
-
-        described_class.for(nil).append("record\n")
 
         expect(File.read(run_file(".loba", "runs"))).to eq("record\n")
       end
@@ -145,7 +168,7 @@ RSpec.describe Loba::Internal::Destination::Sink do
         expect(File.read(run_file("tmp", "loba", "runs"))).to eq("record\n")
       end
 
-      it "writes under the working directory when Rails has no root (no app booted)" do
+      it "writes the run's file where the run started, when Rails has no root (no app booted)" do
         stub_const("Rails", double(root: nil))
 
         described_class.for(nil).append("record\n")
@@ -153,7 +176,7 @@ RSpec.describe Loba::Internal::Destination::Sink do
         expect(File.read(run_file(".loba", "runs"))).to eq("record\n")
       end
 
-      it "writes to the run's file under .loba/runs in the working directory, outside Rails" do
+      it "writes to the run's file under .loba/runs where the run started, outside Rails" do
         hide_const("Rails")
 
         described_class.for(nil).append("record\n")
@@ -169,95 +192,71 @@ RSpec.describe Loba::Internal::Destination::Sink do
         expect(run).to have_received(:claim_file).with(run_file(".loba", "runs"))
       end
 
-      it "writes to $stdout when the run can't claim its file" do
-        hide_const("Rails")
-        allow(run).to receive(:claim_file).and_return(false)
-
-        expect { described_class.for(nil).append("record\n") }
-          .to output("record\n").to_stdout
-      end
-    end
-
-    context "when the chosen directory can't be used" do
-      it "writes to $stdout when the directory can't be created" do
-        allow(FileUtils).to receive(:mkdir_p).and_raise(Errno::EACCES)
-
-        expect { described_class.for(nil).append("record\n") }
-          .to output("record\n").to_stdout
-      end
-
-      it "writes to $stdout when the directory exists but isn't writable" do
-        allow(File).to receive(:writable?).and_return(false)
-
-        expect { described_class.for(nil).append("record\n") }
-          .to output("record\n").to_stdout
-      end
-    end
-
-    context "when falling back to $stdout" do
-      it "reports a given path whose directory can't be created, with the error" do
-        path = File.join(tmp_dir, "explicit", "records.jsonl")
-        allow(FileUtils).to receive(:mkdir_p).and_raise(Errno::EACCES)
-
-        described_class.for(path)
-
-        expect(run).to have_received(:report_fallback)
-          .with(path:, reason: "Errno::EACCES: Permission denied")
-      end
-
-      it "reports a directory that isn't writable" do
-        hide_const("Rails")
-        allow(File).to receive(:writable?).and_return(false)
-
-        described_class.for(nil)
-
-        expect(run).to have_received(:report_fallback)
-          .with(path: run_file(".loba", "runs"), reason: "its directory isn't writable")
-      end
-
-      it "reports the run's file when the run can't claim it" do
-        hide_const("Rails")
-        allow(run).to receive(:claim_file).and_return(false)
-
-        described_class.for(nil)
-
-        expect(run).to have_received(:report_fallback)
-          .with(path: run_file(".loba", "runs"),
-                reason: "this run couldn't create it as a new file")
-      end
-
-      it "reports nothing when the path can be used" do
-        described_class.for(File.join(tmp_dir, "explicit", "records.jsonl"))
-
-        expect(run).not_to have_received(:report_fallback)
-      end
-    end
-
-    context "with the common umask of 022" do
-      around do |example|
-        original_umask = File.umask(0o022)
-        example.run
-      ensure
-        File.umask(original_umask)
-      end
-
-      it "creates the run's directories accessible only by their owner" do
+      it "creates directories accessible only by their owner, under the common umask of 022" do
         hide_const("Rails")
 
-        described_class.for(nil)
+        with_umask(0o022) { described_class.for(nil) }
 
         modes = [".loba", ".loba/runs"].map do |dir|
           File.stat(File.join(tmp_dir, dir)).mode & 0o777
         end
         expect(modes).to eq([0o700, 0o700])
       end
+    end
 
-      it "creates a given path's directory with the usual mode" do
+    context "when the directory can't be created" do
+      before { allow(FileUtils).to receive(:mkdir_p).and_raise(Errno::EACCES) }
+
+      it "writes to $stdout" do
+        expect { described_class.for(nil).append("record\n") }
+          .to output("record\n").to_stdout
+      end
+
+      it "reports a given path, with the error" do
         path = File.join(tmp_dir, "explicit", "records.jsonl")
 
         described_class.for(path)
 
-        expect(File.stat(File.dirname(path)).mode & 0o777).to eq(0o755)
+        expect(run).to have_received(:report_fallback)
+          .with(path:, reason: "Errno::EACCES: Permission denied")
+      end
+    end
+
+    context "when the directory exists but isn't writable" do
+      before { allow(File).to receive(:writable?).and_return(false) }
+
+      it "writes to $stdout" do
+        expect { described_class.for(nil).append("record\n") }
+          .to output("record\n").to_stdout
+      end
+
+      it "reports the path, and why" do
+        hide_const("Rails")
+
+        described_class.for(nil)
+
+        expect(run).to have_received(:report_fallback)
+          .with(path: run_file(".loba", "runs"), reason: "its directory isn't writable")
+      end
+    end
+
+    context "when the run can't claim its file" do
+      before do
+        hide_const("Rails")
+        allow(run).to receive(:claim_file).and_return(false)
+      end
+
+      it "writes to $stdout" do
+        expect { described_class.for(nil).append("record\n") }
+          .to output("record\n").to_stdout
+      end
+
+      it "reports the file, and why" do
+        described_class.for(nil)
+
+        expect(run).to have_received(:report_fallback)
+          .with(path: run_file(".loba", "runs"),
+                reason: "this run couldn't create it as a new file")
       end
     end
   end

@@ -32,7 +32,7 @@ RSpec.describe Loba::Internal::Destination do
         ENV["LOBA_SINK"] = original_loba_sink if original_loba_sink
       end
 
-      it "writes to the run's own file" do
+      it "creates the run's own file, along with a directory that doesn't exist yet" do
         hide_const("Rails")
         Dir.mktmpdir do |dir|
           allow(Dir).to receive(:pwd).and_return(dir)
