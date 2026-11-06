@@ -27,7 +27,7 @@ RSpec.describe Loba::Internal::Destination::Sink do
 
     def run_file(*dirs) = File.join(tmp_dir, *dirs, "#{run.id}.jsonl")
 
-    # A directory other than the run's start directory, to chdir into.
+    # A directory other than the run's start directory.
     def elsewhere_dir
       File.join(tmp_dir, "elsewhere").tap { |dir| FileUtils.mkdir_p(dir) }
     end
@@ -161,11 +161,11 @@ RSpec.describe Loba::Internal::Destination::Sink do
       end
 
       it "writes to the run's file under tmp/loba/runs in Rails.root, within Rails" do
-        stub_const("Rails", double(root: tmp_dir))
+        stub_const("Rails", double(root: elsewhere_dir))
 
         described_class.for(nil).append("record\n")
 
-        expect(File.read(run_file("tmp", "loba", "runs"))).to eq("record\n")
+        expect(File.read(run_file("elsewhere", "tmp", "loba", "runs"))).to eq("record\n")
       end
 
       it "writes the run's file where the run started, when Rails has no root (no app booted)" do
@@ -202,6 +202,14 @@ RSpec.describe Loba::Internal::Destination::Sink do
         end
         expect(modes).to eq([0o700, 0o700])
       end
+
+      it "reports nothing when the run's file can be used" do
+        hide_const("Rails")
+
+        described_class.for(nil)
+
+        expect(run).not_to have_received(:report_fallback)
+      end
     end
 
     context "when the directory can't be created" do
@@ -209,6 +217,13 @@ RSpec.describe Loba::Internal::Destination::Sink do
 
       it "writes to $stdout" do
         expect { described_class.for(nil).append("record\n") }
+          .to output("record\n").to_stdout
+      end
+
+      it "writes to $stdout for a given path too" do
+        path = File.join(tmp_dir, "explicit", "records.jsonl")
+
+        expect { described_class.for(path).append("record\n") }
           .to output("record\n").to_stdout
       end
 
@@ -237,6 +252,15 @@ RSpec.describe Loba::Internal::Destination::Sink do
 
         expect(run).to have_received(:report_fallback)
           .with(path: run_file(".loba", "runs"), reason: "its directory isn't writable")
+      end
+
+      it "reports a given path, and why" do
+        path = File.join(tmp_dir, "explicit", "records.jsonl")
+
+        described_class.for(path)
+
+        expect(run).to have_received(:report_fallback)
+          .with(path:, reason: "its directory isn't writable")
       end
     end
 
