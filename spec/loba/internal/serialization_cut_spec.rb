@@ -62,6 +62,17 @@ RSpec.describe Loba::Internal::Serialization do
         expect(cut({ long_key => 1 }))
           .to eq([{ path: [cut_key], omitted: 2, unit: "chars", key: true }])
       end
+
+      it "is every key and index down to it, when nested, with its marker", :aggregate_failures do
+        long_string = "a" * (max_length + 10)
+        input = { list: [1, long_string] }
+
+        result = described_class.serialize(value: input)
+
+        expected_string = "#{'a' * max_length} [+10 chars]"
+        expect(result[:value]).to eq(list: [1, expected_string])
+        expect(result[:cut]).to eq([{ path: ["list", 1], omitted: 10, unit: "chars" }])
+      end
     end
 
     it "lists every cut part, in order" do

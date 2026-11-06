@@ -51,20 +51,6 @@ RSpec.describe Loba::Internal::Serialization do
       end
     end
 
-    context "when a nested value is cut" do
-      it "reports a nested String's cut by its path, keeping its marker" do
-        long_string = "a" * (Loba::Internal::Serialization::StringNode::MAX_LENGTH + 10)
-        input = { list: [1, long_string] }
-
-        result = described_class.serialize(value: input)
-
-        expected_string =
-          "#{'a' * Loba::Internal::Serialization::StringNode::MAX_LENGTH} [+10 chars]"
-        expect(result[:value]).to eq(list: [1, expected_string])
-        expect(result[:cut]).to eq([{ path: ["list", 1], omitted: 10, unit: "chars" }])
-      end
-    end
-
     context "when Hash and Array nesting alternate" do
       # The wrap type alternates by distance from the root, so a shallower
       # slice, as in the boundary test below, matches the deeper original.
