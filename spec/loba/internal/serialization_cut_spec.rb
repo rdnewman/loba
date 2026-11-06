@@ -82,5 +82,13 @@ RSpec.describe Loba::Internal::Serialization do
         [{ path: [0], omitted: 1, unit: "chars" }, { path: [1], omitted: 1, unit: "entries" }]
       )
     end
+
+    it "lists every cut part of a nested container" do
+      value = [["a" * (max_length + 1), "b" * (max_length + 2)]]
+
+      expect(cut(value)).to eq(
+        [{ path: [0, 0], omitted: 1, unit: "chars" }, { path: [0, 1], omitted: 2, unit: "chars" }]
+      )
+    end
   end
 end
