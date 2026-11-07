@@ -93,6 +93,18 @@ RSpec.describe Loba, ".timestamp" do
     expect(last_record).to include(since_prev_ts: 0.5)
   end
 
+  it "numbers checkpoints and Loba.value records in one sequence" do
+    sink = StringIO.new
+    caller_contexts = LobaTsCallerContexts.new
+    caller_contexts.checkpoint(sink:)
+    described_class.value("between", sink:)
+
+    caller_contexts.later_checkpoint(sink:)
+
+    seqs = sink.string.lines.map { JSON.parse(_1)["seq"] }
+    expect(seqs).to eq([1, 2, 3])
+  end
+
   it "times a checkpoint exactly as the gap between the two lines' mono_time" do
     sink = StringIO.new
     caller_contexts = LobaTsCallerContexts.new

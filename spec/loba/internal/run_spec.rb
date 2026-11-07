@@ -354,7 +354,8 @@ RSpec.describe Loba::Internal::Run do
     def run_script(script, dir:)
       lib_dir = File.expand_path("../../../lib", __dir__)
       # Without Bundler, which makes the process several times slower to start.
-      Open3.capture2e({ "RUBYOPT" => nil }, RbConfig.ruby, "-I", lib_dir, "-e", script, chdir: dir)
+      environment = { "RUBYOPT" => nil, "LOBA_SINK" => nil }
+      Open3.capture2e(environment, RbConfig.ruby, "-I", lib_dir, "-e", script, chdir: dir)
     end
 
     it "writes and warns nothing when no run was created" do
@@ -364,22 +365,29 @@ RSpec.describe Loba::Internal::Run do
     # Exit handlers run last-registered first, and some run traced code:
     # Minitest, test-unit, and rspec/autorun run the tests from their own
     # at_exit. Loba's handler has to fire after those, so it's registered as
-    # loba loads, not at the first call. Only a real process exits, so this
-    # spawns one.
-    it "runs at exit after a handler registered later, once loba is loaded",
+    # loba loads, not at the first call. The run itself starts at the first
+    # call, so its file goes under the working directory then, not at require.
+    # Only a real process exits, so this spawns one, and checks both here to
+    # spawn just one. The script requires nothing but loba, so a library loba
+    # uses without requiring it (fileutils, securerandom) fails here too.
+    it "runs at exit after a handler registered later, in the run the first call started",
        :aggregate_failures do
       Dir.mktmpdir do |dir|
-        sink_path = File.join(dir, "out.jsonl")
         script = <<~RUBY
           require "loba"
-          at_exit { 600.times { Loba.val(1, sink: #{sink_path.dump}) } }
-          Loba.ts(sink: #{sink_path.dump})
+          Dir.mkdir("later")
+          Dir.chdir("later")
+          at_exit { 600.times { Loba.val(1) } }
+          Loba.ts
         RUBY
 
         output, status = run_script(script, dir:)
 
+        run_files = Dir.glob("**/.loba/runs/*.jsonl", base: dir)
         expect(status).to be_success, output
-        expect(JSON.parse(File.readlines(sink_path).last)).to include("suppressed_count" => 100)
+        expect(run_files).to match([%r{\Alater/}]), "expected one run file in later/: #{run_files}"
+        last_record = JSON.parse(File.readlines(File.join(dir, run_files.first)).last)
+        expect(last_record).to include("suppressed_count" => 100)
       end
     end
   end

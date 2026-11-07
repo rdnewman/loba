@@ -46,6 +46,25 @@ RSpec.describe Loba::Internal::Invocation do
       end
     end
 
+    context "when Rails isn't loaded and RACK_ENV is production" do
+      around do |example|
+        saved = ENV.delete("RACK_ENV")
+        example.run
+      ensure
+        ENV["RACK_ENV"] = saved
+      end
+
+      it "does not write anything" do
+        hide_const("Rails")
+        ENV["RACK_ENV"] = "production"
+        sink = StringIO.new
+
+        described_class.record(Loba::Internal::Records::Timestamp, sink:)
+
+        expect(sink.string).to be_empty
+      end
+    end
+
     context "when the call site is suppressed" do
       before do
         stub_const("Rails", mock_rails(production: false))

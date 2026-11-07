@@ -119,6 +119,11 @@ exits instead (by any means but `exit!` or `kill -9`), on `$stderr`:
 loba: 2 records couldn't be written to "/app/log/trace.jsonl" (first error: Errno::EACCES: Permission denied @ rb_sysopen - /app/log/trace.jsonl)
 ```
 
+All three messages are printed with `Kernel#warn`, so `ruby -W0` or
+`$VERBOSE = nil` silences them. Records still note what was missed in
+`unwritten`, but a loss that only the exit report would have shown goes
+unreported.
+
 Inside Rails, the default is used only once the app has booted (`Rails.root` is
 set); before that, records go under the directory the run started in.
 
