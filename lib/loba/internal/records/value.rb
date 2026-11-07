@@ -49,8 +49,7 @@ module Loba
             type: TYPE,
             label: Label.infer(argument:, label:),
             **Caller.fields(caller_binding),
-            site_seq: tracked[:site_seq],
-            diff: tracked[:diff],
+            **site_fields,
             **evaluated_fields,
             **stamp
           }
@@ -59,6 +58,10 @@ module Loba
       private
 
         attr_reader :caller_binding, :tracked, :argument, :label, :inspect
+
+        def site_fields
+          { site_seq: tracked[:site_seq], diff: tracked[:diff], **tracked.slice(:capped) }
+        end
 
         # Evaluating a Symbol runs the caller's code, which can raise, or fail
         # to compile (a SyntaxError, which is a ScriptError, not a

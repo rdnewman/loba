@@ -37,6 +37,15 @@ RSpec.describe Loba::Internal::Records::Timestamp do
         .to include(seq: 7, type: "ts", mono_time: 100.25, site_seq: 2, since_prev_ts: 0.25)
     end
 
+    it "marks the record capped when the visits say so" do
+      tracked = { seq: 7, mono_time: 100.25, site_seq: 500, diff: 0.4, since_prev_ts: 0.25,
+                  capped: true }
+
+      fields = described_class.fields(caller_binding:, tracked:, label: nil)
+
+      expect(fields).to include(capped: true)
+    end
+
     it "records the label given, normalized" do
       tracked = { seq: 1, mono_time: 100.25, site_seq: 1, diff: nil, since_prev_ts: nil }
 

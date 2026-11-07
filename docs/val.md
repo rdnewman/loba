@@ -153,6 +153,7 @@ bookkeeping that repeats from line to line.
 | `method_type` | `"instance"` or `"class"` |
 | `site_seq` | Order of this record among records from the same call site (file and line) |
 | `diff` | Seconds since the previous record from the same call site, exactly the difference between their `mono_time` values; `null` for the first. A record counting skipped calls doesn't count as a previous record. |
+| `capped` | Present only on a call site's last record before its limit: `true`, meaning any later calls from that site in the same minute are skipped and counted (see [Limits](#limits)) |
 | `value_type` | The value's class name; for a subclass of String, Array, or Hash, that base class's name; `null` for an anonymous class |
 | `rendered` | Present only when some part of the value is recorded as text instead of as itself: one `{"path", "as"}` per part, where `as` says why (see below). The text can look exactly like a real String; this says which parts aren't |
 | `cut` | Present only when some part of the value was cut short: one `{"path", "omitted", "unit"}` per part, saying how many `"chars"`, `"entries"` (Array), or `"keys"` (Hash) were left out (see [Limits](#limits)) |
@@ -254,6 +255,11 @@ These limits keep records bounded in size, and in number per call site:
   It has the same `seq`, `type`, and closing fields as every record and takes
   the next `seq`, but has no `site_seq`, caller details, or value. Skipped calls
   take no numbers, so `seq` and `site_seq` never skip.
+
+  The site's last record before its limit, the 500th that minute, has
+  `"capped": true`, right after `diff`: any later calls from the site that
+  minute are skipped and counted. So even if the record counting them is never
+  written, the file shows the limit was reached.
 
   A process killed without running its exit handlers (`kill -9`, or `exit!`)
   loses that last count.

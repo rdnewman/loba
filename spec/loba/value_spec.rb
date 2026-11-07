@@ -178,6 +178,21 @@ RSpec.describe Loba, ".value" do
     )
   end
 
+  it "marks a site's last record before its cap, right after the site's numbering",
+     :aggregate_failures do
+    sink = StringIO.new
+
+    500.times { described_class.value("looped", sink:) }
+
+    last_record = JSON.parse(sink.string.lines.last, symbolize_names: true)
+    expect(last_record.keys).to eq(
+      [:seq, :type, :label, :file, :line, :class_name, :method_name, :method_type,
+       :site_seq, :diff, :capped, :value_type, :value,
+       :wall_time, :mono_time, :run_id, :schema]
+    )
+    expect(last_record).to include(site_seq: 500, capped: true)
+  end
+
   it "times a record exactly as the gap since its site's previous line's mono_time" do
     sink = StringIO.new
     test_case = LobaValIntegrationTestCase.new

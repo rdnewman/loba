@@ -49,6 +49,12 @@ module Loba
               @skipped += 1
             end
 
+            # @return [Boolean] +true+ when the call just counted is the last the
+            #   window lets through
+            def at_cap?
+              @count == CAP
+            end
+
             # @return [Boolean] +true+ once the window has skipped a call, until it ends
             def skipping?
               skipped.positive?

@@ -38,6 +38,15 @@ RSpec.describe Loba::Internal::Records::Value do
       expect(fields).to include(seq: 7, type: "val", mono_time: 100.25, site_seq: 2, diff: 0.4)
     end
 
+    it "marks the record capped when the visits say so" do
+      fields = described_class.fields(
+        caller_binding:, tracked: tracked.merge(capped: true),
+        argument: :subtotal, label: nil, inspect: true
+      )
+
+      expect(fields).to include(capped: true)
+    end
+
     it "records the value the argument evaluates to in the caller, labeled by the Symbol" do
       fields = described_class.fields(
         caller_binding:, tracked:, argument: :subtotal, label: nil, inspect: true

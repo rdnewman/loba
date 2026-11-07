@@ -25,6 +25,15 @@ RSpec.describe Loba::Internal::Run::Visits::SiteVisits do
       expect(result).to eq(site_seq: 2, diff: 0.25)
     end
 
+    it "marks the call that reaches the cap as capped" do
+      destination = destination_to(StringIO.new)
+      (cap - 1).times { site_visits.note(now: 100.0, destination:) { 1 } }
+
+      result = site_visits.note(now: 100.0, destination:) { 1 }
+
+      expect(result).to eq(site_seq: cap, diff: 0.0, capped: true)
+    end
+
     it "suppresses a call past the cap, asking for no number", :aggregate_failures do
       sink = StringIO.new
       destination = destination_to(sink)

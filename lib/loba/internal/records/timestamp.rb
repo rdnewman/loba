@@ -37,6 +37,7 @@ module Loba
             **Caller.fields(caller_binding),
             site_seq: tracked[:site_seq],
             since_prev_ts: tracked[:since_prev_ts],
+            **tracked.slice(:capped),
             **Stamp.fields(mono_time: tracked[:mono_time])
           }
         end

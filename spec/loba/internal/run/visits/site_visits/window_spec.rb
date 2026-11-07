@@ -29,6 +29,25 @@ RSpec.describe Loba::Internal::Run::Visits::SiteVisits::Window do
     end
   end
 
+  describe "#at_cap?" do
+    it "is true once the call that reaches the cap is counted", :aggregate_failures do
+      window = described_class.new
+      (cap - 1).times { window.count_call }
+      expect(window).not_to be_at_cap
+
+      window.count_call
+
+      expect(window).to be_at_cap
+    end
+
+    it "is false once a call past the cap is counted" do
+      window = described_class.new
+      (cap + 1).times { window.count_call }
+
+      expect(window).not_to be_at_cap
+    end
+  end
+
   describe "#roll" do
     it "starts the window at its first roll, open for its length", :aggregate_failures do
       window = described_class.new

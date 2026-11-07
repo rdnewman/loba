@@ -93,6 +93,20 @@ RSpec.describe Loba, ".timestamp" do
     expect(last_record).to include(since_prev_ts: 0.5)
   end
 
+  it "marks a site's last checkpoint before its cap, right after its timing",
+     :aggregate_failures do
+    sink = StringIO.new
+
+    500.times { described_class.timestamp(sink:) }
+
+    last_record = JSON.parse(sink.string.lines.last, symbolize_names: true)
+    expect(last_record.keys).to eq(
+      [:seq, :type, :label, :file, :line, :class_name, :method_name, :method_type,
+       :site_seq, :since_prev_ts, :capped, :wall_time, :mono_time, :run_id, :schema]
+    )
+    expect(last_record).to include(site_seq: 500, capped: true)
+  end
+
   it "numbers checkpoints and Loba.value records in one sequence" do
     sink = StringIO.new
     caller_contexts = LobaTsCallerContexts.new
