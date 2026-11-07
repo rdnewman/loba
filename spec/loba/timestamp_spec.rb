@@ -110,7 +110,7 @@ RSpec.describe Loba, ".timestamp" do
 
     LobaTsCallerContexts.new.public_send("with_binary_name_\xFF".b, sink:)
 
-    expect(written_record(sink)).to include(method_name: "with_binary_name_�")
+    expect(written_record(sink)).to include(method_name: "with_binary_name_\uFFFD")
   end
 
   context "when given a label" do

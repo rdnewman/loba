@@ -294,7 +294,8 @@ evaluating a Symbol.
 
 Text describing the call or a failure doesn't break the traced code either. In
 an error message, a class or method name, or a file path, bytes that aren't valid
-UTF-8 become `�` (U+FFFD).
+UTF-8 become `�` (U+FFFD). An error whose `#message` raises is recorded with
+`(unreadable message)` in place of its message.
 
 ## Environment notes
 

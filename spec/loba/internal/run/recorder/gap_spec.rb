@@ -11,6 +11,14 @@ RSpec.describe Loba::Internal::Run::Recorder::Gap do
         count: 1, first_seq: 3, last_seq: 3, error: "Errno::ENOSPC: No space left on device"
       )
     end
+
+    it "holds valid text for an error whose class name and message are in clashing encodings" do
+      error_class = Class.new(IOError) { def self.to_s = "Érror" }
+
+      gap = described_class.new(error: error_class.new("disk \xFF".b), seq: 3)
+
+      expect(gap.to_h).to include(error: "Érror: disk \uFFFD")
+    end
   end
 
   describe "#add" do

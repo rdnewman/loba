@@ -1,3 +1,5 @@
+require_relative "../../text"
+
 module Loba
   module Internal
     class Run
@@ -15,7 +17,7 @@ module Loba
             @count = 1
             @first_seq = seq
             @last_seq = seq
-            @error = "#{error.class}: #{error.message}"
+            @error = Text.of_error(error)
           end
 
           # Counts a later record that couldn't be written. The first error

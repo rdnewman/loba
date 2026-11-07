@@ -1,4 +1,4 @@
-require_relative "json"
+require_relative "../text"
 
 module Loba
   module Internal
@@ -23,31 +23,38 @@ module Loba
         #   or Symbol; with no explicit label, a +Symbol+ argument's name;
         #   otherwise +nil+ (including an explicit label of any other type)
         def infer
-          if label.nil?
-            infer_from_argument
-          elsif coercible?
-            normalize(label)
-          end
+          explicit_label || inferred_label || nil
         end
 
       private
 
         attr_reader :argument, :label
 
-        # Module#=== rather than #is_a?, which a BasicObject argument lacks.
-        def infer_from_argument
-          return nil unless Symbol === argument # rubocop:disable Style/CaseEquality
-
-          normalize(argument)
+        def explicit_label
+          normalize(label) if coercible_label?
         end
 
-        def coercible?
-          label.is_a?(String) || label.is_a?(Symbol)
+        def inferred_label
+          normalize(argument) if no_label? && symbol_argument?
         end
 
-        # Valid text first: #strip raises on a String that isn't.
         def normalize(value)
-          Json.utf8(value.to_s).strip
+          Text.make_utf8(value.to_s).strip
+        end
+
+        # The checks below use Module#=== rather than #is_a? or #nil?, which a
+        # BasicObject argument or label lacks.
+
+        def coercible_label?
+          String === label || Symbol === label # rubocop:disable Style/CaseEquality
+        end
+
+        def no_label?
+          NilClass === label # rubocop:disable Style/CaseEquality
+        end
+
+        def symbol_argument?
+          Symbol === argument # rubocop:disable Style/CaseEquality
         end
       end
     end

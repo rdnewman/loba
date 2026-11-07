@@ -1,3 +1,4 @@
+require_relative "internal/text"
 require_relative "internal/serialization"
 require_relative "internal/caller_binding"
 require_relative "internal/site"

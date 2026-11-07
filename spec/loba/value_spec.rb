@@ -99,6 +99,10 @@ class LobaValCallerContexts
     Loba.value(:non_utf8_raising_method, sink:, **)
   end
 
+  def with_raised(error, sink:) # rubocop:disable Lint/UnusedMethodArgument -- read via Loba.value's eval
+    Loba.value(:"raise(error)", sink:)
+  end
+
   define_method("with_binary_name_\xFF".b) { |sink:| Loba.value(1, sink:) }
 
   def non_utf8_raising_method
@@ -428,7 +432,29 @@ RSpec.describe Loba, ".value" do
       LobaValCallerContexts.new.with_non_utf8_error(sink:)
 
       expect(written_record(sink))
-        .to include(errors: [{ path: [], message: "ArgumentError: bad �" }])
+        .to include(errors: [{ path: [], message: "ArgumentError: bad \uFFFD" }])
+    end
+
+    it "records an error whose class name and message are in clashing encodings" do
+      sink = StringIO.new
+      error_class = Class.new(StandardError) { def self.to_s = "Érror" }
+
+      LobaValCallerContexts.new.with_raised(error_class.new("bad \xFF".b), sink:)
+
+      expect(written_record(sink)).to include(errors: [{ path: [], message: "Érror: bad \uFFFD" }])
+    end
+
+    it "records an error whose #message raises" do
+      sink = StringIO.new
+      error_class = Class.new(StandardError) do
+        def self.to_s = "ReportError"
+        def message = raise(ArgumentError, "no message")
+      end
+
+      LobaValCallerContexts.new.with_raised(error_class.new, sink:)
+
+      expect(written_record(sink))
+        .to include(errors: [{ path: [], message: "ReportError: (unreadable message)" }])
     end
 
     it "records the error message of a part that couldn't be rendered" do
@@ -440,7 +466,7 @@ RSpec.describe Loba, ".value" do
 
       expect(written_record(sink)).to include(
         value: [1, "(unrenderable)"],
-        errors: [{ path: [1], message: "ArgumentError: bad �" }]
+        errors: [{ path: [1], message: "ArgumentError: bad \uFFFD" }]
       )
     end
 
@@ -450,7 +476,7 @@ RSpec.describe Loba, ".value" do
 
       described_class.value(binary_named.new, sink:)
 
-      expect(written_record(sink)).to include(value_type: "K�")
+      expect(written_record(sink)).to include(value_type: "K\uFFFD")
     end
 
     it "records the calling method's name" do
@@ -458,7 +484,7 @@ RSpec.describe Loba, ".value" do
 
       LobaValCallerContexts.new.public_send("with_binary_name_\xFF".b, sink:)
 
-      expect(written_record(sink)).to include(method_name: "with_binary_name_�")
+      expect(written_record(sink)).to include(method_name: "with_binary_name_\uFFFD")
     end
 
     it "records the calling class's name" do
@@ -470,7 +496,7 @@ RSpec.describe Loba, ".value" do
 
       binary_named.new.trace(sink:)
 
-      expect(written_record(sink)).to include(class_name: "K�")
+      expect(written_record(sink)).to include(class_name: "K\uFFFD")
     end
 
     it "records the calling file's path" do
@@ -478,7 +504,7 @@ RSpec.describe Loba, ".value" do
 
       eval("Loba.value(1, sink:)", binding, "f\xFF.rb".b, 1) # rubocop:disable Style/EvalWithLocation -- names the file
 
-      expect(written_record(sink)[:file]).to end_with("f�.rb")
+      expect(written_record(sink)[:file]).to end_with("f\uFFFD.rb")
     end
 
     it "mirrors the same record to the logger", :aggregate_failures do
@@ -488,7 +514,7 @@ RSpec.describe Loba, ".value" do
       LobaValCallerContexts.new.with_non_utf8_error(sink:, logger: Logger.new(log_output))
 
       expect(logged_record(log_output))
-        .to include(errors: [{ path: [], message: "ArgumentError: bad �" }])
+        .to include(errors: [{ path: [], message: "ArgumentError: bad \uFFFD" }])
       expect(logged_record(log_output)).to eq(written_record(sink))
     end
   end

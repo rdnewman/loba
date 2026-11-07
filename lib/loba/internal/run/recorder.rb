@@ -1,4 +1,5 @@
 require_relative "../records/json"
+require_relative "../text"
 require_relative "lock"
 require_relative "recorder/gap"
 
@@ -103,7 +104,7 @@ module Loba
 
         def report_failure(sink, error)
           warn "loba: couldn't write a record to #{sink} " \
-               "(#{error.class}: #{error.message}); " \
+               "(#{Text.of_error(error)}); " \
                "later write failures in this process won't be reported"
         end
       end

@@ -51,6 +51,16 @@ RSpec.describe Loba::Internal::Run::Recorder do
         ).to_stderr
       end
 
+      it "warns about an error whose message clashes with a non-ASCII sink path" do
+        sink = failing_sink("sïnk.jsonl", error: IOError.new("disk \xFF".b))
+
+        expect { described_class.new.write({ seq: 3 }, to: sink) }.to output(
+          "loba: couldn't write a record to \"sïnk.jsonl\" " \
+          "(IOError: disk \uFFFD); " \
+          "later write failures in this process won't be reported\n"
+        ).to_stderr
+      end
+
       it "stays quiet about later failures, to any sink", :aggregate_failures do
         recorder = described_class.new
         expect { recorder.write({ seq: 3 }, to: failing_sink("a.jsonl")) }.to output.to_stderr
@@ -180,7 +190,7 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
         described_class.new.write({ seq: 1, label: "bad \xFF".b }, to: sink_to(io))
 
-        expect(written_lines(io)).to eq([{ "seq" => 1, "label" => "bad �" }])
+        expect(written_lines(io)).to eq([{ "seq" => 1, "label" => "bad \uFFFD" }])
       end
 
       it "still writes the next record when a failed write's message is the text" do
@@ -192,7 +202,7 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
         expect(written_lines(io)).to eq(
           [{ "seq" => 2, "unwritten" => {
-            "count" => 1, "first_seq" => 1, "last_seq" => 1, "error" => "IOError: disk �"
+            "count" => 1, "first_seq" => 1, "last_seq" => 1, "error" => "IOError: disk \uFFFD"
           } }]
         )
       end

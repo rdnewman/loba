@@ -1,6 +1,7 @@
 require_relative "stamp"
 require_relative "label"
 require_relative "../serialization"
+require_relative "../text"
 require_relative "caller"
 
 module Loba
@@ -67,7 +68,7 @@ module Loba
         def evaluated_fields
           evaluated = caller_binding.evaluate(argument)
         rescue StandardError, ScriptError => e
-          { errors: [{ path: [], message: "#{e.class}: #{e.message}" }] }
+          { errors: [{ path: [], message: Text.of_error(e) }] }
         else
           Serialization.serialize(value: evaluated, inspect:).slice(*VALUE_FIELDS)
         end

@@ -1,4 +1,5 @@
 require "json"
+require_relative "../text"
 
 module Loba
   module Internal
@@ -22,28 +23,14 @@ module Loba
             ::JSON.generate(with_valid_text(fields))
           end
 
-          # A binary String's bytes are read as UTF-8, so UTF-8 text that was
-          # only tagged binary stays readable.
-          #
-          # @param text [String] any String
-          # @return [String] valid UTF-8, with U+FFFD for bytes that couldn't be
-          #   read as UTF-8
-          def utf8(text)
-            if text.encoding == Encoding::BINARY
-              text.dup.force_encoding(Encoding::UTF_8).scrub
-            else
-              text.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
-            end
-          end
-
         private
 
           def with_valid_text(item)
             case item
             when String
-              utf8(item)
+              Text.make_utf8(item)
             when Symbol
-              utf8(item.name)
+              Text.make_utf8(item.name)
             when Array
               item.map { with_valid_text(_1) }
             when Hash

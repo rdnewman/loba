@@ -1,3 +1,4 @@
+require_relative "../text"
 require_relative "string_node"
 
 module Loba
@@ -41,7 +42,7 @@ module Loba
             {
               value: UNRENDERABLE,
               value_type: nil,
-              errors: [{ path: [], message: "#{error.class}: #{error.message}" }]
+              errors: [{ path: [], message: Text.of_error(error) }]
             }
           end
 

@@ -97,6 +97,35 @@ RSpec.describe Loba::Internal::Serialization::FallbackNode do
         expect(result[:errors].first[:message])
           .to match(/\ANoMethodError: undefined method [`']inspect'/)
       end
+
+      it "reports an error whose class name and message are in clashing encodings" do
+        error_class = Class.new(StandardError) { def self.to_s = "Érror" }
+        unrenderable = Object.new
+        unrenderable.define_singleton_method(:inspect) { raise error_class, "bad \xFF".b }
+
+        result = described_class.serialize(value: unrenderable)
+
+        expect(result).to eq(
+          value: "(unrenderable)", value_type: nil,
+          errors: [{ path: [], message: "Érror: bad \uFFFD" }]
+        )
+      end
+
+      it "reports an error whose #message raises" do
+        error_class = Class.new(StandardError) do
+          def self.to_s = "ReportError"
+          def message = raise(ArgumentError, "no message")
+        end
+        unrenderable = Object.new
+        unrenderable.define_singleton_method(:inspect) { raise error_class }
+
+        result = described_class.serialize(value: unrenderable)
+
+        expect(result).to eq(
+          value: "(unrenderable)", value_type: nil,
+          errors: [{ path: [], message: "ReportError: (unreadable message)" }]
+        )
+      end
     end
 
     context "when rendering returns something other than a String" do
