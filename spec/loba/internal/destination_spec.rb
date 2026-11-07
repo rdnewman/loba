@@ -114,7 +114,7 @@ RSpec.describe Loba::Internal::Destination do
 
       [1, 2].each { |seq| destination.write({ seq: }) }
 
-      expect(io.string).to include("unwritten")
+      expect(io.string).to include("failed_writes")
       expect(log_output.string.lines.map { _1[/\{.*\}/] }).to eq(["{\"seq\":1}", "{\"seq\":2}"])
     end
   end

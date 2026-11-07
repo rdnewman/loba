@@ -31,7 +31,7 @@ module Loba
           # @return [Hash{Symbol => Integer, Float, Boolean, nil}, :suppressed]
           #   +:suppressed+ if the call is skipped; otherwise:
           #   * +:site_seq+ [Integer] - the call's order among the site's records
-          #   * +:diff+ [Float, nil] - seconds since the site's previous numbered
+          #   * +:since_prev_at_site+ [Float, nil] - seconds since the site's previous numbered
           #     record (a record counting skipped calls doesn't count), or +nil+
           #     for its first
           #   * +:capped+ [Boolean] - +true+, present only when the call is the
@@ -71,7 +71,7 @@ module Loba
 
           def advance(now)
             @site_seq += 1
-            { site_seq: @site_seq, diff: advance_diff(now), **cap_fields }
+            { site_seq: @site_seq, since_prev_at_site: advance_diff(now), **cap_fields }
           end
 
           def cap_fields

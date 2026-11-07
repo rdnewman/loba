@@ -103,7 +103,7 @@ RSpec.describe Loba::Internal::Run::Recorder do
         [3, 4, 5].each { |seq| recorder.write({ seq: }, to: sink) }
 
         expect(written_lines(io)).to eq(
-          [{ "seq" => 5, "unwritten" => {
+          [{ "seq" => 5, "failed_writes" => {
             "count" => 2, "first_seq" => 3, "last_seq" => 4,
             "error" => "Errno::ENOSPC: No space left on device"
           } }]
@@ -117,7 +117,7 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
         recorder.write({ seq: 4 }, to: sink_to(io))
 
-        expect(written_lines(io).last).to include("unwritten" => include("count" => 1))
+        expect(written_lines(io).last).to include("failed_writes" => include("count" => 1))
       end
 
       # A gap qualifies the record's place in the run, so it comes right after
@@ -129,7 +129,7 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
         [3, 4].each { |seq| recorder.write({ seq:, type: "ts", label: "after" }, to: sink) }
 
-        expect(written_lines(io).last.keys).to eq(["seq", "type", "unwritten", "label"])
+        expect(written_lines(io).last.keys).to eq(["seq", "type", "failed_writes", "label"])
       end
 
       # A write can fail partway, such as on a full disk, leaving part of a line.
@@ -150,7 +150,7 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
         recorder.write({ seq: 4 }, to: sink_to(io))
 
-        expect(io.string.lines.last).to start_with('{"seq":4,"unwritten":')
+        expect(io.string.lines.last).to start_with('{"seq":4,"failed_writes":')
       end
 
       it "notes them only once" do
@@ -190,7 +190,7 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
         [4, 5].map { |seq| Thread.new { recorder.write({ seq: }, to: sink) } }.each(&:join)
 
-        expect(written_lines(io).count { _1.has_key?("unwritten") }).to eq(1)
+        expect(written_lines(io).count { _1.has_key?("failed_writes") }).to eq(1)
       end
 
       # An error that isn't a write failure (a Timeout, say) can interrupt the
@@ -204,7 +204,7 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
         recorder.write({ seq: 5 }, to: sink)
 
-        expect(written_lines(io).last["unwritten"]).to include("count" => 1, "last_seq" => 3)
+        expect(written_lines(io).last["failed_writes"]).to include("count" => 1, "last_seq" => 3)
       end
     end
 
@@ -225,7 +225,7 @@ RSpec.describe Loba::Internal::Run::Recorder do
         [1, 2].each { |seq| recorder.write({ seq: }, to: sink) }
 
         expect(written_lines(io)).to eq(
-          [{ "seq" => 2, "unwritten" => {
+          [{ "seq" => 2, "failed_writes" => {
             "count" => 1, "first_seq" => 1, "last_seq" => 1, "error" => "IOError: disk \uFFFD"
           } }]
         )

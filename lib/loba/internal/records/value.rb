@@ -60,7 +60,11 @@ module Loba
         attr_reader :caller_binding, :tracked, :argument, :label, :inspect
 
         def site_fields
-          { site_seq: tracked[:site_seq], diff: tracked[:diff], **tracked.slice(:capped) }
+          {
+            site_seq: tracked[:site_seq],
+            since_prev_at_site: tracked[:since_prev_at_site],
+            **tracked.slice(:capped)
+          }
         end
 
         # Evaluating a Symbol runs the caller's code, which can raise, or fail

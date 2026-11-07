@@ -11,7 +11,7 @@ module Loba
       # traced code: the record is skipped, and the first such failure in the
       # process is reported on $stderr. So that a dropped record isn't mistaken
       # for code that never ran, the next record written to that sink notes
-      # what it missed, in +:unwritten+; what no later record notes is
+      # what it missed, in +:failed_writes+; what no later record notes is
       # summarized at exit (see Run.current).
       #
       # One thread at a time writes, so a gap is noted on exactly one record.

@@ -7,7 +7,7 @@ RSpec.describe Loba::Internal::Records::Value do
     )
   end
 
-  def tracked = { seq: 7, mono_time: 100.25, site_seq: 2, diff: 0.4 }
+  def tracked = { seq: 7, mono_time: 100.25, site_seq: 2, since_prev_at_site: 0.4 }
 
   it "is the val record type" do
     expect(described_class::TYPE).to eq("val")
@@ -18,13 +18,14 @@ RSpec.describe Loba::Internal::Records::Value do
   end
 
   describe ".fields" do
-    it "has the stamp, the site's number and diff, the caller, a label, and the value" do
+    it "has the stamp, the site's number and since_prev_at_site, the caller, a label, " \
+       "and the value" do
       fields = described_class.fields(
         caller_binding:, tracked:, argument: :subtotal, label: nil, inspect: true
       )
 
       expect(fields.keys).to contain_exactly(
-        :schema, :run_id, :seq, :type, :wall_time, :mono_time, :site_seq, :diff,
+        :schema, :run_id, :seq, :type, :wall_time, :mono_time, :site_seq, :since_prev_at_site,
         :file, :line, :class_name, :method_name, :method_type,
         :label, :value, :value_type
       )
@@ -35,7 +36,8 @@ RSpec.describe Loba::Internal::Records::Value do
         caller_binding:, tracked:, argument: :subtotal, label: nil, inspect: true
       )
 
-      expect(fields).to include(seq: 7, type: "val", mono_time: 100.25, site_seq: 2, diff: 0.4)
+      expect(fields)
+        .to include(seq: 7, type: "val", mono_time: 100.25, site_seq: 2, since_prev_at_site: 0.4)
     end
 
     it "marks the record capped when the visits say so" do

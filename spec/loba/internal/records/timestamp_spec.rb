@@ -17,8 +17,9 @@ RSpec.describe Loba::Internal::Records::Timestamp do
 
   describe ".fields" do
     it "has the stamp, the site's number, the timing since the previous ts, the caller, " \
-       "and a label, with no site diff" do
-      tracked = { seq: 7, mono_time: 100.25, site_seq: 2, diff: 0.4, since_prev_ts: 0.25 }
+       "and a label, with no since_prev_at_site" do
+      tracked = { seq: 7, mono_time: 100.25, site_seq: 2, since_prev_at_site: 0.4,
+                  since_prev_ts: 0.25 }
 
       fields = described_class.fields(caller_binding:, tracked:, label: nil)
 
@@ -29,7 +30,8 @@ RSpec.describe Loba::Internal::Records::Timestamp do
     end
 
     it "takes its numbers and timing from the run's visits" do
-      tracked = { seq: 7, mono_time: 100.25, site_seq: 2, diff: 0.4, since_prev_ts: 0.25 }
+      tracked = { seq: 7, mono_time: 100.25, site_seq: 2, since_prev_at_site: 0.4,
+                  since_prev_ts: 0.25 }
 
       fields = described_class.fields(caller_binding:, tracked:, label: nil)
 
@@ -38,8 +40,8 @@ RSpec.describe Loba::Internal::Records::Timestamp do
     end
 
     it "marks the record capped when the visits say so" do
-      tracked = { seq: 7, mono_time: 100.25, site_seq: 500, diff: 0.4, since_prev_ts: 0.25,
-                  capped: true }
+      tracked = { seq: 7, mono_time: 100.25, site_seq: 500, since_prev_at_site: 0.4,
+                  since_prev_ts: 0.25, capped: true }
 
       fields = described_class.fields(caller_binding:, tracked:, label: nil)
 
@@ -47,7 +49,8 @@ RSpec.describe Loba::Internal::Records::Timestamp do
     end
 
     it "records the label given, normalized" do
-      tracked = { seq: 1, mono_time: 100.25, site_seq: 1, diff: nil, since_prev_ts: nil }
+      tracked = { seq: 1, mono_time: 100.25, site_seq: 1, since_prev_at_site: nil,
+                  since_prev_ts: nil }
 
       fields = described_class.fields(caller_binding:, tracked:, label: "  card charged ")
 

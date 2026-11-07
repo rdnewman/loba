@@ -144,7 +144,7 @@ RSpec.describe Loba, ".value" do
     # fields come in the same order on every line.
     expect(record.keys).to eq(
       [:seq, :type, :label, :file, :line, :class_name, :method_name, :method_type,
-       :site_seq, :diff, :value_type, :value,
+       :site_seq, :since_prev_at_site, :value_type, :value,
        :wall_time, :mono_time, :run_id, :schema]
     )
     expect(record[:file]).to end_with("value_spec.rb")
@@ -159,7 +159,7 @@ RSpec.describe Loba, ".value" do
     expect(record[:type]).to eq("val")
     expect(record[:seq]).to eq(1)
     expect(record[:site_seq]).to eq(1)
-    expect(record[:diff]).to be_nil
+    expect(record[:since_prev_at_site]).to be_nil
     expect(record[:run_id]).to eq(Loba::Internal::Run.current.id)
     expect(record[:wall_time]).to be_a(Float)
     expect(record[:mono_time]).to be_a(Float)
@@ -187,7 +187,7 @@ RSpec.describe Loba, ".value" do
     last_record = JSON.parse(sink.string.lines.last, symbolize_names: true)
     expect(last_record.keys).to eq(
       [:seq, :type, :label, :file, :line, :class_name, :method_name, :method_type,
-       :site_seq, :diff, :capped, :value_type, :value,
+       :site_seq, :since_prev_at_site, :capped, :value_type, :value,
        :wall_time, :mono_time, :run_id, :schema]
     )
     expect(last_record).to include(site_seq: 500, capped: true)
@@ -201,7 +201,7 @@ RSpec.describe Loba, ".value" do
     test_case.call_val(sink:)
 
     first, second = sink.string.lines.map { JSON.parse(_1, symbolize_names: true) }
-    expect(second[:diff]).to eq(second[:mono_time] - first[:mono_time])
+    expect(second[:since_prev_at_site]).to eq(second[:mono_time] - first[:mono_time])
   end
 
   context "when capturing an instance variable by Symbol" do

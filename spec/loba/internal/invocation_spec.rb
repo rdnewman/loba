@@ -131,7 +131,7 @@ RSpec.describe Loba::Internal::Invocation do
       let(:caller_binding) do
         instance_double(Loba::Internal::CallerBinding, file: "app.rb", line: 10)
       end
-      let(:tracked) { { seq: 1, site_seq: 1, diff: nil, since_prev_ts: nil } }
+      let(:tracked) { { seq: 1, site_seq: 1, since_prev_at_site: nil, since_prev_ts: nil } }
 
       before do
         stub_const("Rails", mock_rails(production: false))

@@ -106,10 +106,10 @@ IO), it is skipped, and the first such failure in the process is reported once
 on `$stderr`. The code being traced keeps running.
 
 A skipped record shouldn't look like code that never ran, so the next record
-that is written to the same sink notes what was missed, in `unwritten`:
+that is written to the same sink notes what was missed, in `failed_writes`:
 
 ```json
-{"seq":4,"type":"ts","unwritten":{"count":2,"first_seq":2,"last_seq":3,"error":"Errno::EACCES: Permission denied @ rb_sysopen - /app/log/trace.jsonl"},"label":"after recovery"}
+{"seq":4,"type":"ts","failed_writes":{"count":2,"first_seq":2,"last_seq":3,"error":"Errno::EACCES: Permission denied @ rb_sysopen - /app/log/trace.jsonl"},"label":"after recovery"}
 ```
 
 That record starts on a new line, so a write that failed partway can't run
@@ -126,7 +126,7 @@ loba: 2 records couldn't be written to "/app/log/trace.jsonl" (first error: Errn
 
 All three messages are printed with `Kernel#warn`, so `ruby -W0` or
 `$VERBOSE = nil` silences them. Records still note what was missed in
-`unwritten`, but a loss that only the exit report would have shown goes
+`failed_writes`, but a loss that only the exit report would have shown goes
 unreported.
 
 Inside Rails, the default is used only once the app has booted (`Rails.root` is
@@ -145,14 +145,14 @@ bookkeeping that repeats from line to line.
 |---|---|
 | `seq` | Order of this record among all records in the run: the order calls reached loba. Lines can be out of `seq` order when one loba call runs inside another (a Symbol naming a method that calls loba, say) or calls run in several threads; sort by `seq` to read them in call order. |
 | `type` | `"val"` |
-| `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `seq` of the first and last of them (`first_seq`, `last_seq`), and the first `error` (see [Where records go](#where-records-go)) |
+| `failed_writes` | Present only when earlier records to this sink couldn't be written: their `count`, the `seq` of the first and last of them (`first_seq`, `last_seq`), and the first `error` (see [Where records go](#where-records-go)) |
 | `label` | The given or inferred label, or `null` |
 | `file`, `line` | Where `Loba.val` was called; `file` is the path Ruby loaded that file by, usually absolute inside an app |
 | `class_name` | The caller's class, or the class itself inside a class method; `"<anonymous class>"` for an unnamed one |
 | `method_name` | The caller's method; `"<anonymous method>"` outside any method |
 | `method_type` | `"instance"` or `"class"` |
 | `site_seq` | Order of this record among records from the same call site (file and line) |
-| `diff` | Seconds since the previous record from the same call site, exactly the difference between their `mono_time` values; `null` for the first. A record counting skipped calls doesn't count as a previous record. |
+| `since_prev_at_site` | Seconds since the previous record from the same call site, exactly the difference between their `mono_time` values; `null` for the first. A record counting skipped calls doesn't count as a previous record. |
 | `capped` | Present only on a call site's last record before its limit: `true`, meaning any later calls from that site in the same minute are skipped and counted (see [Limits](#limits)) |
 | `value_type` | The value's class name; for a subclass of String, Array, or Hash, that base class's name; `null` for an anonymous class |
 | `rendered` | Present only when some part of the value is recorded as text instead of as itself: one `{"path", "as"}` per part, where `as` says why (see below). The text can look exactly like a real String; this says which parts aren't |
@@ -225,7 +225,7 @@ Loba.val :name, logger: Logger.new($stderr)
 ```
 
 A logged record is the same JSON as the one written to the sink, at `debug`
-level, except that `unwritten` appears only in the sink. The sink is always written; logging is an addition, not a replacement.
+level, except that `failed_writes` appears only in the sink. The sink is always written; logging is an addition, not a replacement.
 The record counting a capped site's skipped calls (see [Limits](#limits)) is
 logged too, with the logging options of that site's latest call. Outside Rails
 there is no default logger, so `log: true` logs nothing unless `logger:` is
@@ -257,7 +257,7 @@ These limits keep records bounded in size, and in number per call site:
   take no numbers, so `seq` and `site_seq` never skip.
 
   The site's last record before its limit, the 500th that minute, has
-  `"capped": true`, right after `diff`: any later calls from the site that
+  `"capped": true`, right after `since_prev_at_site`: any later calls from the site that
   minute are skipped and counted. So even if the record counting them is never
   written, the file shows the limit was reached.
 
