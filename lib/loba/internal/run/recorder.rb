@@ -71,15 +71,17 @@ module Loba
         # error #write doesn't rescue (a Timeout, say) can't lose it.
         def append(fields, sink)
           gap = gaps[sink]
-          sink.append(line(with_gap(fields, gap)))
+          sink.append(line_for(fields, gap))
           gaps.delete(sink) if gap
         end
 
-        def with_gap(fields, gap)
+        # A failed write can leave part of a line behind, so the record noting
+        # the gap starts on a new line rather than being joined onto it.
+        def line_for(fields, gap)
           if gap
-            gap.noted_on(fields)
+            "\n#{line(gap.noted_on(fields))}"
           else
-            fields
+            line(fields)
           end
         end
 

@@ -22,7 +22,10 @@ RSpec.describe Loba::Internal::Run::Recorder do
     io
   end
 
-  def written_lines(io) = io.string.lines.map { JSON.parse(_1) }
+  # Skips blank lines: the record noting a gap starts on a new line.
+  def written_lines(io)
+    io.string.lines.reject { _1.strip.empty? }.map { JSON.parse(_1) }
+  end
 
   # For examples about something other than the warning.
   def quiet_recorder
@@ -127,6 +130,27 @@ RSpec.describe Loba::Internal::Run::Recorder do
         [3, 4].each { |seq| recorder.write({ seq:, type: "ts", label: "after" }, to: sink) }
 
         expect(written_lines(io).last.keys).to eq(["seq", "type", "unwritten", "label"])
+      end
+
+      # A write can fail partway, such as on a full disk, leaving part of a line.
+      it "starts the noting record on a new line, apart from a partly written line" do
+        io = StringIO.new
+        writes = 0
+        allow(io).to receive(:write).and_wrap_original do |original, line|
+          writes += 1
+          if writes == 1
+            original.call(line[0, 5])
+            raise Errno::ENOSPC
+          end
+
+          original.call(line)
+        end
+        recorder = quiet_recorder
+        recorder.write({ seq: 3 }, to: sink_to(io))
+
+        recorder.write({ seq: 4 }, to: sink_to(io))
+
+        expect(io.string.lines.last).to start_with('{"seq":4,"unwritten":')
       end
 
       it "notes them only once" do

@@ -112,6 +112,11 @@ that is written to the same sink notes what was missed, in `unwritten`:
 {"seq":4,"type":"ts","unwritten":{"count":2,"first_seq":2,"last_seq":3,"error":"Errno::EACCES: Permission denied @ rb_sysopen - /app/log/trace.jsonl"},"label":"after recovery"}
 ```
 
+That record starts on a new line, so a write that failed partway can't run
+into it. Before it, the file has a blank line where the failed writes left
+nothing, or a partial line that isn't valid JSON where one left part of a line.
+`jq` stops at a line it can't parse; `jq -R 'fromjson?'` skips both.
+
 If no later record reaches that sink, the process reports the loss when it
 exits instead (by any means but `exit!` or `kill -9`), on `$stderr`:
 
