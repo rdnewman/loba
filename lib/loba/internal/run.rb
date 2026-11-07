@@ -16,9 +16,7 @@ module Loba
       private_constant :CREATE_FLAGS, :CREATION_LOCK
 
       class << self
-        # This process's run, created on first use. Creating it registers the
-        # run's +at_exit+ hook, which writes the count of calls skipped at any
-        # capped site, then summarizes records that couldn't be written.
+        # This process's run, created on first use.
         #
         # A forked child inherits this memo; the pid check gives it its own run
         # and file. Threads asking at once share one run: only creating it
@@ -43,10 +41,27 @@ module Loba
           if current_in_this_process?
             @current
           else
-            new.tap { |run| run.send(:register_at_exit) }
+            new
           end
         end
+
+        # Writes the count of calls skipped at any capped site, then summarizes
+        # records that couldn't be written, for this process's run if it has
+        # one. A forked child that made no run of its own still holds its
+        # parent's, which it leaves alone.
+        def shut_down_current
+          unless current_in_this_process?
+            return
+          end
+
+          @current.send(:shut_down)
+        end
       end
+
+      # Registered as loba loads rather than when a run is created: exit
+      # handlers run last-registered first, and a test runner such as Minitest
+      # runs the tests from its own. Loba's has to fire after them.
+      at_exit { shut_down_current }
 
       # @return [String] the run's id: a UTC timestamp, the process id, and eight
       #   random hex digits, e.g. +"20260926T210626Z-894825-b10f3e7a"+
@@ -120,16 +135,6 @@ module Loba
           unreported = !@fallback_reported
           @fallback_reported = true
           unreported
-        end
-      end
-
-      # Forked children inherit this hook; the pid check keeps them from
-      # re-flushing the parent's capped sites or repeating its summary.
-      def register_at_exit
-        at_exit do
-          if pid == Process.pid
-            shut_down
-          end
         end
       end
 

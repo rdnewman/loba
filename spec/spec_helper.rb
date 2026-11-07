@@ -15,17 +15,14 @@ end
 RSpec.configure do |config|
   config.include MockedRails
   config.include AllocationHelpers
-  config.include AtExitHelpers
   config.include DestinationHelpers
   config.include ForkHelpers
   config.include MemoizedCurrentHelpers
-  config.include RunHelpers
   config.include SerializationHelpers
 
   # Every record is stamped with Run.current's id, so most examples create a
-  # run. Capture the exit hook each run registers, which would otherwise fire
-  # at the suite's exit, and start every example without a current run.
-  config.before { @run_exit_hooks = capture_at_exit_hooks(Loba::Internal::Run) }
+  # run. Start every example without one; that also leaves loba's exit handler
+  # nothing to shut down at the suite's exit.
   config.after { reset_current(Loba::Internal::Run) }
 
   config.expect_with :rspec do |expectations|

@@ -169,7 +169,7 @@ RSpec.describe Loba, ".value" do
     sink = StringIO.new
     501.times { described_class.value("looped", sink:) }
 
-    run_exit_hooks.first.call
+    Loba::Internal::Run.send(:shut_down_current)
 
     suppression = JSON.parse(sink.string.lines.last, symbolize_names: true)
     expect(suppression.keys).to eq(
@@ -332,7 +332,7 @@ RSpec.describe Loba, ".value" do
       logger = Logger.new(log_output)
       501.times { described_class.value("looped", sink:, logger:) }
 
-      run_exit_hooks.first.call
+      Loba::Internal::Run.send(:shut_down_current)
 
       last_logged = JSON.parse(log_output.string.lines.last[/\{.*\}/], symbolize_names: true)
       expect(last_logged).to include(suppressed: true, suppressed_count: 1)

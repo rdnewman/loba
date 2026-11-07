@@ -248,6 +248,14 @@ These limits keep records bounded in size, and in number per call site:
   A process killed without running its exit handlers (`kill -9`, or `exit!`)
   loses that last count.
 
+  Loba writes it from an exit handler registered when loba is loaded, and exit
+  handlers run last-registered first. Some test runners run the tests from an
+  exit handler of their own: Minitest, test-unit, and `rspec/autorun` (not the
+  `rspec` command). Load loba before the runner, for example by requiring it
+  first. If loba is loaded after the runner and called before the tests start,
+  calls skipped during the tests aren't counted, and records that couldn't be
+  written during them aren't summarized on `$stderr`.
+
 `cut` lists every part these cut short, by path, so a cut value can't be
 mistaken for a complete one: `Loba.val :order` with 53 items gives
 `"cut":[{"path":["items"],"omitted":3,"unit":"entries"}]`, and `value` holds
