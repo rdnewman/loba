@@ -26,7 +26,7 @@ module Loba
         def self.fields(...) = new(...).fields
 
         # @param caller_binding [CallerBinding] the calling frame
-        # @param tracked [Hash{Symbol => Integer, Float, nil}] the call's numbers
+        # @param tracked [Hash{Symbol => Integer, Float, Boolean, nil}] the call's numbers
         #   and timing (see Run::Visits#note)
         # @param argument [Symbol, Object] the argument given (see Loba.value)
         # @param label [String, Symbol, nil] the label given, if any

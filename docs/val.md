@@ -178,8 +178,9 @@ named in `rendered`:
 - A String that isn't text (binary data, or invalid UTF-8) is recorded as its
   `#inspect` text, e.g. `"\"\\xFF\\xFE\""`, with `as` `"not_utf8"`. A String in
   another encoding that converts to UTF-8 is recorded converted.
-- A Symbol that is binary data is recorded the same way, e.g. `":\"k\\xFF\""`,
-  with `as` `"not_utf8"`, as a Hash key too.
+- A Symbol that isn't text (binary data, or bytes with no UTF-8 form in its
+  encoding) is recorded the same way, e.g. `":\"k\\xFF\""`, with `as`
+  `"not_utf8"`, as a Hash key too.
 - `NaN` and `Infinity` are recorded as `"NaN"`, `"Infinity"`, and `"-Infinity"`,
   with `as` `"non_finite"`.
 - A container nested more than 5 levels deep is rendered whole as text, with

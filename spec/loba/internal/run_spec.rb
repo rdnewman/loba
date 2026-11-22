@@ -205,7 +205,7 @@ RSpec.describe Loba::Internal::Run do
     end
 
     # The one exit handler is registered when loba loads (see
-    # exit_order_spec.rb); a second, per run, would write each count twice.
+    # .shut_down_current below); a second, per run, would write each count twice.
     it "registers no exit handler when it creates the run" do
       created = nil
       allow(described_class).to receive(:new).and_wrap_original do |original|

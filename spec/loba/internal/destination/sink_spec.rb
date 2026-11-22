@@ -235,6 +235,16 @@ RSpec.describe Loba::Internal::Destination::Sink do
         expect(run).to have_received(:report_fallback)
           .with(path:, reason: "Errno::EACCES: Permission denied")
       end
+
+      it "reports an error message that isn't valid UTF-8 with U+FFFD for the bad bytes" do
+        allow(FileUtils).to receive(:mkdir_p).and_raise(Errno::EACCES.new("dir \xFF".b))
+        path = File.join(tmp_dir, "explicit", "records.jsonl")
+
+        described_class.for(path)
+
+        expect(run).to have_received(:report_fallback)
+          .with(path:, reason: "Errno::EACCES: Permission denied - dir \uFFFD")
+      end
     end
 
     context "when the directory exists but isn't writable" do

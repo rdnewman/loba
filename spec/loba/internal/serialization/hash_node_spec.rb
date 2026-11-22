@@ -64,6 +64,18 @@ RSpec.describe Loba::Internal::Serialization::HashNode do
       end
     end
 
+    # Made valid only when the JSON is written, such keys would all become
+    # U+FFFD there and collapse into one pair.
+    context "when Symbol keys won't convert to UTF-8" do
+      it "keeps each pair, its key as #inspect text" do
+        first, second = ["\x81", "\x8D"].map { _1.force_encoding(Encoding::Windows_1252).to_sym }
+
+        result = described_class.serialize(value: { first => 1, second => 2 })
+
+        expect(result[:value]).to eq(":\"\\x81\"" => 1, ":\"\\x8D\"" => 2)
+      end
+    end
+
     # Keys that JSON writes as the same text would leave duplicate JSON keys,
     # and a JSON parser keeps only one of them: a pair would vanish with no
     # trace. The first pair stays in the value; :collided lists it as kept and

@@ -23,7 +23,7 @@ module Loba
         #   or Symbol; with no explicit label, a +Symbol+ argument's name;
         #   otherwise +nil+ (including an explicit label of any other type)
         def infer
-          explicit_label || inferred_label || nil
+          explicit_label || inferred_label
         end
 
       private
