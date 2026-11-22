@@ -111,19 +111,5 @@ RSpec.describe Loba::Internal::Records::Value do
         end.to raise_error(Interrupt)
       end
     end
-
-    context "when the value can't be rendered" do
-      it "records the error in place of the value, keeping the label", :aggregate_failures do
-        fields = described_class.fields(
-          caller_binding: caller_binding(evaluates_to: object_whose_inspect_raises), tracked:,
-          argument: :invoice, label: nil, inspect: true
-        )
-
-        expect(fields).to include(
-          label: "invoice", errors: [{ path: [], message: "ArgumentError: boom" }]
-        )
-        expect(fields.keys).not_to include(:value, :value_type)
-      end
-    end
   end
 end

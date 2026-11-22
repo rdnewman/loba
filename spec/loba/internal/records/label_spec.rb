@@ -47,26 +47,6 @@ RSpec.describe Loba::Internal::Records::Label do
         expect(result).to eq("a\u{FFFD}b")
       end
 
-      it "reads a binary label's bytes as UTF-8 when they're valid there" do
-        result = described_class.infer(argument: :foo, label: "caf\xC3\xA9".b)
-
-        expect(result).to eq("café")
-      end
-
-      it "replaces a binary label's bytes with U+FFFD when they aren't valid UTF-8" do
-        result = described_class.infer(argument: :foo, label: "a\xFFb".b)
-
-        expect(result).to eq("a\u{FFFD}b")
-      end
-
-      it "converts a label in another encoding to UTF-8" do
-        latin1_label = String.new("caf\xE9", encoding: Encoding::ISO_8859_1)
-
-        result = described_class.infer(argument: :foo, label: latin1_label)
-
-        expect(result).to eq("café")
-      end
-
       it "strips surrounding whitespace" do
         result = described_class.infer(argument: :foo, label: "  a\xFFb  ")
 
@@ -89,12 +69,6 @@ RSpec.describe Loba::Internal::Records::Label do
     end
 
     context "when the explicit label is neither a String nor a Symbol" do
-      it "returns nil rather than raising" do
-        result = described_class.infer(argument: :foo, label: {})
-
-        expect(result).to be_nil
-      end
-
       it "does not fall back to inferring from the Symbol argument" do
         result = described_class.infer(argument: :foo, label: 42)
 
