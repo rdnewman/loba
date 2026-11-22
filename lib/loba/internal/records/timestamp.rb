@@ -19,7 +19,7 @@ module Loba
         def self.fields(...) = new(...).fields
 
         # @param caller_binding [CallerBinding] the calling frame
-        # @param tracked [Hash{Symbol => Integer, Float, nil}] the call's numbers
+        # @param tracked [Hash{Symbol => Integer, Float, Boolean, nil}] the call's numbers
         #   and timing (see Run::Visits#note)
         # @param label [String, Symbol, nil] the label given, if any
         def initialize(caller_binding:, tracked:, label:)
@@ -37,6 +37,7 @@ module Loba
             **Caller.fields(caller_binding),
             site_seq: tracked[:site_seq],
             since_prev_ts: tracked[:since_prev_ts],
+            **tracked.slice(:capped),
             **Stamp.fields(mono_time: tracked[:mono_time])
           }
         end

@@ -31,10 +31,13 @@ RSpec.describe Loba::Internal::Serialization::ContainerNode do
     context "when given more than MAX_ENTRIES entries" do
       it "never serializes the entries past the limit" do
         entries = Array.new(described_class::MAX_ENTRIES) { 1 } + [Object.new]
+        allow(Loba::Internal::Serialization::UnknownNode).to receive(:serialize).and_call_original
 
         result = ListContainerNode.serialize(value: entries)
 
         expect(result[:value].size).to eq(described_class::MAX_ENTRIES)
+        expect(Loba::Internal::Serialization::UnknownNode)
+          .to have_received(:serialize).exactly(described_class::MAX_ENTRIES).times
       end
     end
 

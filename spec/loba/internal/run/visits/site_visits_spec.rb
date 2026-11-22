@@ -10,10 +10,10 @@ RSpec.describe Loba::Internal::Run::Visits::SiteVisits do
   let(:cap) { 500 }
 
   describe "#note" do
-    it "numbers the site's first call 1, with no diff" do
+    it "numbers the site's first call 1, with no since_prev_at_site" do
       result = site_visits.note(now: 100.0, destination: destination_to(StringIO.new)) { 1 }
 
-      expect(result).to eq(site_seq: 1, diff: nil)
+      expect(result).to eq(site_seq: 1, since_prev_at_site: nil)
     end
 
     it "numbers each later call in turn, with the time since the previous one" do
@@ -22,7 +22,16 @@ RSpec.describe Loba::Internal::Run::Visits::SiteVisits do
 
       result = site_visits.note(now: 100.25, destination:) { 1 }
 
-      expect(result).to eq(site_seq: 2, diff: 0.25)
+      expect(result).to eq(site_seq: 2, since_prev_at_site: 0.25)
+    end
+
+    it "marks the call that reaches the cap as capped" do
+      destination = destination_to(StringIO.new)
+      (cap - 1).times { site_visits.note(now: 100.0, destination:) { 1 } }
+
+      result = site_visits.note(now: 100.0, destination:) { 1 }
+
+      expect(result).to eq(site_seq: cap, since_prev_at_site: 0.0, capped: true)
     end
 
     it "suppresses a call past the cap, asking for no number", :aggregate_failures do
@@ -66,7 +75,7 @@ RSpec.describe Loba::Internal::Run::Visits::SiteVisits do
 
         result = site_visits.note(now: 161.0, destination:) { 1 }
 
-        expect(result).to eq(site_seq: cap + 1, diff: 60.0)
+        expect(result).to eq(site_seq: cap + 1, since_prev_at_site: 60.0)
       end
 
       it "writes the record to the latest destination given, even if this call gives none" do

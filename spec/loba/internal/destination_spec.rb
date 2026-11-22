@@ -32,7 +32,7 @@ RSpec.describe Loba::Internal::Destination do
         ENV["LOBA_SINK"] = original_loba_sink if original_loba_sink
       end
 
-      it "writes to the run's own file" do
+      it "creates the run's own file, along with a directory that doesn't exist yet" do
         hide_const("Rails")
         Dir.mktmpdir do |dir|
           allow(Dir).to receive(:pwd).and_return(dir)
@@ -83,16 +83,6 @@ RSpec.describe Loba::Internal::Destination do
   end
 
   describe "#write" do
-    it "appends the record to the sink as a JSON line" do
-      io = StringIO.new
-      sink = Loba::Internal::Destination::Sink.new(io)
-      destination = described_class.new(sink:, log_mirror: nil)
-
-      destination.write({ seq: 1, type: "ts" })
-
-      expect(io.string).to eq("{\"seq\":1,\"type\":\"ts\"}\n")
-    end
-
     it "also writes the same JSON to the logger, at debug level", :aggregate_failures do
       log_output = StringIO.new
       logger = Logger.new(log_output, level: :debug)
@@ -124,7 +114,7 @@ RSpec.describe Loba::Internal::Destination do
 
       [1, 2].each { |seq| destination.write({ seq: }) }
 
-      expect(io.string).to include("unwritten")
+      expect(io.string).to include("failed_writes")
       expect(log_output.string.lines.map { _1[/\{.*\}/] }).to eq(["{\"seq\":1}", "{\"seq\":2}"])
     end
   end

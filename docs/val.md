@@ -106,11 +106,16 @@ IO), it is skipped, and the first such failure in the process is reported once
 on `$stderr`. The code being traced keeps running.
 
 A skipped record shouldn't look like code that never ran, so the next record
-that is written to the same sink notes what was missed, in `unwritten`:
+that is written to the same sink notes what was missed, in `failed_writes`:
 
 ```json
-{"seq":4,"type":"ts","unwritten":{"count":2,"first_seq":2,"last_seq":3,"error":"Errno::EACCES: Permission denied @ rb_sysopen - /app/log/trace.jsonl"},"label":"after recovery"}
+{"seq":4,"type":"ts","failed_writes":{"count":2,"first_seq":2,"last_seq":3,"error":"Errno::EACCES: Permission denied @ rb_sysopen - /app/log/trace.jsonl"},"label":"after recovery"}
 ```
+
+That record starts on a new line, so a write that failed partway can't run
+into it. Before it, the file has a blank line where the failed writes left
+nothing, or a partial line that isn't valid JSON where one left part of a line.
+`jq` stops at a line it can't parse; `jq -R 'fromjson?'` skips both.
 
 If no later record reaches that sink, the process reports the loss when it
 exits instead (by any means but `exit!` or `kill -9`), on `$stderr`:
@@ -118,6 +123,11 @@ exits instead (by any means but `exit!` or `kill -9`), on `$stderr`:
 ```text
 loba: 2 records couldn't be written to "/app/log/trace.jsonl" (first error: Errno::EACCES: Permission denied @ rb_sysopen - /app/log/trace.jsonl)
 ```
+
+All three messages are printed with `Kernel#warn`, so `ruby -W0` or
+`$VERBOSE = nil` silences them. Records still note what was missed in
+`failed_writes`, but a loss that only the exit report would have shown goes
+unreported.
 
 Inside Rails, the default is used only once the app has booted (`Rails.root` is
 set); before that, records go under the directory the run started in.
@@ -135,19 +145,20 @@ bookkeeping that repeats from line to line.
 |---|---|
 | `seq` | Order of this record among all records in the run: the order calls reached loba. Lines can be out of `seq` order when one loba call runs inside another (a Symbol naming a method that calls loba, say) or calls run in several threads; sort by `seq` to read them in call order. |
 | `type` | `"val"` |
-| `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `seq` of the first and last of them (`first_seq`, `last_seq`), and the first `error` (see [Where records go](#where-records-go)) |
+| `failed_writes` | Present only when earlier records to this sink couldn't be written: their `count`, the `seq` of the first and last of them (`first_seq`, `last_seq`), and the first `error` (see [Where records go](#where-records-go)) |
 | `label` | The given or inferred label, or `null` |
 | `file`, `line` | Where `Loba.val` was called; `file` is the path Ruby loaded that file by, usually absolute inside an app |
 | `class_name` | The caller's class, or the class itself inside a class method; `"<anonymous class>"` for an unnamed one |
 | `method_name` | The caller's method; `"<anonymous method>"` outside any method |
 | `method_type` | `"instance"` or `"class"` |
 | `site_seq` | Order of this record among records from the same call site (file and line) |
-| `diff` | Seconds since the previous record from the same call site, exactly the difference between their `mono_time` values; `null` for the first. A record counting skipped calls doesn't count as a previous record. |
+| `since_prev_at_site` | Seconds since the previous record from the same call site, exactly the difference between their `mono_time` values; `null` for the first. A record counting skipped calls doesn't count as a previous record. |
+| `capped` | Present only on a call site's last record before its limit: `true`, meaning any later calls from that site in the same minute are skipped and counted (see [Limits](#limits)) |
 | `value_type` | The value's class name; for a subclass of String, Array, or Hash, that base class's name; `null` for an anonymous class |
 | `rendered` | Present only when some part of the value is recorded as text instead of as itself: one `{"path", "as"}` per part, where `as` says why (see below). The text can look exactly like a real String; this says which parts aren't |
 | `cut` | Present only when some part of the value was cut short: one `{"path", "omitted", "unit"}` per part, saying how many `"chars"`, `"entries"` (Array), or `"keys"` (Hash) were left out (see [Limits](#limits)) |
 | `errors` | Present only when evaluating the Symbol, or rendering any part of the value, raised: one `{"path", "message"}` per failure. Without `value`, nothing could be recorded; with it, only part couldn't (see [Errors](#errors)). A `path`, here and in `rendered`, is the part's Array indexes and Hash keys from the top; `[]` is the whole value. An entry about a Hash key itself, not the value under it, also has `"key": true` |
-| `collided` | Present only when Hash keys collide, meaning two keys JSON writes as the same text (`1` and `"1"`, `:a` and `"a"`). A JSON reader would keep only one pair, so `value` keeps the first, and this lists every colliding pair: one `{"path", "key", "pairs"}` per shared key, with `pairs` as `[key, value]` `#inspect` text, which shows why they collided (see below) |
+| `collided` | Present only when Hash keys collide, meaning two keys JSON writes as the same text (`1` and `"1"`, `:a` and `"a"`). A JSON reader would keep only one pair, so `value` keeps the first, and this lists every colliding pair: one `{"path", "key", "kept", "dropped"}` per shared key, with `kept` the pair in `value` and `dropped` the others, each as `[key, value]` `#inspect` text, which shows why they collided (see below) |
 | `value` | The value, as JSON (see below) |
 | `wall_time` | Seconds since the epoch, when recorded |
 | `mono_time` | A monotonic clock reading, unaffected by system clock changes |
@@ -167,6 +178,9 @@ named in `rendered`:
 - A String that isn't text (binary data, or invalid UTF-8) is recorded as its
   `#inspect` text, e.g. `"\"\\xFF\\xFE\""`, with `as` `"not_utf8"`. A String in
   another encoding that converts to UTF-8 is recorded converted.
+- A Symbol that isn't text (binary data, or bytes with no UTF-8 form in its
+  encoding) is recorded the same way, e.g. `":\"k\\xFF\""`, with `as`
+  `"not_utf8"`, as a Hash key too.
 - `NaN` and `Infinity` are recorded as `"NaN"`, `"Infinity"`, and `"-Infinity"`,
   with `as` `"non_finite"`.
 - A container nested more than 5 levels deep is rendered whole as text, with
@@ -184,12 +198,13 @@ was a `NaN`.
 
 Two keys that JSON writes as the same text would leave a duplicate key, and a
 JSON reader keeps only one, so a pair would vanish without a trace. The first
-pair stays in `value`, and `collided` lists them all as `#inspect` text, even
-with `inspect: false`, so a Symbol key and a String key stay apart.
+pair stays in `value`, and `collided` lists it as `kept` and the others as
+`dropped`, all as `#inspect` text, even with `inspect: false`, so a Symbol key
+and a String key stay apart.
 `Loba.val({id: 1, "id" => 2})` gives:
 
 ```json
-{"value_type":"Hash","collided":[{"path":[],"key":"id","pairs":[[":id","1"],["\"id\"","2"]]}],"value":{"id":1}}
+{"value_type":"Hash","collided":[{"path":[],"key":"id","kept":[":id","1"],"dropped":[["\"id\"","2"]]}],"value":{"id":1}}
 ```
 
 Nothing inside a pair left out of `value` appears in `rendered` or `errors`,
@@ -212,7 +227,7 @@ Loba.val :name, logger: Logger.new($stderr)
 ```
 
 A logged record is the same JSON as the one written to the sink, at `debug`
-level, except that `unwritten` appears only in the sink. The sink is always written; logging is an addition, not a replacement.
+level, except that `failed_writes` appears only in the sink. The sink is always written; logging is an addition, not a replacement.
 The record counting a capped site's skipped calls (see [Limits](#limits)) is
 logged too, with the logging options of that site's latest call. Outside Rails
 there is no default logger, so `log: true` logs nothing unless `logger:` is
@@ -243,8 +258,21 @@ These limits keep records bounded in size, and in number per call site:
   the next `seq`, but has no `site_seq`, caller details, or value. Skipped calls
   take no numbers, so `seq` and `site_seq` never skip.
 
+  The site's last record before its limit, the 500th that minute, has
+  `"capped": true`, right after `since_prev_at_site`: any later calls from the site that
+  minute are skipped and counted. So even if the record counting them is never
+  written, the file shows the limit was reached.
+
   A process killed without running its exit handlers (`kill -9`, or `exit!`)
   loses that last count.
+
+  Loba writes it from an exit handler registered when loba is loaded, and exit
+  handlers run last-registered first. Some test runners run the tests from an
+  exit handler of their own: Minitest, test-unit, and `rspec/autorun` (not the
+  `rspec` command). Load loba before the runner, for example by requiring it
+  first. If loba is loaded after the runner and called before the tests start,
+  calls skipped during the tests aren't counted, and records that couldn't be
+  written during them aren't summarized on `$stderr`.
 
 `cut` lists every part these cut short, by path, so a cut value can't be
 mistaken for a complete one: `Loba.val :order` with 53 items gives
@@ -289,6 +317,11 @@ without it had nothing that couldn't be. (What was cut short, or lost to a
 key collision, is listed in `cut` and `collided`.) Exceptions outside `StandardError`, such as
 `Interrupt`, are not caught, except a `ScriptError` (such as `SyntaxError`) from
 evaluating a Symbol.
+
+Text describing the call or a failure doesn't break the traced code either. In
+an error message, a class or method name, or a file path, bytes that aren't valid
+UTF-8 become `�` (U+FFFD). An error whose `#message` raises is recorded with
+`(unreadable message)` in place of its message.
 
 ## Environment notes
 

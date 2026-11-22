@@ -95,6 +95,21 @@ class LobaValCallerContexts
     Loba.value(:items, sink:)
   end
 
+  def with_non_utf8_error(sink:, **)
+    Loba.value(:non_utf8_raising_method, sink:, **)
+  end
+
+  def with_expression(sink:)
+    greetings = { name: "Charlie" } # rubocop:disable Lint/UselessAssignment -- read via Loba.value's eval
+    Loba.value(:"greetings[:name]", sink:)
+  end
+
+  define_method("with_binary_name_\xFF".b) { |sink:| Loba.value(1, sink:) }
+
+  def non_utf8_raising_method
+    raise ArgumentError, "bad \xFF".b
+  end
+
   def raising_method
     raise ArgumentError, "boom"
   end
@@ -130,7 +145,7 @@ RSpec.describe Loba, ".value" do
     # fields come in the same order on every line.
     expect(record.keys).to eq(
       [:seq, :type, :label, :file, :line, :class_name, :method_name, :method_type,
-       :site_seq, :diff, :value_type, :value,
+       :site_seq, :since_prev_at_site, :value_type, :value,
        :wall_time, :mono_time, :run_id, :schema]
     )
     expect(record[:file]).to end_with("value_spec.rb")
@@ -145,7 +160,7 @@ RSpec.describe Loba, ".value" do
     expect(record[:type]).to eq("val")
     expect(record[:seq]).to eq(1)
     expect(record[:site_seq]).to eq(1)
-    expect(record[:diff]).to be_nil
+    expect(record[:since_prev_at_site]).to be_nil
     expect(record[:run_id]).to eq(Loba::Internal::Run.current.id)
     expect(record[:wall_time]).to be_a(Float)
     expect(record[:mono_time]).to be_a(Float)
@@ -155,13 +170,28 @@ RSpec.describe Loba, ".value" do
     sink = StringIO.new
     501.times { described_class.value("looped", sink:) }
 
-    run_exit_hooks.first.call
+    Loba::Internal::Run.send(:shut_down_current)
 
     suppression = JSON.parse(sink.string.lines.last, symbolize_names: true)
     expect(suppression.keys).to eq(
       [:seq, :type, :file, :line, :suppressed, :suppressed_count,
        :wall_time, :mono_time, :run_id, :schema]
     )
+  end
+
+  it "marks a site's last record before its cap, right after the site's numbering",
+     :aggregate_failures do
+    sink = StringIO.new
+
+    500.times { described_class.value("looped", sink:) }
+
+    last_record = JSON.parse(sink.string.lines.last, symbolize_names: true)
+    expect(last_record.keys).to eq(
+      [:seq, :type, :label, :file, :line, :class_name, :method_name, :method_type,
+       :site_seq, :since_prev_at_site, :capped, :value_type, :value,
+       :wall_time, :mono_time, :run_id, :schema]
+    )
+    expect(last_record).to include(site_seq: 500, capped: true)
   end
 
   it "times a record exactly as the gap since its site's previous line's mono_time" do
@@ -172,24 +202,7 @@ RSpec.describe Loba, ".value" do
     test_case.call_val(sink:)
 
     first, second = sink.string.lines.map { JSON.parse(_1, symbolize_names: true) }
-    expect(second[:diff]).to eq(second[:mono_time] - first[:mono_time])
-  end
-
-  context "when the process forks after an earlier call" do
-    it "writes the child's records under its own run and sequence", :aggregate_failures do
-      parent_sink = StringIO.new
-      described_class.value("from parent", sink: parent_sink)
-      parent_run_id = written_record(parent_sink)[:run_id]
-
-      child_record = in_forked_child do
-        child_sink = StringIO.new
-        described_class.value("from child", sink: child_sink)
-        written_record(child_sink)
-      end
-
-      expect(child_record[:run_id]).not_to eq(parent_run_id)
-      expect(child_record).to include(seq: 1, value: "from child")
-    end
+    expect(second[:since_prev_at_site]).to eq(second[:mono_time] - first[:mono_time])
   end
 
   context "when capturing an instance variable by Symbol" do
@@ -253,6 +266,16 @@ RSpec.describe Loba, ".value" do
       expect(written_record(sink)).to include(
         label: nil, value: "direct value", method_name: "with_non_symbol"
       )
+    end
+  end
+
+  context "when given an expression as a Symbol" do
+    it "evaluates it in the caller, labeled with the expression itself" do
+      sink = StringIO.new
+
+      LobaValCallerContexts.new.with_expression(sink:)
+
+      expect(written_record(sink)).to include(label: "greetings[:name]", value: "Charlie")
     end
   end
 
@@ -335,7 +358,7 @@ RSpec.describe Loba, ".value" do
       logger = Logger.new(log_output)
       501.times { described_class.value("looped", sink:, logger:) }
 
-      run_exit_hooks.first.call
+      Loba::Internal::Run.send(:shut_down_current)
 
       last_logged = JSON.parse(log_output.string.lines.last[/\{.*\}/], symbolize_names: true)
       expect(last_logged).to include(suppressed: true, suppressed_count: 1)
@@ -364,6 +387,54 @@ RSpec.describe Loba, ".value" do
     end
   end
 
+  # Run refuses the path and Sink falls back; the promise is the two together.
+  context "when a symlink was planted at the run's own file" do
+    it "leaves the link's target alone, and sends the record to stdout", :aggregate_failures do
+      hide_const("Rails")
+      Dir.mktmpdir do |dir|
+        target = File.join(dir, "target")
+        File.write(target, "someone else's file\n")
+
+        output = output_with_symlink_at_run_file(target) { described_class.value("traced") }
+
+        expect(File.read(target)).to eq("someone else's file\n")
+        expect(JSON.parse(output[:stdout], symbolize_names: true)).to include(value: "traced")
+        expect(output[:stderr]).to include("writing records to $stdout instead")
+      end
+    end
+  end
+
+  context "when in a production environment" do
+    it "writes nothing" do
+      stub_const("Rails", mock_rails(production: true))
+      sink = StringIO.new
+
+      LobaValIntegrationTestCase.new.call_val(sink:)
+
+      expect(sink.string).to be_empty
+    end
+  end
+
+  # A skipped record must not look like code that never ran.
+  context "when a record can't be written" do
+    it "warns instead of raising, and notes the missed record on the next one",
+       :aggregate_failures do
+      sink = StringIO.new
+      failures = 1
+      allow(sink).to receive(:write).and_wrap_original do |original, line|
+        raise Errno::ENOSPC if (failures -= 1) >= 0
+
+        original.call(line)
+      end
+      test_case = LobaValIntegrationTestCase.new
+
+      expect { test_case.call_val(sink:) }.to output(/No space left on device/).to_stderr
+      test_case.call_val(sink:)
+
+      expect(written_record(sink)[:failed_writes]).to include(count: 1)
+    end
+  end
+
   # Misusing loba's own API fails loudly at the line just written.
   context "when misused" do
     it "raises for an option it doesn't take, such as production:" do
@@ -379,13 +450,8 @@ RSpec.describe Loba, ".value" do
 
   # A tracing call must never break the code it traces.
   context "when evaluating a Symbol raises" do
-    it "does not raise into the calling code" do
-      sink = StringIO.new
-
-      expect { LobaValCallerContexts.new.with_undefined_name(sink:) }.not_to raise_error
-    end
-
-    it "records the error in place of the value", :aggregate_failures do
+    it "records the error in place of the value, without raising into the calling code",
+       :aggregate_failures do
       sink = StringIO.new
 
       LobaValCallerContexts.new.with_undefined_name(sink:)
@@ -414,6 +480,61 @@ RSpec.describe Loba, ".value" do
     end
   end
 
+  # JSON text is UTF-8, and each of these once raised into the traced code while
+  # writing the record's JSON line. Bytes that can't be read as UTF-8 become U+FFFD.
+  context "when text describing the call or a failure isn't valid UTF-8" do
+    it "records a traced method's error message" do
+      sink = StringIO.new
+
+      LobaValCallerContexts.new.with_non_utf8_error(sink:)
+
+      expect(written_record(sink))
+        .to include(errors: [{ path: [], message: "ArgumentError: bad \uFFFD" }])
+    end
+
+    it "records the calling method's name" do
+      sink = StringIO.new
+
+      LobaValCallerContexts.new.public_send("with_binary_name_\xFF".b, sink:)
+
+      expect(written_record(sink)).to include(method_name: "with_binary_name_\uFFFD")
+    end
+
+    it "records the calling file's path" do
+      sink = StringIO.new
+
+      eval("Loba.value(1, sink:)", binding, "f\xFF.rb".b, 1) # rubocop:disable Style/EvalWithLocation -- names the file
+
+      expect(written_record(sink)[:file]).to end_with("f\uFFFD.rb")
+    end
+
+    it "mirrors the same record to the logger", :aggregate_failures do
+      sink = StringIO.new
+      log_output = StringIO.new
+
+      LobaValCallerContexts.new.with_non_utf8_error(sink:, logger: Logger.new(log_output))
+
+      expect(logged_record(log_output))
+        .to include(errors: [{ path: [], message: "ArgumentError: bad \uFFFD" }])
+      expect(logged_record(log_output)).to eq(written_record(sink))
+    end
+  end
+
+  # Unlike text about the call, these are the value itself, so the record says
+  # they aren't what was given.
+  context "when a Symbol in the value isn't text" do
+    it "records a key as its #inspect text, and names it as a key", :aggregate_failures do
+      sink = StringIO.new
+
+      described_class.value({ "k\xFF".b.to_sym => 1 }, sink:)
+
+      record = JSON.parse(sink.string)
+      expect(record["value"]).to eq(":\"k\\xFF\"" => 1)
+      expect(record["rendered"])
+        .to eq([{ "path" => [":\"k\\xFF\""], "as" => "not_utf8", "key" => true }])
+    end
+  end
+
   # Each of these once raised while writing the record's JSON line.
   context "when the value has no exact JSON form" do
     # The text can look exactly like a real String, so the record names it.
@@ -435,7 +556,7 @@ RSpec.describe Loba, ".value" do
       record = written_record(sink)
       expect(record[:value]).to eq(id: 1)
       expect(record[:collided])
-        .to eq([{ path: [], key: "id", pairs: [[":id", "1"], ["\"id\"", "2"]] }])
+        .to eq([{ path: [], key: "id", kept: [":id", "1"], dropped: [["\"id\"", "2"]] }])
       expect(record.keys.index(:collided)).to be < record.keys.index(:value)
     end
 

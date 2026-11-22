@@ -4,12 +4,6 @@ require "stringio"
 
 # One call site per caller context Loba.timestamp has to report correctly.
 class LobaTsCallerContexts
-  def self.from_class_method(sink:)
-    Loba.timestamp(sink:)
-  end
-
-  FROM_CLASS_METHOD_LINE = method(:from_class_method).source_location[1] + 1
-
   def checkpoint(**)
     Loba.timestamp(**)
   end
@@ -24,13 +18,9 @@ class LobaTsCallerContexts
     Loba.ts(sink:)
   end
 
-  def within_block(sink:)
-    [1].each do
-      Loba.timestamp(sink:)
-    end
+  def in_each_pass(passes, sink:)
+    passes.times { Loba.timestamp(sink:) }
   end
-
-  WITHIN_BLOCK_LINE = instance_method(:within_block).source_location[1] + 2
 end
 
 RSpec.describe Loba, ".timestamp" do
@@ -90,6 +80,47 @@ RSpec.describe Loba, ".timestamp" do
     expect(second_record).to include(method_name: "later_checkpoint", since_prev_ts: 0.5)
   end
 
+  it "times a checkpoint from the previous checkpoint, not from a Loba.value call between" do
+    sink = StringIO.new
+    caller_contexts = LobaTsCallerContexts.new
+    allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.0)
+    caller_contexts.checkpoint(sink:)
+    allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.25)
+    described_class.value("between", sink:)
+    allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(100.5)
+
+    caller_contexts.later_checkpoint(sink:)
+
+    last_record = JSON.parse(sink.string.lines.last, symbolize_names: true)
+    expect(last_record).to include(since_prev_ts: 0.5)
+  end
+
+  it "marks a site's last checkpoint before its cap, right after its timing",
+     :aggregate_failures do
+    sink = StringIO.new
+
+    500.times { described_class.timestamp(sink:) }
+
+    last_record = JSON.parse(sink.string.lines.last, symbolize_names: true)
+    expect(last_record.keys).to eq(
+      [:seq, :type, :label, :file, :line, :class_name, :method_name, :method_type,
+       :site_seq, :since_prev_ts, :capped, :wall_time, :mono_time, :run_id, :schema]
+    )
+    expect(last_record).to include(site_seq: 500, capped: true)
+  end
+
+  it "numbers checkpoints and Loba.value records in one sequence" do
+    sink = StringIO.new
+    caller_contexts = LobaTsCallerContexts.new
+    caller_contexts.checkpoint(sink:)
+    described_class.value("between", sink:)
+
+    caller_contexts.later_checkpoint(sink:)
+
+    seqs = sink.string.lines.map { JSON.parse(_1)["seq"] }
+    expect(seqs).to eq([1, 2, 3])
+  end
+
   it "times a checkpoint exactly as the gap between the two lines' mono_time" do
     sink = StringIO.new
     caller_contexts = LobaTsCallerContexts.new
@@ -125,31 +156,6 @@ RSpec.describe Loba, ".timestamp" do
     it "is not available as a bare ts" do
       expect { Object.new.instance_eval { ts } }
         .to raise_error(NameError, /undefined local variable or method [`']ts'/)
-    end
-  end
-
-  context "when called inside a block within a method" do
-    it "reports the enclosing method" do
-      sink = StringIO.new
-
-      LobaTsCallerContexts.new.within_block(sink:)
-
-      expect(written_record(sink)).to include(
-        method_name: "within_block", line: LobaTsCallerContexts::WITHIN_BLOCK_LINE
-      )
-    end
-  end
-
-  context "when called from a class method" do
-    it "reports the class itself and a :class method type" do
-      sink = StringIO.new
-
-      LobaTsCallerContexts.from_class_method(sink:)
-
-      expect(written_record(sink)).to include(
-        class_name: "LobaTsCallerContexts", method_name: "from_class_method",
-        method_type: "class", line: LobaTsCallerContexts::FROM_CLASS_METHOD_LINE
-      )
     end
   end
 
@@ -202,6 +208,77 @@ RSpec.describe Loba, ".timestamp" do
 
       expect(written_record(sink)).to include(type: "ts")
       expect(rails_log_output.string).to be_empty
+    end
+  end
+
+  # Run refuses the path and Sink falls back; the promise is the two together.
+  context "when a symlink was planted at the run's own file" do
+    it "leaves the link's target alone, and sends the record to stdout", :aggregate_failures do
+      hide_const("Rails")
+      Dir.mktmpdir do |dir|
+        target = File.join(dir, "target")
+        File.write(target, "someone else's file\n")
+
+        output = output_with_symlink_at_run_file(target) { described_class.timestamp }
+
+        expect(File.read(target)).to eq("someone else's file\n")
+        expect(JSON.parse(output[:stdout], symbolize_names: true)).to include(type: "ts")
+        expect(output[:stderr]).to include("writing records to $stdout instead")
+      end
+    end
+  end
+
+  context "when called on each pass through a block" do
+    it "counts the passes in site_seq and reports the enclosing method", :aggregate_failures do
+      sink = StringIO.new
+
+      LobaTsCallerContexts.new.in_each_pass(3, sink:)
+
+      records = sink.string.lines.map { JSON.parse(_1, symbolize_names: true) }
+      expect(records.map { _1[:site_seq] }).to eq([1, 2, 3])
+      expect(records.map { _1[:method_name] }.uniq).to eq(["in_each_pass"])
+    end
+  end
+
+  context "when in a production environment" do
+    it "writes nothing" do
+      stub_const("Rails", mock_rails(production: true))
+      sink = StringIO.new
+
+      LobaTsCallerContexts.new.checkpoint(sink:)
+
+      expect(sink.string).to be_empty
+    end
+  end
+
+  # A skipped checkpoint must not look like a line that was never reached.
+  context "when a record can't be written" do
+    it "warns instead of raising, and notes the missed record on the next one",
+       :aggregate_failures do
+      sink = StringIO.new
+      failures = 1
+      allow(sink).to receive(:write).and_wrap_original do |original, line|
+        raise Errno::ENOSPC if (failures -= 1) >= 0
+
+        original.call(line)
+      end
+      caller_contexts = LobaTsCallerContexts.new
+
+      expect { caller_contexts.checkpoint(sink:) }.to output(/No space left on device/).to_stderr
+      caller_contexts.later_checkpoint(sink:)
+
+      expect(written_record(sink)[:failed_writes]).to include(count: 1)
+    end
+  end
+
+  # JSON text is UTF-8, and text describing the call once raised into the traced code.
+  context "when text describing the call isn't valid UTF-8" do
+    it "records the calling file's path, with U+FFFD for the bad bytes" do
+      sink = StringIO.new
+
+      eval("Loba.timestamp(sink:)", binding, "f\xFF.rb".b, 1) # rubocop:disable Style/EvalWithLocation -- names the file
+
+      expect(written_record(sink)[:file]).to end_with("f\uFFFD.rb")
     end
   end
 

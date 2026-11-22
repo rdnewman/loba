@@ -1,6 +1,7 @@
 require_relative "serialization/native_node"
 require_relative "serialization/float_node"
 require_relative "serialization/string_node"
+require_relative "serialization/symbol_node"
 require_relative "serialization/container_node"
 require_relative "serialization/array_node"
 require_relative "serialization/hash_node"
@@ -33,8 +34,8 @@ module Loba
         #   * +:rendered+ [Array<Hash>] - present only if any part is recorded as
         #     text rather than as itself: one +{ path:, as: }+ per part, where
         #     +as+ says why: +"inspect"+ or +"to_s"+ (no JSON form),
-        #     +"non_finite"+ (NaN, Infinity), +"not_utf8"+ (a String that isn't
-        #     text), or +"too_deep"+ (a container nested too deeply, rendered
+        #     +"non_finite"+ (NaN, Infinity), +"not_utf8"+ (a String or Symbol that
+        #     isn't text), or +"too_deep"+ (a container nested too deeply, rendered
         #     whole). A part whose rendering raised is in +:errors+ instead.
         #   * +:cut+ [Array<Hash>] - present only if any part was cut short: one
         #     +{ path:, omitted:, unit: }+ per part, +unit+ being +"chars"+ (a
@@ -45,9 +46,9 @@ module Loba
         #     in +:rendered+, is the part's position (Array indexes and Hash
         #     keys) and +[]+ means the whole value. When the whole value failed it is the only key.
         #   * +:collided+ [Array<Hash>] - present only if a Hash had keys that
-        #     JSON writes as the same text: one +{ path:, key:, pairs: }+ per
-        #     key, +pairs+ listing every colliding pair as +#inspect+ text;
-        #     +:value+ keeps the first pair
+        #     JSON writes as the same text: one +{ path:, key:, kept:, dropped: }+
+        #     per key, +kept+ the first pair (the one +:value+ keeps) and
+        #     +dropped+ the others, each pair as +[key, value]+ +#inspect+ text
         #   An entry in +:rendered+, +:cut+, or +:errors+ about a Hash key
         #   itself, rather than its value, also has +key: true+.
         def serialize(value:, depth: 0, inspect: true)

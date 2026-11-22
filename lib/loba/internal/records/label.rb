@@ -1,3 +1,5 @@
+require_relative "../text"
+
 module Loba
   module Internal
     module Records
@@ -21,40 +23,38 @@ module Loba
         #   or Symbol; with no explicit label, a +Symbol+ argument's name;
         #   otherwise +nil+ (including an explicit label of any other type)
         def infer
-          if label.nil?
-            infer_from_argument
-          elsif coercible?
-            normalize(label)
-          end
+          explicit_label || inferred_label
         end
 
       private
 
         attr_reader :argument, :label
 
-        # Module#=== rather than #is_a?, which a BasicObject argument lacks.
-        def infer_from_argument
-          return nil unless Symbol === argument # rubocop:disable Style/CaseEquality
-
-          normalize(argument)
+        def explicit_label
+          normalize(label) if coercible_label?
         end
 
-        def coercible?
-          label.is_a?(String) || label.is_a?(Symbol)
+        def inferred_label
+          normalize(argument) if no_label? && symbol_argument?
         end
 
         def normalize(value)
-          utf8(value.to_s).strip
+          Text.make_utf8(value.to_s).strip
         end
 
-        # JSON text is UTF-8. A binary label's bytes are read as UTF-8, and any
-        # bytes that aren't valid there become U+FFFD, so a label always writes.
-        def utf8(text)
-          if text.encoding == Encoding::BINARY
-            text.dup.force_encoding(Encoding::UTF_8).scrub
-          else
-            text.encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
-          end
+        # The checks below use Module#=== rather than #is_a? or #nil?, which a
+        # BasicObject argument or label lacks.
+
+        def coercible_label?
+          String === label || Symbol === label # rubocop:disable Style/CaseEquality
+        end
+
+        def no_label?
+          NilClass === label # rubocop:disable Style/CaseEquality
+        end
+
+        def symbol_argument?
+          Symbol === argument # rubocop:disable Style/CaseEquality
         end
       end
     end

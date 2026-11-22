@@ -11,6 +11,14 @@ RSpec.describe Loba::Internal::Run::Recorder::Gap do
         count: 1, first_seq: 3, last_seq: 3, error: "Errno::ENOSPC: No space left on device"
       )
     end
+
+    it "holds valid text for an error whose class name and message are in clashing encodings" do
+      error_class = Class.new(IOError) { def self.to_s = "Érror" }
+
+      gap = described_class.new(error: error_class.new("disk \xFF".b), seq: 3)
+
+      expect(gap.to_h).to include(error: "Érror: disk \uFFFD")
+    end
   end
 
   describe "#add" do
@@ -26,12 +34,12 @@ RSpec.describe Loba::Internal::Run::Recorder::Gap do
   end
 
   describe "#noted_on" do
-    it "notes the gap on the record, as unwritten" do
+    it "notes the gap on the record, as failed_writes" do
       gap = described_class.new(error: no_space, seq: 3)
 
       noted = gap.noted_on({ seq: 4 })
 
-      expect(noted).to eq(seq: 4, unwritten: gap.to_h)
+      expect(noted).to eq(seq: 4, failed_writes: gap.to_h)
     end
 
     # The gap qualifies the record's place in the run, so it comes right after
@@ -41,7 +49,7 @@ RSpec.describe Loba::Internal::Run::Recorder::Gap do
 
       noted = gap.noted_on({ label: "after", type: "ts", seq: 4 })
 
-      expect(noted.keys).to eq([:seq, :type, :unwritten, :label])
+      expect(noted.keys).to eq([:seq, :type, :failed_writes, :label])
     end
   end
 

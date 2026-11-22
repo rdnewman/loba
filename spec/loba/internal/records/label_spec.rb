@@ -32,23 +32,17 @@ RSpec.describe Loba::Internal::Records::Label do
 
         expect(result).to eq("My Label")
       end
+
+      it "keeps a blank label blank, rather than inferring from the Symbol argument" do
+        result = described_class.infer(argument: :foo, label: "  ")
+
+        expect(result).to eq("")
+      end
     end
 
     context "when an explicit String label isn't valid UTF-8" do
       it "replaces the invalid bytes with U+FFFD" do
         result = described_class.infer(argument: :foo, label: "a\xFFb")
-
-        expect(result).to eq("a\u{FFFD}b")
-      end
-
-      it "reads a binary label's bytes as UTF-8 when they're valid there" do
-        result = described_class.infer(argument: :foo, label: "caf\xC3\xA9".b)
-
-        expect(result).to eq("café")
-      end
-
-      it "replaces a binary label's bytes with U+FFFD when they aren't valid UTF-8" do
-        result = described_class.infer(argument: :foo, label: "a\xFFb".b)
 
         expect(result).to eq("a\u{FFFD}b")
       end
@@ -83,14 +77,14 @@ RSpec.describe Loba::Internal::Records::Label do
     end
 
     context "when the explicit label is neither a String nor a Symbol" do
-      it "returns nil rather than raising" do
-        result = described_class.infer(argument: :foo, label: {})
+      it "does not fall back to inferring from the Symbol argument" do
+        result = described_class.infer(argument: :foo, label: 42)
 
         expect(result).to be_nil
       end
 
-      it "does not fall back to inferring from the Symbol argument" do
-        result = described_class.infer(argument: :foo, label: 42)
+      it "returns nil for a BasicObject label, which has no #nil? or #is_a?" do
+        result = described_class.infer(argument: :foo, label: BasicObject.new)
 
         expect(result).to be_nil
       end

@@ -7,7 +7,7 @@ RSpec.describe Loba::Internal::Records::Value do
     )
   end
 
-  def tracked = { seq: 7, mono_time: 100.25, site_seq: 2, diff: 0.4 }
+  def tracked = { seq: 7, mono_time: 100.25, site_seq: 2, since_prev_at_site: 0.4 }
 
   it "is the val record type" do
     expect(described_class::TYPE).to eq("val")
@@ -18,13 +18,14 @@ RSpec.describe Loba::Internal::Records::Value do
   end
 
   describe ".fields" do
-    it "has the stamp, the site's number and diff, the caller, a label, and the value" do
+    it "has the stamp, the site's number and since_prev_at_site, the caller, a label, " \
+       "and the value" do
       fields = described_class.fields(
         caller_binding:, tracked:, argument: :subtotal, label: nil, inspect: true
       )
 
       expect(fields.keys).to contain_exactly(
-        :schema, :run_id, :seq, :type, :wall_time, :mono_time, :site_seq, :diff,
+        :schema, :run_id, :seq, :type, :wall_time, :mono_time, :site_seq, :since_prev_at_site,
         :file, :line, :class_name, :method_name, :method_type,
         :label, :value, :value_type
       )
@@ -35,7 +36,17 @@ RSpec.describe Loba::Internal::Records::Value do
         caller_binding:, tracked:, argument: :subtotal, label: nil, inspect: true
       )
 
-      expect(fields).to include(seq: 7, type: "val", mono_time: 100.25, site_seq: 2, diff: 0.4)
+      expect(fields)
+        .to include(seq: 7, type: "val", mono_time: 100.25, site_seq: 2, since_prev_at_site: 0.4)
+    end
+
+    it "marks the record capped when the visits say so" do
+      fields = described_class.fields(
+        caller_binding:, tracked: tracked.merge(capped: true),
+        argument: :subtotal, label: nil, inspect: true
+      )
+
+      expect(fields).to include(capped: true)
     end
 
     it "records the value the argument evaluates to in the caller, labeled by the Symbol" do
@@ -88,6 +99,18 @@ RSpec.describe Loba::Internal::Records::Value do
           .to include(errors: [{ path: [], message: "SyntaxError: syntax errors found" }])
       end
 
+      it "records an error whose class name and message are in clashing encodings" do
+        error_class = Class.new(StandardError) { def self.to_s = "Érror" }
+        failing_binding = caller_binding
+        allow(failing_binding).to receive(:evaluate).and_raise(error_class.new("bad \xFF".b))
+
+        fields = described_class.fields(
+          caller_binding: failing_binding, tracked:, argument: :usr, label: nil, inspect: true
+        )
+
+        expect(fields).to include(errors: [{ path: [], message: "Érror: bad \uFFFD" }])
+      end
+
       it "lets exceptions outside StandardError, such as Interrupt, through" do
         interrupting_binding = caller_binding
         allow(interrupting_binding).to receive(:evaluate).and_raise(Interrupt)
@@ -102,15 +125,12 @@ RSpec.describe Loba::Internal::Records::Value do
     end
 
     context "when the value can't be rendered" do
-      it "records the error in place of the value, keeping the label", :aggregate_failures do
+      it "leaves out value and value_type" do
         fields = described_class.fields(
           caller_binding: caller_binding(evaluates_to: object_whose_inspect_raises), tracked:,
           argument: :invoice, label: nil, inspect: true
         )
 
-        expect(fields).to include(
-          label: "invoice", errors: [{ path: [], message: "ArgumentError: boom" }]
-        )
         expect(fields.keys).not_to include(:value, :value_type)
       end
     end

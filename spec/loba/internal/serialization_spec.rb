@@ -51,39 +51,6 @@ RSpec.describe Loba::Internal::Serialization do
       end
     end
 
-    context "when a nested value is cut" do
-      it "reports a nested String's cut by its path, keeping its marker" do
-        long_string = "a" * (Loba::Internal::Serialization::StringNode::MAX_LENGTH + 10)
-        input = { list: [1, long_string] }
-
-        result = described_class.serialize(value: input)
-
-        expected_string =
-          "#{'a' * Loba::Internal::Serialization::StringNode::MAX_LENGTH} [+10 chars]"
-        expect(result[:value]).to eq(list: [1, expected_string])
-        expect(result[:cut]).to eq([{ path: ["list", 1], omitted: 10, unit: "chars" }])
-      end
-
-      it "reports a nested cut by its path through a Hash" do
-        long_array = Array.new(Loba::Internal::Serialization::ArrayNode::MAX_ENTRIES + 3) { |i| i }
-        input = { list: long_array }
-
-        result = described_class.serialize(value: input)
-
-        expect(result[:cut]).to eq([{ path: ["list"], omitted: 3, unit: "entries" }])
-      end
-
-      it "reports a nested cut by its path through an Array" do
-        long_hash =
-          (0...(Loba::Internal::Serialization::HashNode::MAX_ENTRIES + 2)).to_h { |i| [i, i] }
-        input = [1, long_hash]
-
-        result = described_class.serialize(value: input)
-
-        expect(result[:cut]).to eq([{ path: [1], omitted: 2, unit: "keys" }])
-      end
-    end
-
     context "when Hash and Array nesting alternate" do
       # The wrap type alternates by distance from the root, so a shallower
       # slice, as in the boundary test below, matches the deeper original.
@@ -97,13 +64,6 @@ RSpec.describe Loba::Internal::Serialization do
         else
           [inner]
         end
-      end
-
-      it "recurses fully through exactly MAX_DEPTH levels across alternating Hash/Array nesting" do
-        just_fits = nested_mixed(Loba::Internal::Serialization::HashNode::MAX_DEPTH)
-
-        result = described_class.serialize(value: just_fits)
-        expect(result[:value]).to eq(just_fits)
       end
 
       it "falls back to #inspect one level past MAX_DEPTH across alternating Hash/Array nesting" do

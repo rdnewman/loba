@@ -1,3 +1,5 @@
+require_relative "../../text"
+
 module Loba
   module Internal
     class Run
@@ -15,7 +17,7 @@ module Loba
             @count = 1
             @first_seq = seq
             @last_seq = seq
-            @error = "#{error.class}: #{error.message}"
+            @error = Text.of_error(error)
           end
 
           # Counts a later record that couldn't be written. The first error
@@ -28,16 +30,16 @@ module Loba
             @last_seq = seq
           end
 
-          # The record, with this gap noted on it as +:unwritten+.
+          # The record, with this gap noted on it as +:failed_writes+.
           #
           # @param fields [Hash] the record
-          # @return [Hash] a copy of +fields+ with +:unwritten+ added
+          # @return [Hash] a copy of +fields+ with +:failed_writes+ added
           def noted_on(fields)
             # The gap qualifies the record's place in the run, so it goes right
             # after the record's seq and type.
             {
               **fields.slice(:seq, :type),
-              unwritten: to_h,
+              failed_writes: to_h,
               **fields.except(:seq, :type)
             }
           end

@@ -1,5 +1,9 @@
 require "fileutils"
+require "json"
+require "open3"
+require "rbconfig"
 require "securerandom"
+require "tmpdir"
 
 RSpec.describe Loba::Internal::Run do
   describe "#id" do
@@ -200,21 +204,25 @@ RSpec.describe Loba::Internal::Run do
       expect(described_class.current).to equal(described_class.current)
     end
 
-    it "registers one exit hook, the first time it creates the run" do
+    # The one exit handler is registered when loba loads (see
+    # .shut_down_current below); a second, per run, would write each count twice.
+    it "registers no exit handler when it creates the run" do
+      created = nil
+      # Stubbed before #initialize runs, so a handler registered there is seen too.
+      allow(described_class).to receive(:new).and_wrap_original do |original|
+        created = original.receiver.allocate
+        allow(created).to receive(:at_exit)
+        created.send(:initialize)
+        created
+      end
+
       described_class.current
-      described_class.current
 
-      expect(run_exit_hooks.size).to eq(1)
-    end
-
-    it "is the only way a run registers an exit hook" do
-      described_class.new
-
-      expect(run_exit_hooks).to be_empty
+      expect(created).not_to have_received(:at_exit)
     end
 
     context "when threads ask for it at once" do
-      it "creates one run for all of them", :aggregate_failures do
+      it "creates one run for all of them" do
         # Holds each thread inside creating the run, where another could start one.
         allow(SecureRandom).to receive(:hex).and_wrap_original do |original, *arguments|
           sleep 0.05
@@ -224,7 +232,6 @@ RSpec.describe Loba::Internal::Run do
         runs = Array.new(2) { Thread.new { described_class.current } }.map(&:value)
 
         expect(runs.first).to equal(runs.last)
-        expect(run_exit_hooks.size).to eq(1)
       end
     end
 
@@ -234,7 +241,7 @@ RSpec.describe Loba::Internal::Run do
         sink = StringIO.new
         note_past_cap(run, destination_to(sink))
 
-        run_exit_hooks.first.call
+        described_class.send(:shut_down_current)
 
         expect(JSON.parse(sink.string.lines.last))
           .to include("suppressed" => true, "suppressed_count" => 1)
@@ -244,7 +251,7 @@ RSpec.describe Loba::Internal::Run do
         run = described_class.current
         fail_quietly(run.recorder, sink: failing_sink("a.jsonl"))
 
-        expect { run_exit_hooks.first.call }
+        expect { described_class.send(:shut_down_current) }
           .to output(/loba: 1 record couldn't be written to "a.jsonl"/).to_stderr
       end
 
@@ -256,7 +263,7 @@ RSpec.describe Loba::Internal::Run do
         note_past_cap(run, destination_to(sink))
         sink.close
 
-        expect { run_exit_hooks.first.call }
+        expect { described_class.send(:shut_down_current) }
           .to output(/loba: 1 record couldn't be written/).to_stderr
       end
 
@@ -265,7 +272,7 @@ RSpec.describe Loba::Internal::Run do
         fail_quietly(run.recorder, sink: failing_sink("a.jsonl"))
         allow(run.visits).to receive(:flush).and_raise(RuntimeError, "loba bug")
 
-        expect { run_exit_hooks.first.call }
+        expect { described_class.send(:shut_down_current) }
           .to raise_error(RuntimeError, "loba bug")
           .and output(/loba: 1 record couldn't be written to "a.jsonl"/).to_stderr
       end
@@ -287,16 +294,6 @@ RSpec.describe Loba::Internal::Run do
         child_result = in_forked_child { described_class.current.visits.note(order_site) }
 
         expect(child_result).to include(seq: 1, site_seq: 1)
-      end
-
-      it "gives the child a fresh since_prev_ts instead of timing from the parent's checkpoint" do
-        described_class.current.visits.note(order_site, checkpoint: true)
-
-        child_result = in_forked_child do
-          described_class.current.visits.note(order_site, checkpoint: true)
-        end
-
-        expect(child_result).to include(since_prev_ts: nil)
       end
 
       it "gives the child a fresh recorder, so it warns about its own first failure" do
@@ -333,7 +330,7 @@ RSpec.describe Loba::Internal::Run do
         note_past_cap(described_class.current, destination_to(sink))
 
         written_in_child = in_forked_child do
-          run_exit_hooks.first.call
+          described_class.send(:shut_down_current)
           sink.string
         end
 
@@ -346,11 +343,54 @@ RSpec.describe Loba::Internal::Run do
         summary_in_child = in_forked_child do
           captured = StringIO.new
           $stderr = captured # rubocop:disable RSpec/ExpectOutput
-          run_exit_hooks.first.call
+          described_class.send(:shut_down_current)
           captured.string
         end
 
         expect(summary_in_child).to be_empty
+      end
+    end
+  end
+
+  describe ".shut_down_current" do
+    def run_script(script, dir:)
+      lib_dir = File.expand_path("../../../lib", __dir__)
+      # Without Bundler, which makes the process several times slower to start.
+      environment = { "RUBYOPT" => nil, "LOBA_SINK" => nil }
+      Open3.capture2e(environment, RbConfig.ruby, "-I", lib_dir, "-e", script, chdir: dir)
+    end
+
+    it "writes and warns nothing when no run was created" do
+      expect { described_class.send(:shut_down_current) }.not_to output.to_stderr
+    end
+
+    # Exit handlers run last-registered first, and some run traced code:
+    # Minitest, test-unit, and rspec/autorun run the tests from their own
+    # at_exit. Loba's handler has to fire after those, so it's registered as
+    # loba loads, not at the first call. The run itself starts at the first
+    # call, so its file goes under the working directory then, not at require.
+    # Only a real process exits, so this spawns one, and checks both here to
+    # spawn just one. The script requires nothing but loba, so a library loba
+    # uses without requiring it (fileutils, securerandom) fails here too.
+    it "runs at exit after a handler registered later, in the run the first call started",
+       :aggregate_failures do
+      Dir.mktmpdir do |dir|
+        script = <<~RUBY
+          require "loba"
+          Dir.mkdir("later")
+          Dir.chdir("later")
+          at_exit { 600.times { Loba.val(1) } }
+          Loba.ts
+        RUBY
+
+        output, status = run_script(script, dir:)
+
+        run_files = Dir.glob("**/.loba/runs/*.jsonl", base: dir)
+        expect(status).to be_success, output
+        expect(run_files).to match([%r{\Alater/}]), "expected one run file in later/: #{run_files}"
+        records = File.readlines(File.join(dir, run_files.first)).map { JSON.parse(_1) }
+        expect(records.last).to include("suppressed_count" => 100)
+        expect(records.count { _1["suppressed"] }).to eq(1), "expected one count record"
       end
     end
   end

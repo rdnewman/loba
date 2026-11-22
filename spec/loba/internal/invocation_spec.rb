@@ -46,6 +46,25 @@ RSpec.describe Loba::Internal::Invocation do
       end
     end
 
+    context "when Rails isn't loaded and RACK_ENV is production" do
+      around do |example|
+        saved = ENV.delete("RACK_ENV")
+        example.run
+      ensure
+        ENV["RACK_ENV"] = saved
+      end
+
+      it "does not write anything" do
+        hide_const("Rails")
+        ENV["RACK_ENV"] = "production"
+        sink = StringIO.new
+
+        described_class.record(Loba::Internal::Records::Timestamp, sink:)
+
+        expect(sink.string).to be_empty
+      end
+    end
+
     context "when the call site is suppressed" do
       before do
         stub_const("Rails", mock_rails(production: false))
@@ -112,7 +131,7 @@ RSpec.describe Loba::Internal::Invocation do
       let(:caller_binding) do
         instance_double(Loba::Internal::CallerBinding, file: "app.rb", line: 10)
       end
-      let(:tracked) { { seq: 1, site_seq: 1, diff: nil, since_prev_ts: nil } }
+      let(:tracked) { { seq: 1, site_seq: 1, since_prev_at_site: nil, since_prev_ts: nil } }
 
       before do
         stub_const("Rails", mock_rails(production: false))
@@ -161,9 +180,29 @@ RSpec.describe Loba::Internal::Invocation do
         expect(log_output.string).to include('{"type":"ts","seq":1}')
       end
 
+      it "writes nothing to the logger when log: is false" do
+        log_output = StringIO.new
+
+        described_class.record(
+          Loba::Internal::Records::Timestamp,
+          options: { label: nil }, log: false, logger: Logger.new(log_output), sink: StringIO.new
+        )
+
+        expect(log_output.string).to be_empty
+      end
+
       it "returns nil" do
         result = described_class.record(
           Loba::Internal::Records::Timestamp, options: { label: nil }, sink: StringIO.new
+        )
+
+        expect(result).to be_nil
+      end
+
+      it "returns nil when logging too, not what the logger returned" do
+        result = described_class.record(
+          Loba::Internal::Records::Timestamp,
+          options: { label: nil }, logger: Logger.new(StringIO.new), sink: StringIO.new
         )
 
         expect(result).to be_nil

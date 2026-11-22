@@ -32,6 +32,14 @@ RSpec.describe Loba::Internal::Serialization::FallbackNode do
       expect(result[:value]).not_to eq(plain_object.inspect)
     end
 
+    it "takes value_type from the class's own name" do
+      self_named_class = Class.new(RenderedAs) { def self.name = "User" }
+
+      result = described_class.serialize(value: self_named_class.new("text"))
+
+      expect(result[:value_type]).to eq("User")
+    end
+
     # Long rendered text is cut exactly as a long String is.
     context "when the rendered text is longer than a String may be" do
       it "cuts #inspect output with the String marker, and lists the cut" do
@@ -56,32 +64,16 @@ RSpec.describe Loba::Internal::Serialization::FallbackNode do
       end
     end
 
-    context "when the rendered text is exactly as long as a String may be" do
-      it "leaves it whole" do
-        exact_rendering = RenderedAs.new("a" * max_length)
-
-        result = described_class.serialize(value: exact_rendering)
-
-        expect(result[:value]).to eq("a" * max_length)
-      end
-    end
-
     # Rendering runs the traced program's code, which can raise; the failure
     # is reported rather than raised.
     context "when the value can't be rendered" do
-      it "marks it unrenderable and reports the error" do
+      it "marks it unrenderable and reports the error, without falling back to #to_s" do
         result = described_class.serialize(value: object_whose_inspect_raises)
 
         expect(result).to eq(
           value: "(unrenderable)", value_type: nil,
           errors: [{ path: [], message: "ArgumentError: boom" }]
         )
-      end
-
-      it "does not fall back to #to_s when #inspect raises" do
-        result = described_class.serialize(value: object_whose_inspect_raises)
-
-        expect(result[:value]).to eq("(unrenderable)")
       end
 
       it "reports a #to_s that raises when use_inspect is false" do
@@ -96,6 +88,19 @@ RSpec.describe Loba::Internal::Serialization::FallbackNode do
 
         expect(result[:errors].first[:message])
           .to match(/\ANoMethodError: undefined method [`']inspect'/)
+      end
+
+      it "reports an error whose class name and message are in clashing encodings" do
+        error_class = Class.new(StandardError) { def self.to_s = "Érror" }
+        unrenderable = Object.new
+        unrenderable.define_singleton_method(:inspect) { raise error_class, "bad \xFF".b }
+
+        result = described_class.serialize(value: unrenderable)
+
+        expect(result).to eq(
+          value: "(unrenderable)", value_type: nil,
+          errors: [{ path: [], message: "Érror: bad \uFFFD" }]
+        )
       end
     end
 

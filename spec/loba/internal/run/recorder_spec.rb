@@ -22,7 +22,10 @@ RSpec.describe Loba::Internal::Run::Recorder do
     io
   end
 
-  def written_lines(io) = io.string.lines.map { JSON.parse(_1) }
+  # Skips blank lines: the record noting a gap starts on a new line.
+  def written_lines(io)
+    io.string.lines.reject { _1.strip.empty? }.map { JSON.parse(_1) }
+  end
 
   # For examples about something other than the warning.
   def quiet_recorder
@@ -47,6 +50,16 @@ RSpec.describe Loba::Internal::Run::Recorder do
         expect { described_class.new.write({ seq: 3 }, to: sink) }.to output(
           "loba: couldn't write a record to \"sink.jsonl\" " \
           "(Errno::EACCES: Permission denied - sink.jsonl); " \
+          "later write failures in this process won't be reported\n"
+        ).to_stderr
+      end
+
+      it "warns about an error whose message clashes with a non-ASCII sink path" do
+        sink = failing_sink("sïnk.jsonl", error: IOError.new("disk \xFF".b))
+
+        expect { described_class.new.write({ seq: 3 }, to: sink) }.to output(
+          "loba: couldn't write a record to \"sïnk.jsonl\" " \
+          "(IOError: disk \uFFFD); " \
           "later write failures in this process won't be reported\n"
         ).to_stderr
       end
@@ -82,30 +95,19 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
     # So a record that was dropped isn't mistaken for code that never ran.
     context "when earlier records to the sink couldn't be written" do
-      it "notes them on the next record written there" do
-        io = flaky_io(Errno::ENOSPC, Errno::ENOSPC)
-        recorder = quiet_recorder
-        sink = sink_to(io)
-
-        [3, 4, 5].each { |seq| recorder.write({ seq: }, to: sink) }
-
-        expect(written_lines(io)).to eq(
-          [{ "seq" => 5, "unwritten" => {
-            "count" => 2, "first_seq" => 3, "last_seq" => 4,
-            "error" => "Errno::ENOSPC: No space left on device"
-          } }]
-        )
-      end
-
-      it "notes the first error for them all" do
+      it "notes them, with the first error, on the next record written there" do
         io = flaky_io(Errno::ENOSPC, Errno::EACCES)
         recorder = quiet_recorder
         sink = sink_to(io)
 
         [3, 4, 5].each { |seq| recorder.write({ seq: }, to: sink) }
 
-        expect(written_lines(io).last["unwritten"])
-          .to include("count" => 2, "error" => "Errno::ENOSPC: No space left on device")
+        expect(written_lines(io)).to eq(
+          [{ "seq" => 5, "failed_writes" => {
+            "count" => 2, "first_seq" => 3, "last_seq" => 4,
+            "error" => "Errno::ENOSPC: No space left on device"
+          } }]
+        )
       end
 
       it "notes them on the next record from another Sink to the same target" do
@@ -115,7 +117,7 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
         recorder.write({ seq: 4 }, to: sink_to(io))
 
-        expect(written_lines(io).last).to include("unwritten" => include("count" => 1))
+        expect(written_lines(io).last).to include("failed_writes" => include("count" => 1))
       end
 
       # A gap qualifies the record's place in the run, so it comes right after
@@ -127,7 +129,28 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
         [3, 4].each { |seq| recorder.write({ seq:, type: "ts", label: "after" }, to: sink) }
 
-        expect(written_lines(io).last.keys).to eq(["seq", "type", "unwritten", "label"])
+        expect(written_lines(io).last.keys).to eq(["seq", "type", "failed_writes", "label"])
+      end
+
+      # A write can fail partway, such as on a full disk, leaving part of a line.
+      it "starts the noting record on a new line, apart from a partly written line" do
+        io = StringIO.new
+        writes = 0
+        allow(io).to receive(:write).and_wrap_original do |original, line|
+          writes += 1
+          if writes == 1
+            original.call(line[0, 5])
+            raise Errno::ENOSPC
+          end
+
+          original.call(line)
+        end
+        recorder = quiet_recorder
+        recorder.write({ seq: 3 }, to: sink_to(io))
+
+        recorder.write({ seq: 4 }, to: sink_to(io))
+
+        expect(io.string.lines.last).to start_with('{"seq":4,"failed_writes":')
       end
 
       it "notes them only once" do
@@ -167,7 +190,7 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
         [4, 5].map { |seq| Thread.new { recorder.write({ seq: }, to: sink) } }.each(&:join)
 
-        expect(written_lines(io).count { _1.has_key?("unwritten") }).to eq(1)
+        expect(written_lines(io).count { _1.has_key?("failed_writes") }).to eq(1)
       end
 
       # An error that isn't a write failure (a Timeout, say) can interrupt the
@@ -181,7 +204,31 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
         recorder.write({ seq: 5 }, to: sink)
 
-        expect(written_lines(io).last["unwritten"]).to include("count" => 1, "last_seq" => 3)
+        expect(written_lines(io).last["failed_writes"]).to include("count" => 1, "last_seq" => 3)
+      end
+    end
+
+    context "when a record's text isn't valid UTF-8" do
+      it "writes the record, with U+FFFD for the bad bytes" do
+        io = StringIO.new
+
+        described_class.new.write({ seq: 1, label: "bad \xFF".b }, to: sink_to(io))
+
+        expect(written_lines(io)).to eq([{ "seq" => 1, "label" => "bad \uFFFD" }])
+      end
+
+      it "still writes the next record when a failed write's message is the text" do
+        io = flaky_io(IOError.new("disk \xFF".b))
+        recorder = quiet_recorder
+        sink = sink_to(io)
+
+        [1, 2].each { |seq| recorder.write({ seq: }, to: sink) }
+
+        expect(written_lines(io)).to eq(
+          [{ "seq" => 2, "failed_writes" => {
+            "count" => 1, "first_seq" => 1, "last_seq" => 1, "error" => "IOError: disk \uFFFD"
+          } }]
+        )
       end
     end
 
@@ -191,6 +238,13 @@ RSpec.describe Loba::Internal::Run::Recorder do
 
         expect { described_class.new.write({ seq: 1 }, to: sink) }
           .to raise_error(RuntimeError, "loba bug")
+      end
+
+      it "raises for a record JSON can't write, whatever its text" do
+        recorder = described_class.new
+
+        expect { recorder.write({ seq: Float::NAN }, to: sink_to(StringIO.new)) }
+          .to raise_error(JSON::GeneratorError)
       end
     end
   end

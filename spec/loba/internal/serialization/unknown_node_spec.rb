@@ -1,12 +1,26 @@
 RSpec.describe Loba::Internal::Serialization::UnknownNode do
   describe ".serialize", :aggregate_failures do
-    [42, 3.14, true, false, nil, :sym].each do |native_value|
+    [42, true, false, nil].each do |native_value|
       it "dispatches a #{native_value.class} to NativeNode" do
         result = described_class.serialize(value: native_value)
 
         expect(result[:value]).to eq(native_value)
         expect(result[:value_type]).to eq(native_value.class.name)
       end
+    end
+
+    it "dispatches a Symbol to SymbolNode, as itself unless it isn't text" do
+      binary_symbol = "k\xFF".b.to_sym
+
+      expect(described_class.serialize(value: :sym)).to eq(value: :sym, value_type: "Symbol")
+      expect(described_class.serialize(value: binary_symbol)[:rendered])
+        .to eq([{ path: [], as: "not_utf8" }])
+    end
+
+    it "dispatches a finite Float to FloatNode, as itself" do
+      result = described_class.serialize(value: 3.14)
+
+      expect(result[:value]).to eq(3.14)
     end
 
     it "dispatches a Float to FloatNode, NaN handling included" do

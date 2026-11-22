@@ -1,6 +1,7 @@
 require_relative "stamp"
 require_relative "label"
 require_relative "../serialization"
+require_relative "../text"
 require_relative "caller"
 
 module Loba
@@ -25,7 +26,7 @@ module Loba
         def self.fields(...) = new(...).fields
 
         # @param caller_binding [CallerBinding] the calling frame
-        # @param tracked [Hash{Symbol => Integer, Float, nil}] the call's numbers
+        # @param tracked [Hash{Symbol => Integer, Float, Boolean, nil}] the call's numbers
         #   and timing (see Run::Visits#note)
         # @param argument [Symbol, Object] the argument given (see Loba.value)
         # @param label [String, Symbol, nil] the label given, if any
@@ -48,8 +49,7 @@ module Loba
             type: TYPE,
             label: Label.infer(argument:, label:),
             **Caller.fields(caller_binding),
-            site_seq: tracked[:site_seq],
-            diff: tracked[:diff],
+            **site_fields,
             **evaluated_fields,
             **stamp
           }
@@ -59,6 +59,14 @@ module Loba
 
         attr_reader :caller_binding, :tracked, :argument, :label, :inspect
 
+        def site_fields
+          {
+            site_seq: tracked[:site_seq],
+            since_prev_at_site: tracked[:since_prev_at_site],
+            **tracked.slice(:capped)
+          }
+        end
+
         # Evaluating a Symbol runs the caller's code, which can raise, or fail
         # to compile (a SyntaxError, which is a ScriptError, not a
         # StandardError); that is recorded rather than raised, so tracing never
@@ -67,7 +75,7 @@ module Loba
         def evaluated_fields
           evaluated = caller_binding.evaluate(argument)
         rescue StandardError, ScriptError => e
-          { errors: [{ path: [], message: "#{e.class}: #{e.message}" }] }
+          { errors: [{ path: [], message: Text.of_error(e) }] }
         else
           Serialization.serialize(value: evaluated, inspect:).slice(*VALUE_FIELDS)
         end

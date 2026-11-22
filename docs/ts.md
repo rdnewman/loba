@@ -65,7 +65,7 @@ Fields come in this order on every line, as with
 |---|---|
 | `seq` | Order of this record among all records in the run, values included: the order calls reached loba. Lines can be out of `seq` order when one loba call runs inside another (a Symbol naming a method that calls loba, say) or calls run in several threads; sort by `seq` to read them in call order. |
 | `type` | `"ts"` |
-| `unwritten` | Present only when earlier records to this sink couldn't be written: their `count`, the `seq` of the first and last of them (`first_seq`, `last_seq`), and the first `error` (see [Where records go](val.md#where-records-go)) |
+| `failed_writes` | Present only when earlier records to this sink couldn't be written: their `count`, the `seq` of the first and last of them (`first_seq`, `last_seq`), and the first `error` (see [Where records go](val.md#where-records-go)) |
 | `label` | The given label, or `null` |
 | `file`, `line` | Where `Loba.ts` was called; `file` is the path Ruby loaded that file by, usually absolute inside an app |
 | `class_name` | The caller's class, or the class itself inside a class method; `"<anonymous class>"` for an unnamed one |
@@ -73,6 +73,7 @@ Fields come in this order on every line, as with
 | `method_type` | `"instance"` or `"class"` |
 | `site_seq` | Order of this record among checkpoints from the same call site (file and line) |
 | `since_prev_ts` | Seconds since the previous checkpoint anywhere in the run; `null` for the first |
+| `capped` | Present only on a call site's last checkpoint before its limit: `true`, meaning any later calls from that site in the same minute are skipped and counted (see [Limits](#limits)) |
 | `wall_time` | Seconds since the epoch, when recorded |
 | `mono_time` | A monotonic clock reading, unaffected by system clock changes |
 | `run_id` | This process run, e.g. `20260930T135402Z-5-39e8b2c6` |
@@ -92,8 +93,8 @@ Fields come in this order on every line, as with
   count as a previous checkpoint. `since_prev_ts` always measures from a
   checkpoint record you can find in the file.
 
-A value record's `diff` is different: it measures from the previous record at
-the *same* call site. Checkpoint records have no `diff`.
+A value record's `since_prev_at_site` is different: it measures from the previous record at
+the *same* call site. Checkpoint records have no `since_prev_at_site`.
 
 ## Options
 
@@ -111,7 +112,7 @@ Loba.ts logger: Logger.new($stderr)
 ```
 
 Logging works as it does for `Loba.val`: the same JSON (except that
-`unwritten` appears only in the sink), at `debug` level, in addition to the
+`failed_writes` appears only in the sink), at `debug` level, in addition to the
 sink. Outside Rails, `log: true` logs nothing unless `logger:`
 is also given.
 
@@ -128,6 +129,10 @@ noting how many were skipped:
 {"seq":501,"type":"ts","file":"app/models/cart.rb","line":10,"suppressed":true,"suppressed_count":3,"wall_time":1790776456.2902832,"mono_time":47675.468684261,"run_id":"20260930T135416Z-5-e7905d1f","schema":1}
 ```
 
+The site's last checkpoint before its limit, the 500th that minute, has
+`"capped": true`, right after `since_prev_ts`, so the file shows the limit was
+reached even if the record counting skipped calls is never written.
+
 A `Loba.ts` and a `Loba.val` on the same line are separate call sites, each with
 its own `site_seq` and its own limit.
 
@@ -138,7 +143,7 @@ The only caller code `Loba.ts` runs is a class's own `name` method, for
 `Loba.ts` has nothing to record as an error. A record that can't be written (a
 full disk, a read-only file, a closed IO) is skipped. The first such failure in
 a process is reported on `$stderr`, the rest are summarized when it exits, and
-the next record written to that sink notes the gap in `unwritten`, as for
+the next record written to that sink notes the gap in `failed_writes`, as for
 `Loba.val` (see [Where records go](val.md#where-records-go)). That matters for
 checkpoints in particular: a skipped checkpoint must not look like a line that
 was never reached. Any other error is raised at the call: one raised by a

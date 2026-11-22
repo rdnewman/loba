@@ -14,8 +14,11 @@ RSpec.describe Loba::Internal::Serialization::StringNode do
 
       result = described_class.serialize(value: long_string)
 
-      expect(result[:value]).to eq("#{'a' * described_class::MAX_LENGTH} [+523 chars]")
-      expect(result[:value_type]).to eq("String")
+      expect(result).to eq(
+        value: "#{'a' * described_class::MAX_LENGTH} [+523 chars]",
+        value_type: "String",
+        cut: [{ path: [], omitted: 523, unit: "chars" }]
+      )
     end
 
     it "does not truncate a String at exactly MAX_LENGTH" do

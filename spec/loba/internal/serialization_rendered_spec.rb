@@ -44,10 +44,6 @@ RSpec.describe Loba::Internal::Serialization do
     end
 
     describe "where a part is" do
-      it "is [] for the whole value" do
-        expect(rendered(object_rendering)).to eq([{ path: [], as: "inspect" }])
-      end
-
       it "is its index in an Array" do
         expect(rendered([1, object_rendering])).to eq([{ path: [1], as: "inspect" }])
       end

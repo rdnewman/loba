@@ -1,4 +1,5 @@
 require "fileutils"
+require_relative "../text"
 
 module Loba
   module Internal
@@ -105,7 +106,7 @@ module Loba
             FileUtils.mkdir_p(dir, **)
             "its directory isn't writable" unless File.writable?(dir)
           rescue SystemCallError => e
-            "#{e.class}: #{e.message}"
+            Text.of_error(e)
           end
 
           def claim_refusal(path)

@@ -1,4 +1,5 @@
-require "json"
+require_relative "../records/json"
+require_relative "../text"
 require_relative "lock"
 require_relative "recorder/gap"
 
@@ -10,7 +11,7 @@ module Loba
       # traced code: the record is skipped, and the first such failure in the
       # process is reported on $stderr. So that a dropped record isn't mistaken
       # for code that never ran, the next record written to that sink notes
-      # what it missed, in +:unwritten+; what no later record notes is
+      # what it missed, in +:failed_writes+; what no later record notes is
       # summarized at exit (see Run.current).
       #
       # One thread at a time writes, so a gap is noted on exactly one record.
@@ -70,20 +71,22 @@ module Loba
         # error #write doesn't rescue (a Timeout, say) can't lose it.
         def append(fields, sink)
           gap = gaps[sink]
-          sink.append(line(with_gap(fields, gap)))
+          sink.append(line_for(fields, gap))
           gaps.delete(sink) if gap
         end
 
-        def with_gap(fields, gap)
+        # A failed write can leave part of a line behind, so the record noting
+        # the gap starts on a new line rather than being joined onto it.
+        def line_for(fields, gap)
           if gap
-            gap.noted_on(fields)
+            "\n#{line(gap.noted_on(fields))}"
           else
-            fields
+            line(fields)
           end
         end
 
         def line(fields)
-          "#{JSON.generate(fields)}\n"
+          "#{Records::Json.generate(fields)}\n"
         end
 
         def count_unwritten(sink, error, seq)
@@ -103,7 +106,7 @@ module Loba
 
         def report_failure(sink, error)
           warn "loba: couldn't write a record to #{sink} " \
-               "(#{error.class}: #{error.message}); " \
+               "(#{Text.of_error(error)}); " \
                "later write failures in this process won't be reported"
         end
       end
