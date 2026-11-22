@@ -66,28 +66,29 @@ RSpec.describe Loba::Internal::Serialization::HashNode do
 
     # Keys that JSON writes as the same text would leave duplicate JSON keys,
     # and a JSON parser keeps only one of them: a pair would vanish with no
-    # trace. The first pair stays in the value; :collided lists every pair as
-    # #inspect text, which also shows why they collided (a Symbol and a
-    # String, say).
+    # trace. The first pair stays in the value; :collided lists it as kept and
+    # the others as dropped, as #inspect text, which also shows why they
+    # collided (a Symbol and a String, say).
     context "when keys collide" do
-      it "keeps the first pair, and lists every colliding pair" do
+      it "keeps the first pair, and lists it as kept and the others as dropped" do
         result = described_class.serialize(value: { 1 => "int", "1" => "str" })
 
         expect(result[:value]).to eq(1 => "int")
         expect(result[:collided])
-          .to eq([{ path: [], key: "1", pairs: [["1", "\"int\""], ["\"1\"", "\"str\""]] }])
+          .to eq([{ path: [], key: "1", kept: ["1", "\"int\""], dropped: [["\"1\"", "\"str\""]] }])
       end
 
       it "shows a Symbol and a String key apart" do
         result = described_class.serialize(value: { a: "sym", "a" => "str" })
 
-        expect(result[:collided].first[:pairs]).to eq([[":a", "\"sym\""], ["\"a\"", "\"str\""]])
+        expect(result[:collided].first.slice(:kept, :dropped))
+          .to eq(kept: [":a", "\"sym\""], dropped: [["\"a\"", "\"str\""]])
       end
 
       it "lists three or more colliding keys as one entry" do
         result = described_class.serialize(value: { 1 => "x", "1" => "y", "1": "z" })
 
-        expect(result[:collided].map { _1[:pairs].size }).to eq([3])
+        expect(result[:collided].map { _1[:dropped].size }).to eq([2])
       end
 
       it "gives the colliding Hash's path when it's nested" do
@@ -107,7 +108,8 @@ RSpec.describe Loba::Internal::Serialization::HashNode do
       it "uses #inspect for the pairs, whatever inspect: says" do
         result = described_class.serialize(value: { a: 1, "a" => 2 }, use_inspect: false)
 
-        expect(result[:collided].first[:pairs].map(&:first)).to eq([":a", "\"a\""])
+        collision = result[:collided].first
+        expect([collision[:kept].first, collision[:dropped].first.first]).to eq([":a", "\"a\""])
       end
 
       it "cuts long pair text like a long String" do
@@ -115,7 +117,7 @@ RSpec.describe Loba::Internal::Serialization::HashNode do
 
         result = described_class.serialize(value: { 1 => "x", "1" => long })
 
-        expect(result[:collided].first[:pairs].last.last).to end_with(" [+12 chars]")
+        expect(result[:collided].first[:dropped].last.last).to end_with(" [+12 chars]")
       end
 
       # A part of a lost pair has no place in the value, so a path to it
@@ -137,7 +139,7 @@ RSpec.describe Loba::Internal::Serialization::HashNode do
       it "shows a lost pair whose #inspect raises as unrenderable text" do
         result = described_class.serialize(value: { 1 => "x", "1" => object_whose_inspect_raises })
 
-        expect(result[:collided].first[:pairs].last).to eq(["\"1\"", "(unrenderable)"])
+        expect(result[:collided].first[:dropped].last).to eq(["\"1\"", "(unrenderable)"])
       end
     end
 

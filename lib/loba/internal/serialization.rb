@@ -46,9 +46,9 @@ module Loba
         #     in +:rendered+, is the part's position (Array indexes and Hash
         #     keys) and +[]+ means the whole value. When the whole value failed it is the only key.
         #   * +:collided+ [Array<Hash>] - present only if a Hash had keys that
-        #     JSON writes as the same text: one +{ path:, key:, pairs: }+ per
-        #     key, +pairs+ listing every colliding pair as +#inspect+ text;
-        #     +:value+ keeps the first pair
+        #     JSON writes as the same text: one +{ path:, key:, kept:, dropped: }+
+        #     per key, +kept+ the first pair (the one +:value+ keeps) and
+        #     +dropped+ the others, each pair as +[key, value]+ +#inspect+ text
         #   An entry in +:rendered+, +:cut+, or +:errors+ about a Hash key
         #   itself, rather than its value, also has +key: true+.
         def serialize(value:, depth: 0, inspect: true)

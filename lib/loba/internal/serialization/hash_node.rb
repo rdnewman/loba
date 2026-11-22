@@ -59,12 +59,17 @@ module Loba
 
         # Keys that JSON writes as the same text would leave duplicate JSON
         # keys, and a JSON parser keeps only one. Each colliding pair is listed
-        # as #inspect text (never #to_s, which shows :a and "a" alike): a pair
-        # left out of the value has no path for anything inside it.
+        # as #inspect text (never #to_s, which shows :a and "a" alike), the
+        # one the value keeps apart from those it drops: a pair left out of the
+        # value has no path for anything inside it.
         def collisions
-          colliding_groups.map do |pair_indexes|
-            key = key_texts[pair_indexes.first]
-            { path: [], key:, pairs: pair_indexes.map { pair_text(_1) } }
+          colliding_groups.map do |kept_index, *dropped_indexes|
+            {
+              path: [],
+              key: key_texts[kept_index],
+              kept: pair_text(kept_index),
+              dropped: dropped_indexes.map { pair_text(_1) }
+            }
           end
         end
 

@@ -580,7 +580,7 @@ RSpec.describe Loba, ".value" do
       record = written_record(sink)
       expect(record[:value]).to eq(id: 1)
       expect(record[:collided])
-        .to eq([{ path: [], key: "id", pairs: [[":id", "1"], ["\"id\"", "2"]] }])
+        .to eq([{ path: [], key: "id", kept: [":id", "1"], dropped: [["\"id\"", "2"]] }])
       expect(record.keys.index(:collided)).to be < record.keys.index(:value)
     end
 
