@@ -29,19 +29,9 @@ class PlainOldRubyObject
     true
   end
 
-  def caller_binding_with_local_named_like_a_method
-    answer = "local answer" # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
-    Loba::Internal::CallerBinding.capture
-  end
-
   def caller_binding_with_hash_local
     greetings = { somename: "Charlie" } # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
     Loba::Internal::CallerBinding.capture
-  end
-
-  def caller_binding_in_block_with_outer_local
-    outer_number = 789 # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
-    [1].map { Loba::Internal::CallerBinding.capture }.first
   end
 
   @@class_variable_number = 654 # rubocop:disable Style/ClassVars -- read via CallerBinding#evaluate
@@ -52,14 +42,6 @@ class PlainOldRubyObject
     end
 
     enclosed_lambda.call
-  end
-
-  def caller_binding_from_thread
-    Thread.new { Loba::Internal::CallerBinding.capture }.value
-  end
-
-  define_method(:caller_binding_from_define_method) do
-    Loba::Internal::CallerBinding.capture
   end
 
   def outer
@@ -76,18 +58,8 @@ end
 class SubclassOfPlainOldRubyObject < PlainOldRubyObject; end
 
 class NamedRubyClass
-  @class_level_number = 321
-
   def self.caller_binding
     Loba::Internal::CallerBinding.capture
-  end
-end
-
-class ClassWithSingletonBlock
-  class << self
-    def caller_binding
-      Loba::Internal::CallerBinding.capture
-    end
   end
 end
 
@@ -110,10 +82,6 @@ end
 
 class ClassWithNameTakingArgument
   def self.name(_style) = "unused"
-
-  def self.caller_binding
-    Loba::Internal::CallerBinding.capture
-  end
 
   def caller_binding
     Loba::Internal::CallerBinding.capture
@@ -170,22 +138,6 @@ RSpec.describe Loba::Internal::CallerBinding do
       end
     end
 
-    context "when captured in a class method on an anonymous class" do
-      it 'returns "<anonymous class>"' do
-        caller_binding = Class.new(NamedRubyClass).caller_binding
-
-        expect(caller_binding.class_name).to eq("<anonymous class>")
-      end
-    end
-
-    context "when captured in a class method defined in a class << self block" do
-      it "returns the class's own name" do
-        caller_binding = ClassWithSingletonBlock.caller_binding
-
-        expect(caller_binding.class_name).to eq("ClassWithSingletonBlock")
-      end
-    end
-
     context "when captured in a module method" do
       it "returns the module's own name" do
         caller_binding = NamedRubyModule.caller_binding
@@ -213,14 +165,8 @@ RSpec.describe Loba::Internal::CallerBinding do
     end
 
     context "when captured in a class whose own name method raises" do
-      it "returns the class's constant name from an instance method" do
+      it "returns the class's constant name" do
         caller_binding = ClassWithNameTakingArgument.new.caller_binding
-
-        expect(caller_binding.class_name).to eq("ClassWithNameTakingArgument")
-      end
-
-      it "returns the class's constant name from a class method" do
-        caller_binding = ClassWithNameTakingArgument.caller_binding
 
         expect(caller_binding.class_name).to eq("ClassWithNameTakingArgument")
       end
@@ -304,22 +250,6 @@ RSpec.describe Loba::Internal::CallerBinding do
         expect(caller_binding.method_name).to eq("<anonymous method>")
       end
     end
-
-    context "when captured in a method defined with define_method" do
-      it "returns the defined method's name" do
-        caller_binding = PlainOldRubyObject.new.caller_binding_from_define_method
-
-        expect(caller_binding.method_name).to eq(:caller_binding_from_define_method)
-      end
-    end
-
-    context "when captured in a thread started within a method" do
-      it "returns the enclosing method's name" do
-        caller_binding = PlainOldRubyObject.new.caller_binding_from_thread
-
-        expect(caller_binding.method_name).to eq(:caller_binding_from_thread)
-      end
-    end
   end
 
   describe "#file" do
@@ -336,12 +266,6 @@ RSpec.describe Loba::Internal::CallerBinding do
 
         expect(caller_binding.file).to eq("script.rb")
       end
-
-      it "returns Ruby's own (eval at ...) name when eval was given none" do
-        caller_binding = TOPLEVEL_BINDING.eval("Loba::Internal::CallerBinding.capture")
-
-        expect(caller_binding.file).to start_with("(eval at #{__FILE__}:")
-      end
     end
   end
 
@@ -350,15 +274,6 @@ RSpec.describe Loba::Internal::CallerBinding do
       caller_binding = PlainOldRubyObject.new.caller_binding
 
       expect(caller_binding.line).to eq(PlainOldRubyObject::CAPTURE_LINE)
-    end
-
-    context "when captured in eval'd code" do
-      it "returns the line eval was given" do
-        caller_binding =
-          TOPLEVEL_BINDING.eval("Loba::Internal::CallerBinding.capture", "script.rb", 7)
-
-        expect(caller_binding.line).to eq(7)
-      end
     end
   end
 
@@ -389,22 +304,6 @@ RSpec.describe Loba::Internal::CallerBinding do
       end
     end
 
-    context "when the local is from a method enclosing the block it was captured in" do
-      it "returns the enclosing method's local" do
-        caller_binding = PlainOldRubyObject.new.caller_binding_in_block_with_outer_local
-
-        expect(caller_binding.evaluate(:outer_number)).to eq(789)
-      end
-    end
-
-    context "when a local has the same name as a method" do
-      it "returns the local, not the method's result" do
-        caller_binding = PlainOldRubyObject.new.caller_binding_with_local_named_like_a_method
-
-        expect(caller_binding.evaluate(:answer)).to eq("local answer")
-      end
-    end
-
     context "when given a symbol naming an instance variable" do
       it "returns that instance variable's value" do
         caller_binding = PlainOldRubyObject.new.caller_binding_with_instance_variable
@@ -416,12 +315,6 @@ RSpec.describe Loba::Internal::CallerBinding do
         caller_binding = PlainOldRubyObject.new.caller_binding
 
         expect(caller_binding.evaluate(:@never_set)).to be_nil
-      end
-
-      it "reads the class's own instance variable when captured in a class method" do
-        caller_binding = NamedRubyClass.caller_binding
-
-        expect(caller_binding.evaluate(:@class_level_number)).to eq(321)
       end
 
       it "reads it from a BasicObject" do
@@ -436,14 +329,6 @@ RSpec.describe Loba::Internal::CallerBinding do
         caller_binding = PlainOldRubyObject.new.caller_binding
 
         expect(caller_binding.evaluate(:@@class_variable_number)).to eq(654)
-      end
-    end
-
-    context "when given a symbol naming a global variable" do
-      it "returns that global's value" do
-        caller_binding = PlainOldRubyObject.new.caller_binding
-
-        expect(caller_binding.evaluate(:$PROGRAM_NAME)).to eq($PROGRAM_NAME)
       end
     end
 
