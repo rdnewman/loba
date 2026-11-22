@@ -208,9 +208,11 @@ RSpec.describe Loba::Internal::Run do
     # .shut_down_current below); a second, per run, would write each count twice.
     it "registers no exit handler when it creates the run" do
       created = nil
+      # Stubbed before #initialize runs, so a handler registered there is seen too.
       allow(described_class).to receive(:new).and_wrap_original do |original|
-        created = original.call
+        created = original.receiver.allocate
         allow(created).to receive(:at_exit)
+        created.send(:initialize)
         created
       end
 
@@ -386,8 +388,9 @@ RSpec.describe Loba::Internal::Run do
         run_files = Dir.glob("**/.loba/runs/*.jsonl", base: dir)
         expect(status).to be_success, output
         expect(run_files).to match([%r{\Alater/}]), "expected one run file in later/: #{run_files}"
-        last_record = JSON.parse(File.readlines(File.join(dir, run_files.first)).last)
-        expect(last_record).to include("suppressed_count" => 100)
+        records = File.readlines(File.join(dir, run_files.first)).map { JSON.parse(_1) }
+        expect(records.last).to include("suppressed_count" => 100)
+        expect(records.count { _1["suppressed"] }).to eq(1), "expected one count record"
       end
     end
   end

@@ -77,8 +77,8 @@ RSpec.describe Loba::Internal::Run::Visits do
         )
       end
 
-      it "uses up no numbers on skipped calls, giving the suppression record the next seq",
-         :aggregate_failures do
+      it "uses up no numbers on skipped calls, giving the suppression record the next seq, " \
+         "stamped when the window ends", :aggregate_failures do
         sink = StringIO.new
         destination = destination_to(sink)
         window_start = 1_000.0
@@ -88,7 +88,8 @@ RSpec.describe Loba::Internal::Run::Visits do
 
         result = visits.note(site, destination:)
 
-        expect(JSON.parse(sink.string.lines.last)).to include("seq" => cap + 1)
+        expect(JSON.parse(sink.string.lines.last))
+          .to include("seq" => cap + 1, "mono_time" => window_start + 60)
         expect(result).to include(seq: cap + 2, site_seq: cap + 1)
       end
 
