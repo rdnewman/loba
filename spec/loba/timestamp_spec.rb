@@ -18,7 +18,9 @@ class LobaTsCallerContexts
     Loba.ts(sink:)
   end
 
-  define_method("with_binary_name_\xFF".b) { |sink:| Loba.timestamp(sink:) }
+  def in_each_pass(passes, sink:)
+    passes.times { Loba.timestamp(sink:) }
+  end
 end
 
 RSpec.describe Loba, ".timestamp" do
@@ -130,15 +132,6 @@ RSpec.describe Loba, ".timestamp" do
     expect(second[:since_prev_ts]).to eq(second[:mono_time] - first[:mono_time])
   end
 
-  # JSON text is UTF-8, and this once raised into the traced code.
-  it "records a calling method's name that isn't valid UTF-8, with U+FFFD for the bad bytes" do
-    sink = StringIO.new
-
-    LobaTsCallerContexts.new.public_send("with_binary_name_\xFF".b, sink:)
-
-    expect(written_record(sink)).to include(method_name: "with_binary_name_\uFFFD")
-  end
-
   context "when given a label" do
     it "records it" do
       sink = StringIO.new
@@ -232,6 +225,60 @@ RSpec.describe Loba, ".timestamp" do
         expect(JSON.parse(output[:stdout], symbolize_names: true)).to include(type: "ts")
         expect(output[:stderr]).to include("writing records to $stdout instead")
       end
+    end
+  end
+
+  context "when called on each pass through a block" do
+    it "counts the passes in site_seq and reports the enclosing method", :aggregate_failures do
+      sink = StringIO.new
+
+      LobaTsCallerContexts.new.in_each_pass(3, sink:)
+
+      records = sink.string.lines.map { JSON.parse(_1, symbolize_names: true) }
+      expect(records.map { _1[:site_seq] }).to eq([1, 2, 3])
+      expect(records.map { _1[:method_name] }.uniq).to eq(["in_each_pass"])
+    end
+  end
+
+  context "when in a production environment" do
+    it "writes nothing" do
+      stub_const("Rails", mock_rails(production: true))
+      sink = StringIO.new
+
+      LobaTsCallerContexts.new.checkpoint(sink:)
+
+      expect(sink.string).to be_empty
+    end
+  end
+
+  # A skipped checkpoint must not look like a line that was never reached.
+  context "when a record can't be written" do
+    it "warns instead of raising, and notes the missed record on the next one",
+       :aggregate_failures do
+      sink = StringIO.new
+      failures = 1
+      allow(sink).to receive(:write).and_wrap_original do |original, line|
+        raise Errno::ENOSPC if (failures -= 1) >= 0
+
+        original.call(line)
+      end
+      caller_contexts = LobaTsCallerContexts.new
+
+      expect { caller_contexts.checkpoint(sink:) }.to output(/No space left on device/).to_stderr
+      caller_contexts.later_checkpoint(sink:)
+
+      expect(written_record(sink)[:failed_writes]).to include(count: 1)
+    end
+  end
+
+  # JSON text is UTF-8, and text describing the call once raised into the traced code.
+  context "when text describing the call isn't valid UTF-8" do
+    it "records the calling file's path, with U+FFFD for the bad bytes" do
+      sink = StringIO.new
+
+      eval("Loba.timestamp(sink:)", binding, "f\xFF.rb".b, 1) # rubocop:disable Style/EvalWithLocation -- names the file
+
+      expect(written_record(sink)[:file]).to end_with("f\uFFFD.rb")
     end
   end
 

@@ -127,6 +127,15 @@ RSpec.describe Loba::Internal::Destination::LogMirror do
       expect(log_output.string).to include("{\"seq\":1,\"type\":\"ts\"}")
     end
 
+    it "writes text that isn't valid UTF-8 with U+FFFD for the bad bytes" do
+      log_output = StringIO.new
+      log_mirror = described_class.new(logger: Logger.new(log_output, level: :debug))
+
+      log_mirror.write({ label: "bad \xFF".b })
+
+      expect(log_output.string).to include("{\"label\":\"bad \uFFFD\"}")
+    end
+
     it "writes nothing at a logger level above debug" do
       log_output = StringIO.new
       log_mirror = described_class.new(logger: Logger.new(log_output, level: :info))

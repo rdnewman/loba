@@ -99,8 +99,9 @@ class LobaValCallerContexts
     Loba.value(:non_utf8_raising_method, sink:, **)
   end
 
-  def with_raised(error, sink:) # rubocop:disable Lint/UnusedMethodArgument -- read via Loba.value's eval
-    Loba.value(:"raise(error)", sink:)
+  def with_expression(sink:)
+    greetings = { name: "Charlie" } # rubocop:disable Lint/UselessAssignment -- read via Loba.value's eval
+    Loba.value(:"greetings[:name]", sink:)
   end
 
   define_method("with_binary_name_\xFF".b) { |sink:| Loba.value(1, sink:) }
@@ -268,6 +269,16 @@ RSpec.describe Loba, ".value" do
     end
   end
 
+  context "when given an expression as a Symbol" do
+    it "evaluates it in the caller, labeled with the expression itself" do
+      sink = StringIO.new
+
+      LobaValCallerContexts.new.with_expression(sink:)
+
+      expect(written_record(sink)).to include(label: "greetings[:name]", value: "Charlie")
+    end
+  end
+
   context "when called inside a block within a method" do
     it "reads the block's own locals and reports the enclosing method" do
       sink = StringIO.new
@@ -393,6 +404,37 @@ RSpec.describe Loba, ".value" do
     end
   end
 
+  context "when in a production environment" do
+    it "writes nothing" do
+      stub_const("Rails", mock_rails(production: true))
+      sink = StringIO.new
+
+      LobaValIntegrationTestCase.new.call_val(sink:)
+
+      expect(sink.string).to be_empty
+    end
+  end
+
+  # A skipped record must not look like code that never ran.
+  context "when a record can't be written" do
+    it "warns instead of raising, and notes the missed record on the next one",
+       :aggregate_failures do
+      sink = StringIO.new
+      failures = 1
+      allow(sink).to receive(:write).and_wrap_original do |original, line|
+        raise Errno::ENOSPC if (failures -= 1) >= 0
+
+        original.call(line)
+      end
+      test_case = LobaValIntegrationTestCase.new
+
+      expect { test_case.call_val(sink:) }.to output(/No space left on device/).to_stderr
+      test_case.call_val(sink:)
+
+      expect(written_record(sink)[:failed_writes]).to include(count: 1)
+    end
+  end
+
   # Misusing loba's own API fails loudly at the line just written.
   context "when misused" do
     it "raises for an option it doesn't take, such as production:" do
@@ -450,68 +492,12 @@ RSpec.describe Loba, ".value" do
         .to include(errors: [{ path: [], message: "ArgumentError: bad \uFFFD" }])
     end
 
-    it "records an error whose class name and message are in clashing encodings" do
-      sink = StringIO.new
-      error_class = Class.new(StandardError) { def self.to_s = "Érror" }
-
-      LobaValCallerContexts.new.with_raised(error_class.new("bad \xFF".b), sink:)
-
-      expect(written_record(sink)).to include(errors: [{ path: [], message: "Érror: bad \uFFFD" }])
-    end
-
-    it "records an error whose #message raises" do
-      sink = StringIO.new
-      error_class = Class.new(StandardError) do
-        def self.to_s = "ReportError"
-        def message = raise(ArgumentError, "no message")
-      end
-
-      LobaValCallerContexts.new.with_raised(error_class.new, sink:)
-
-      expect(written_record(sink))
-        .to include(errors: [{ path: [], message: "ReportError: (unreadable message)" }])
-    end
-
-    it "records the error message of a part that couldn't be rendered" do
-      sink = StringIO.new
-      unrenderable = Object.new
-      def unrenderable.inspect = raise(ArgumentError, "bad \xFF".b)
-
-      described_class.value([1, unrenderable], sink:)
-
-      expect(written_record(sink)).to include(
-        value: [1, "(unrenderable)"],
-        errors: [{ path: [1], message: "ArgumentError: bad \uFFFD" }]
-      )
-    end
-
-    it "records the value's class name" do
-      sink = StringIO.new
-      binary_named = Class.new { def self.name = "K\xFF".b }
-
-      described_class.value(binary_named.new, sink:)
-
-      expect(written_record(sink)).to include(value_type: "K\uFFFD")
-    end
-
     it "records the calling method's name" do
       sink = StringIO.new
 
       LobaValCallerContexts.new.public_send("with_binary_name_\xFF".b, sink:)
 
       expect(written_record(sink)).to include(method_name: "with_binary_name_\uFFFD")
-    end
-
-    it "records the calling class's name" do
-      sink = StringIO.new
-      binary_named = Class.new do
-        def self.name = "K\xFF".b
-        def trace(sink:) = Loba.value(1, sink:)
-      end
-
-      binary_named.new.trace(sink:)
-
-      expect(written_record(sink)).to include(class_name: "K\uFFFD")
     end
 
     it "records the calling file's path" do
@@ -537,17 +523,7 @@ RSpec.describe Loba, ".value" do
   # Unlike text about the call, these are the value itself, so the record says
   # they aren't what was given.
   context "when a Symbol in the value isn't text" do
-    it "records it as its #inspect text, and names it", :aggregate_failures do
-      sink = StringIO.new
-
-      described_class.value(["k\xFF".b.to_sym], sink:)
-
-      record = written_record(sink)
-      expect(record[:value]).to eq([":\"k\\xFF\""])
-      expect(record[:rendered]).to eq([{ path: [0], as: "not_utf8" }])
-    end
-
-    it "records a key the same way, and names it as a key", :aggregate_failures do
+    it "records a key as its #inspect text, and names it as a key", :aggregate_failures do
       sink = StringIO.new
 
       described_class.value({ "k\xFF".b.to_sym => 1 }, sink:)

@@ -32,6 +32,14 @@ RSpec.describe Loba::Internal::Serialization::FallbackNode do
       expect(result[:value]).not_to eq(plain_object.inspect)
     end
 
+    it "takes value_type from the class's own name" do
+      self_named_class = Class.new(RenderedAs) { def self.name = "User" }
+
+      result = described_class.serialize(value: self_named_class.new("text"))
+
+      expect(result[:value_type]).to eq("User")
+    end
+
     # Long rendered text is cut exactly as a long String is.
     context "when the rendered text is longer than a String may be" do
       it "cuts #inspect output with the String marker, and lists the cut" do

@@ -29,6 +29,11 @@ class PlainOldRubyObject
     true
   end
 
+  def caller_binding_with_local_named_like_a_method
+    answer = "local answer" # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
+    Loba::Internal::CallerBinding.capture
+  end
+
   def caller_binding_with_hash_local
     greetings = { somename: "Charlie" } # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
     Loba::Internal::CallerBinding.capture
@@ -42,6 +47,10 @@ class PlainOldRubyObject
     end
 
     enclosed_lambda.call
+  end
+
+  define_method(:caller_binding_from_define_method) do
+    Loba::Internal::CallerBinding.capture
   end
 
   def outer
@@ -135,6 +144,14 @@ RSpec.describe Loba::Internal::CallerBinding do
         caller_binding = NamedRubyClass.caller_binding
 
         expect(caller_binding.class_name).to eq("NamedRubyClass")
+      end
+    end
+
+    context "when captured in a class method on an anonymous class" do
+      it 'returns "<anonymous class>"' do
+        caller_binding = Class.new(NamedRubyClass).caller_binding
+
+        expect(caller_binding.class_name).to eq("<anonymous class>")
       end
     end
 
@@ -250,6 +267,14 @@ RSpec.describe Loba::Internal::CallerBinding do
         expect(caller_binding.method_name).to eq("<anonymous method>")
       end
     end
+
+    context "when captured in a method defined with define_method" do
+      it "returns the defined method's name" do
+        caller_binding = PlainOldRubyObject.new.caller_binding_from_define_method
+
+        expect(caller_binding.method_name).to eq(:caller_binding_from_define_method)
+      end
+    end
   end
 
   describe "#file" do
@@ -304,6 +329,14 @@ RSpec.describe Loba::Internal::CallerBinding do
       end
     end
 
+    context "when a local has the same name as a method" do
+      it "returns the local, not the method's result" do
+        caller_binding = PlainOldRubyObject.new.caller_binding_with_local_named_like_a_method
+
+        expect(caller_binding.evaluate(:answer)).to eq("local answer")
+      end
+    end
+
     context "when given a symbol naming an instance variable" do
       it "returns that instance variable's value" do
         caller_binding = PlainOldRubyObject.new.caller_binding_with_instance_variable
@@ -329,6 +362,14 @@ RSpec.describe Loba::Internal::CallerBinding do
         caller_binding = PlainOldRubyObject.new.caller_binding
 
         expect(caller_binding.evaluate(:@@class_variable_number)).to eq(654)
+      end
+    end
+
+    context "when given a symbol naming a global variable" do
+      it "returns that global's value" do
+        caller_binding = PlainOldRubyObject.new.caller_binding
+
+        expect(caller_binding.evaluate(:$PROGRAM_NAME)).to eq($PROGRAM_NAME)
       end
     end
 
@@ -381,6 +422,15 @@ RSpec.describe Loba::Internal::CallerBinding do
 
         expect { caller_binding.evaluate(:undefined_name) }
           .to raise_error(NameError, /undefined_name/)
+      end
+    end
+
+    # A typo in an expression cast to a Symbol is the usual way to get one.
+    context "when given a symbol that isn't valid Ruby" do
+      it "raises SyntaxError" do
+        caller_binding = PlainOldRubyObject.new.caller_binding_with_hash_local
+
+        expect { caller_binding.evaluate(:"greetings[:somename") }.to raise_error(SyntaxError)
       end
     end
 

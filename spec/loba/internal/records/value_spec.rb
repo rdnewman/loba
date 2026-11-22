@@ -99,6 +99,18 @@ RSpec.describe Loba::Internal::Records::Value do
           .to include(errors: [{ path: [], message: "SyntaxError: syntax errors found" }])
       end
 
+      it "records an error whose class name and message are in clashing encodings" do
+        error_class = Class.new(StandardError) { def self.to_s = "Érror" }
+        failing_binding = caller_binding
+        allow(failing_binding).to receive(:evaluate).and_raise(error_class.new("bad \xFF".b))
+
+        fields = described_class.fields(
+          caller_binding: failing_binding, tracked:, argument: :usr, label: nil, inspect: true
+        )
+
+        expect(fields).to include(errors: [{ path: [], message: "Érror: bad \uFFFD" }])
+      end
+
       it "lets exceptions outside StandardError, such as Interrupt, through" do
         interrupting_binding = caller_binding
         allow(interrupting_binding).to receive(:evaluate).and_raise(Interrupt)
@@ -109,6 +121,17 @@ RSpec.describe Loba::Internal::Records::Value do
             argument: :usr, label: nil, inspect: true
           )
         end.to raise_error(Interrupt)
+      end
+    end
+
+    context "when the value can't be rendered" do
+      it "leaves out value and value_type" do
+        fields = described_class.fields(
+          caller_binding: caller_binding(evaluates_to: object_whose_inspect_raises), tracked:,
+          argument: :invoice, label: nil, inspect: true
+        )
+
+        expect(fields.keys).not_to include(:value, :value_type)
       end
     end
   end
