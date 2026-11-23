@@ -28,7 +28,7 @@ module Loba
       #   to describe; +0+ describes that caller itself
       # @return [CallerBinding]
       def self.capture(depth: 0)
-        RubyVM::DebugInspector.open do |context|
+        DebugInspector.open do |context|
           frame = depth + FRAME_OFFSET
           location = context.backtrace_locations[frame]
           frame_self = context.frame_self(frame)
