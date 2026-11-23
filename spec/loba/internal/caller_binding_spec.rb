@@ -5,12 +5,14 @@ class PlainOldRubyObject
   end
 
   def caller_binding_with_local
-    local_number = 123 # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
+    local_number = 123
+    _ = local_number # for Ruby's -w: only CallerBinding#evaluate reads it
     Loba::Internal::CallerBinding.capture
   end
 
   def caller_binding_with_reassigned_local
-    local_number = 1 # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
+    local_number = 1
+    _ = local_number # for Ruby's -w: only CallerBinding#evaluate reads it
     caller_binding = Loba::Internal::CallerBinding.capture
     local_number = 2 # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
     caller_binding
@@ -30,12 +32,14 @@ class PlainOldRubyObject
   end
 
   def caller_binding_with_local_named_like_a_method
-    answer = "local answer" # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
+    answer = "local answer"
+    _ = answer # for Ruby's -w: only CallerBinding#evaluate reads it
     Loba::Internal::CallerBinding.capture
   end
 
   def caller_binding_with_hash_local
-    greetings = { somename: "Charlie" } # rubocop:disable Lint/UselessAssignment -- read via CallerBinding#evaluate
+    greetings = { somename: "Charlie" }
+    _ = greetings # for Ruby's -w: only CallerBinding#evaluate reads it
     Loba::Internal::CallerBinding.capture
   end
 
