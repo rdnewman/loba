@@ -1,4 +1,6 @@
-require_relative "../run"
+# Uses Run without requiring it: run.rb loads Records::Suppression, which loads
+# this file, so requiring run.rb here would be circular. Stamp reads Run only
+# when building a record, by which time internal.rb has loaded it.
 
 module Loba
   module Internal
