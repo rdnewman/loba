@@ -4,11 +4,12 @@ require "stringio"
 
 class LobaValIntegrationTestCase
   def call_val(**)
-    loba_local_var = "traced value" # rubocop:disable Lint/UselessAssignment -- read via Loba.value's eval
+    loba_local_var = "traced value"
+    _ = loba_local_var # for Ruby's -w: only Loba.value's eval reads it
     Loba.value(:loba_local_var, **)
   end
 
-  LINE_OF_VAL_CALL = instance_method(:call_val).source_location[1] + 2
+  LINE_OF_VAL_CALL = instance_method(:call_val).source_location[1] + 3
 end
 
 # One call site per caller context Loba.value has to reflect on correctly.
@@ -16,11 +17,12 @@ end
 # binding.
 class LobaValCallerContexts
   def self.from_class_method(sink:)
-    class_local = 7 # rubocop:disable Lint/UselessAssignment -- read via Loba.value's eval
+    class_local = 7
+    _ = class_local # for Ruby's -w: only Loba.value's eval reads it
     Loba.value(:class_local, sink:)
   end
 
-  FROM_CLASS_METHOD_LINE = method(:from_class_method).source_location[1] + 2
+  FROM_CLASS_METHOD_LINE = method(:from_class_method).source_location[1] + 3
 
   def with_instance_variable(sink:)
     @traced = "ivar value"
@@ -32,7 +34,8 @@ class LobaValCallerContexts
   end
 
   def with_explicit_label(sink:)
-    labeled_local = "labeled value" # rubocop:disable Lint/UselessAssignment -- read via Loba.value's eval
+    labeled_local = "labeled value"
+    _ = labeled_local # for Ruby's -w: only Loba.value's eval reads it
     Loba.value(:labeled_local, label: "Custom label", sink:)
   end
 
@@ -55,13 +58,14 @@ class LobaValCallerContexts
 
   def within_lambda(sink:)
     tracer = lambda do
-      lambda_local = "lambda value" # rubocop:disable Lint/UselessAssignment -- read via Loba.value's eval
+      lambda_local = "lambda value"
+      _ = lambda_local # for Ruby's -w: only Loba.value's eval reads it
       Loba.value(:lambda_local, sink:)
     end
     tracer.call
   end
 
-  WITHIN_LAMBDA_LINE = instance_method(:within_lambda).source_location[1] + 3
+  WITHIN_LAMBDA_LINE = instance_method(:within_lambda).source_location[1] + 4
 
   def with_undefined_name(sink:)
     Loba.value(:undefined_name, sink:)
@@ -76,22 +80,26 @@ class LobaValCallerContexts
   end
 
   def with_binary_string(sink:)
-    payload = "\xFF\xFE".b # rubocop:disable Lint/UselessAssignment -- read via Loba.value's eval
+    payload = "\xFF\xFE".b
+    _ = payload # for Ruby's -w: only Loba.value's eval reads it
     Loba.value(:payload, sink:)
   end
 
   def with_nan(sink:)
-    ratio = 0.0 / 0.0 # rubocop:disable Lint/UselessAssignment -- read via Loba.value's eval
+    ratio = 0.0 / 0.0
+    _ = ratio # for Ruby's -w: only Loba.value's eval reads it
     Loba.value(:ratio, sink:)
   end
 
   def with_basic_object(sink:)
-    proxy = BasicObject.new # rubocop:disable Lint/UselessAssignment -- read via Loba.value's eval
+    proxy = BasicObject.new
+    _ = proxy # for Ruby's -w: only Loba.value's eval reads it
     Loba.value(:proxy, sink:)
   end
 
   def with_partly_unrenderable(sink:)
-    items = [1, BasicObject.new, 3] # rubocop:disable Lint/UselessAssignment -- read via Loba.value's eval
+    items = [1, BasicObject.new, 3]
+    _ = items # for Ruby's -w: only Loba.value's eval reads it
     Loba.value(:items, sink:)
   end
 
@@ -100,7 +108,8 @@ class LobaValCallerContexts
   end
 
   def with_expression(sink:)
-    greetings = { name: "Charlie" } # rubocop:disable Lint/UselessAssignment -- read via Loba.value's eval
+    greetings = { name: "Charlie" }
+    _ = greetings # for Ruby's -w: only Loba.value's eval reads it
     Loba.value(:"greetings[:name]", sink:)
   end
 

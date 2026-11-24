@@ -43,6 +43,8 @@ RSpec.configure do |config|
   config.filter_run_excluding performance: true
   config.disable_monkey_patching!
   config.warnings = true
+  # Turning warnings on leaves out the deprecation category.
+  Warning[:deprecated] = true
 
   config.default_formatter = "doc" if config.files_to_run.one?
 

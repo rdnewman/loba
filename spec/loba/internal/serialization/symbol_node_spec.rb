@@ -30,7 +30,7 @@ RSpec.describe Loba::Internal::Serialization::SymbolNode do
 
     context "when the Symbol is in an encoding whose bytes won't convert to UTF-8" do
       it "records its #inspect text, and says why" do
-        symbol = "\x81".force_encoding(Encoding::Windows_1252).to_sym
+        symbol = String.new("\x81", encoding: Encoding::Windows_1252).to_sym
 
         expect(described_class.serialize(value: symbol)).to eq(
           value: ":\"\\x81\"",
@@ -41,7 +41,7 @@ RSpec.describe Loba::Internal::Serialization::SymbolNode do
 
       # Ruby makes such a Symbol, though not a UTF-8 one with invalid bytes.
       it "records an ASCII Symbol holding bytes that aren't ASCII the same way" do
-        symbol = "\xFF".force_encoding(Encoding::US_ASCII).to_sym
+        symbol = String.new("\xFF", encoding: Encoding::US_ASCII).to_sym
 
         expect(described_class.serialize(value: symbol)[:rendered])
           .to eq([{ path: [], as: "not_utf8" }])

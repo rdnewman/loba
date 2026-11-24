@@ -7,6 +7,7 @@ group :development do
   gem "rubocop-performance", require: false
   gem "rubocop-rspec", require: false
 
+  gem "irb", require: false # YARD's legacy parser loads irb, not a default gem from Ruby 4.0 on
   gem "yard", require: false
 end
 

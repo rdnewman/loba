@@ -68,7 +68,7 @@ RSpec.describe Loba::Internal::Serialization::HashNode do
     # U+FFFD there and collapse into one pair.
     context "when Symbol keys won't convert to UTF-8" do
       it "keeps each pair, its key as #inspect text" do
-        first, second = ["\x81", "\x8D"].map { _1.force_encoding(Encoding::Windows_1252).to_sym }
+        first, second = ["\x81", "\x8D"].map { String.new(_1, encoding: Encoding::Windows_1252).to_sym }
 
         result = described_class.serialize(value: { first => 1, second => 2 })
 
