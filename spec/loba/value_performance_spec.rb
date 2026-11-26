@@ -80,7 +80,7 @@ RSpec.describe Loba, ".value" do
     sink = StringIO.new
 
     one_snapshot = added_cost_at_depth(depth) do
-      RubyVM::DebugInspector.open(&:backtrace_locations)
+      DebugInspector.open(&:backtrace_locations)
     end
     one_val = added_cost_at_depth(depth) { described_class.value(42, sink:) }
 

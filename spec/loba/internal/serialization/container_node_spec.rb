@@ -17,7 +17,7 @@ end
 RSpec.describe Loba::Internal::Serialization::ContainerNode do
   describe ".serialize", :aggregate_failures do
     def oversized_string
-      "a" * (Loba::Internal::Serialization::StringNode::MAX_LENGTH + 1)
+      "a" * (Loba::Internal::Text::Truncated::MAX_LENGTH + 1)
     end
 
     it "returns its value and type, not cut, for plain entries" do
@@ -79,7 +79,7 @@ RSpec.describe Loba::Internal::Serialization::ContainerNode do
       end
 
       it "cuts a long #inspect of itself, and lists the cut" do
-        long_entries = Array.new(Loba::Internal::Serialization::StringNode::MAX_LENGTH) { 1 }
+        long_entries = Array.new(Loba::Internal::Text::Truncated::MAX_LENGTH) { 1 }
 
         result = ListContainerNode.serialize(value: long_entries, depth: described_class::MAX_DEPTH)
 

@@ -422,5 +422,23 @@ RSpec.describe Loba::Internal::Destination::Sink do
 
       expect(described_class.new(io).to_s).to eq(io.inspect)
     end
+
+    # Any object that responds to #write can be a sink, and its #inspect is
+    # its own code.
+    context "when the sink's own #inspect can't be used" do
+      it "names it as Ruby's default description when #inspect raises" do
+        stub_const("InspectRaisingSink", Class.new { def inspect = raise("no inspect") })
+
+        expect(described_class.new(InspectRaisingSink.new).to_s)
+          .to match(/\A#<InspectRaisingSink:0x\h+>\z/)
+      end
+
+      it "names it the same way when #inspect returns something other than a String" do
+        stub_const("InspectSymbolSink", Class.new { def inspect = :sink })
+
+        expect(described_class.new(InspectSymbolSink.new).to_s)
+          .to match(/\A#<InspectSymbolSink:0x\h+>\z/)
+      end
+    end
   end
 end

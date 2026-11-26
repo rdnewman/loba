@@ -1,3 +1,5 @@
+require_relative "text/truncated"
+
 module Loba
   module Internal
     # Makes text from the traced program safe to join with other text and to
@@ -26,12 +28,14 @@ module Loba
           read_as_utf8(text)
         end
 
-        # An error as text, for a record or a warning.
+        # An error as text, for a record or a warning. The message can carry
+        # runtime data, so it's cut like a long String; the class name is
+        # written whole.
         #
         # @param error [Exception] the error
         # @return [String] valid UTF-8, as +"Class: message"+
         def of_error(error)
-          "#{make_utf8(class_text(error.class))}: #{message_of(error)}"
+          "#{make_utf8(class_text(error.class))}: #{Truncated.new(message_of(error))}"
         end
 
         # A module's name. Its own +name+ method comes first, since it can name

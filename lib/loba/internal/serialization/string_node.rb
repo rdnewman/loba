@@ -1,14 +1,12 @@
+require_relative "../text"
+
 module Loba
   module Internal
     module Serialization
       # Serializes Strings, cutting long ones short.
       module StringNode
-        # Longer strings are cut to this length, then marked "[+N chars]".
-        # The marker doesn't count toward the limit. 500 is a guess.
-        MAX_LENGTH = 500
-
         class << self
-          # Serializes a String, cut to MAX_LENGTH characters if longer.
+          # Serializes a String, cut as Text::Truncated cuts text if longer.
           #
           # JSON text is UTF-8, so a String is recorded as-is only if it is
           # UTF-8 or converts to it. Anything else (binary data, invalid bytes)
@@ -29,13 +27,13 @@ module Loba
         private
 
           def cut(text)
-            omitted = text.length - MAX_LENGTH
-            return uncut(text) unless omitted.positive?
+            truncated = Text::Truncated.new(text)
+            return uncut(text) unless truncated.cut?
 
             {
-              value: "#{text[0...MAX_LENGTH]} [+#{omitted} chars]",
+              value: truncated.to_s,
               value_type: "String",
-              cut: [{ path: [], omitted:, unit: "chars" }]
+              cut: [{ path: [], omitted: truncated.chars_cut, unit: "chars" }]
             }
           end
 

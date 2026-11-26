@@ -11,7 +11,7 @@ end
 
 RSpec.describe Loba::Internal::Serialization::FallbackNode do
   describe ".serialize", :aggregate_failures do
-    def max_length = Loba::Internal::Serialization::StringNode::MAX_LENGTH
+    def max_length = Loba::Internal::Text::Truncated::MAX_LENGTH
 
     it "falls back to #inspect for a value with no dedicated node type" do
       plain_object = object_with_distinct_inspect

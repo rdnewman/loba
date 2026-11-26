@@ -1,7 +1,7 @@
 RSpec.describe Loba::Internal::Serialization::HashNode do
   describe ".serialize", :aggregate_failures do
     def oversized_string
-      "a" * (Loba::Internal::Serialization::StringNode::MAX_LENGTH + 1)
+      "a" * (Loba::Internal::Text::Truncated::MAX_LENGTH + 1)
     end
 
     it "returns its pairs with each value serialized, as a Hash" do
@@ -19,7 +19,7 @@ RSpec.describe Loba::Internal::Serialization::HashNode do
 
         result = described_class.serialize(value: { plain_object => 1, oversized_string => 2 })
 
-        truncated_key = oversized_string[0, Loba::Internal::Serialization::StringNode::MAX_LENGTH]
+        truncated_key = oversized_string[0, Loba::Internal::Text::Truncated::MAX_LENGTH]
         expect(result[:value].keys)
           .to match([plain_object.inspect, a_string_starting_with(truncated_key)])
         expect(result[:cut])
@@ -125,7 +125,7 @@ RSpec.describe Loba::Internal::Serialization::HashNode do
       end
 
       it "cuts long pair text like a long String" do
-        long = "z" * (Loba::Internal::Serialization::StringNode::MAX_LENGTH + 10)
+        long = "z" * (Loba::Internal::Text::Truncated::MAX_LENGTH + 10)
 
         result = described_class.serialize(value: { 1 => "x", "1" => long })
 
@@ -141,7 +141,7 @@ RSpec.describe Loba::Internal::Serialization::HashNode do
       end
 
       it "isn't cut by a lost pair, since the value holds none of it" do
-        long = "z" * (Loba::Internal::Serialization::StringNode::MAX_LENGTH + 10)
+        long = "z" * (Loba::Internal::Text::Truncated::MAX_LENGTH + 10)
 
         result = described_class.serialize(value: { 1 => "x", "1" => long })
 
