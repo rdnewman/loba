@@ -73,7 +73,7 @@ Fields come in this order on every line, as with
 | `method_type` | `"instance"` or `"class"` |
 | `site_seq` | Order of this record among checkpoints from the same call site (file and line) |
 | `since_prev_ts` | Seconds since the previous checkpoint anywhere in the run; `null` for the first |
-| `capped` | Present only on a call site's last checkpoint before its limit: `true`, meaning any later calls from that site in the same minute are skipped and counted (see [Limits](#limits)) |
+| `site_limit` | Present only on a call site's last checkpoint before its limit: the limit itself, `{"calls": 500, "seconds": 60}`, meaning any later calls from that site in the same minute are skipped and counted (see [Limits](#limits)) |
 | `wall_time` | Seconds since the epoch, when recorded |
 | `mono_time` | A monotonic clock reading, unaffected by system clock changes |
 | `run_id` | This process run, e.g. `20260930T135402Z-5-39e8b2c6` |
@@ -130,8 +130,8 @@ noting how many were skipped:
 ```
 
 The site's last checkpoint before its limit, the 500th that minute, has
-`"capped": true`, right after `since_prev_ts`, so the file shows the limit was
-reached even if the record counting skipped calls is never written.
+`"site_limit": {"calls": 500, "seconds": 60}`, right after `since_prev_ts`, so the
+file shows the limit was reached even if the record counting skipped calls is never written.
 
 A `Loba.ts` and a `Loba.val` on the same line are separate call sites, each with
 its own `site_seq` and its own limit.

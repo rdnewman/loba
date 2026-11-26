@@ -36,7 +36,7 @@ module Loba
         #   record goes; +nil+ keeps the site's last destination
         # @param checkpoint [Boolean] whether the call is a checkpoint, timed
         #   from the previous one
-        # @return [Hash{Symbol => Integer, Float, Boolean, nil}, :suppressed]
+        # @return [Hash{Symbol => Integer, Float, Hash, nil}, :suppressed]
         #   +:suppressed+ if the site is capped; otherwise:
         #   * +:seq+ [Integer] - this record's order among all the process's records
         #   * +:mono_time+ [Float] - the monotonic clock reading that +:since_prev_at_site+ and
@@ -46,8 +46,9 @@ module Loba
         #   * +:since_prev_at_site+ [Float, nil] - seconds since the site's previous numbered
         #     record (a record counting skipped calls doesn't count), or +nil+
         #     for its first
-        #   * +:capped+ [Boolean] - +true+, present only on the site's last
-        #     record before its cap
+        #   * +:site_limit+ [Hash{Symbol => Integer}] - the site's limit,
+        #     +{calls:, seconds:}+, present only on the site's last record
+        #     before its cap
         #   * +:since_prev_ts+ [Float, nil] - checkpoints only: seconds since the
         #     process's previous checkpoint at any site, or +nil+ for its first.
         #     Suppression records don't count as a previous checkpoint.

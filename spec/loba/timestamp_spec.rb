@@ -104,9 +104,9 @@ RSpec.describe Loba, ".timestamp" do
     last_record = JSON.parse(sink.string.lines.last, symbolize_names: true)
     expect(last_record.keys).to eq(
       [:seq, :type, :label, :file, :line, :class_name, :method_name, :method_type,
-       :site_seq, :since_prev_ts, :capped, :wall_time, :mono_time, :run_id, :schema]
+       :site_seq, :since_prev_ts, :site_limit, :wall_time, :mono_time, :run_id, :schema]
     )
-    expect(last_record).to include(site_seq: 500, capped: true)
+    expect(last_record).to include(site_seq: 500, site_limit: { calls: 500, seconds: 60 })
   end
 
   it "numbers checkpoints and Loba.value records in one sequence" do

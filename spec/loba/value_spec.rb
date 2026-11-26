@@ -197,10 +197,10 @@ RSpec.describe Loba, ".value" do
     last_record = JSON.parse(sink.string.lines.last, symbolize_names: true)
     expect(last_record.keys).to eq(
       [:seq, :type, :label, :file, :line, :class_name, :method_name, :method_type,
-       :site_seq, :since_prev_at_site, :capped, :value_type, :value,
+       :site_seq, :since_prev_at_site, :site_limit, :value_type, :value,
        :wall_time, :mono_time, :run_id, :schema]
     )
-    expect(last_record).to include(site_seq: 500, capped: true)
+    expect(last_record).to include(site_seq: 500, site_limit: { calls: 500, seconds: 60 })
   end
 
   it "times a record exactly as the gap since its site's previous line's mono_time" do

@@ -40,13 +40,14 @@ RSpec.describe Loba::Internal::Records::Value do
         .to include(seq: 7, type: "val", mono_time: 100.25, site_seq: 2, since_prev_at_site: 0.4)
     end
 
-    it "marks the record capped when the visits say so" do
+    it "carries the site's limit when the visits give one" do
+      site_limit = { calls: 500, seconds: 60 }
       fields = described_class.fields(
-        caller_binding:, tracked: tracked.merge(capped: true),
+        caller_binding:, tracked: tracked.merge(site_limit:),
         argument: :subtotal, label: nil, inspect: true
       )
 
-      expect(fields).to include(capped: true)
+      expect(fields).to include(site_limit:)
     end
 
     it "records the value the argument evaluates to in the caller, labeled by the Symbol" do
