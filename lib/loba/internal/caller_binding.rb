@@ -1,4 +1,5 @@
 require "debug_inspector"
+require_relative "text"
 
 module Loba
   module Internal
@@ -48,7 +49,7 @@ module Loba
       # @return [String] the frame's class, or the class or module itself inside
       #   a class or module method; +"<anonymous class>"+ if it has no name
       def class_name
-        value = name_of(frame_module)
+        value = Text.name_of(frame_module)
 
         if value.nil? || value.empty?
           "<anonymous class>"
@@ -143,24 +144,6 @@ module Loba
           class_of_frame_self
         end
       end
-
-      # A class's own name method comes first, since it can name an anonymous
-      # class (as specs often do); it runs the traced program's code, so if it
-      # raises or returns something other than a String, the constant's name
-      # is used.
-      def name_of(mod)
-        given = mod.name
-
-        if ::String === given # rubocop:disable Style/CaseEquality -- see module_self?
-          given
-        else
-          constant_name_of(mod)
-        end
-      rescue StandardError
-        constant_name_of(mod)
-      end
-
-      def constant_name_of(mod) = ::Module.instance_method(:name).bind_call(mod)
 
       def instance_variable_of_frame_self(name)
         ::Kernel.instance_method(:instance_variable_get).bind_call(frame_self, name)
