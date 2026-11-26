@@ -28,7 +28,7 @@ module Loba
           # @return (see Loba::Internal::Serialization.serialize)
           def serialize(value:, use_inspect: true, as: nil, **)
             text = rendered_text(value, use_inspect)
-            value_type = value.class.name
+            value_type = Text.name_of(class_of(value))
           rescue StandardError => e
             unrenderable(e)
           else

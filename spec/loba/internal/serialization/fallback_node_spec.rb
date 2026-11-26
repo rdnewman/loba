@@ -40,6 +40,34 @@ RSpec.describe Loba::Internal::Serialization::FallbackNode do
       expect(result[:value_type]).to eq("User")
     end
 
+    it "takes value_type from the class of a BasicObject, which has no #class" do
+      stub_const("RenderedProxy", Class.new(BasicObject) { def inspect = "#<proxy>" })
+
+      result = described_class.serialize(value: RenderedProxy.new)
+
+      expect(result).to include(value: "#<proxy>", value_type: "RenderedProxy")
+    end
+
+    # The class's own name method is the traced program's code; value_type then
+    # falls back to the class's constant name, as class_name does.
+    context "when the class's own name can't be used" do
+      it "uses the constant name when .name takes an argument" do
+        stub_const("NameTakesArgument", Class.new(RenderedAs) { def self.name(_style) = "x" })
+
+        result = described_class.serialize(value: NameTakesArgument.new("text"))
+
+        expect(result).to include(value: "text", value_type: "NameTakesArgument")
+      end
+
+      it "uses the constant name when .name returns something other than a String" do
+        stub_const("NameIsSymbol", Class.new(RenderedAs) { def self.name = :User })
+
+        result = described_class.serialize(value: NameIsSymbol.new("text"))
+
+        expect(result).to include(value: "text", value_type: "NameIsSymbol")
+      end
+    end
+
     # Long rendered text is cut exactly as a long String is.
     context "when the rendered text is longer than a String may be" do
       it "cuts #inspect output with the String marker, and lists the cut" do

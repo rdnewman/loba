@@ -126,6 +126,19 @@ class LobaValCallerContexts
   def interrupting_method
     raise Interrupt
   end
+
+  # An error class whose own to_s raises.
+  class UnnameableError < StandardError
+    def self.to_s = raise("no name")
+  end
+
+  def with_unnameable_error(sink:)
+    Loba.value(:raising_unnameable_error, sink:)
+  end
+
+  def raising_unnameable_error
+    raise UnnameableError, "boom"
+  end
 end
 
 class LobaValCallerContextsSubclass < LobaValCallerContexts; end
@@ -480,6 +493,16 @@ RSpec.describe Loba, ".value" do
 
       expect(written_record(sink))
         .to include(errors: [{ path: [], message: "ArgumentError: boom" }])
+    end
+
+    it "records a traced error whose class's own to_s raises" do
+      sink = StringIO.new
+
+      LobaValCallerContexts.new.with_unnameable_error(sink:)
+
+      expect(written_record(sink)).to include(
+        errors: [{ path: [], message: "LobaValCallerContexts::UnnameableError: boom" }]
+      )
     end
 
     it "lets exceptions outside StandardError, such as Interrupt, through" do

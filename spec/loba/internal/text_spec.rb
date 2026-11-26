@@ -64,5 +64,21 @@ RSpec.describe Loba::Internal::Text do
 
       expect(described_class.of_error(error)).to eq("ReportError: ")
     end
+
+    # The error's class is the traced program's, and so is its own to_s.
+    context "when the error class's own to_s can't be used" do
+      it "uses the class's constant name when to_s raises" do
+        stub_const("UnnameableError", Class.new(StandardError) { def self.to_s = raise("no name") })
+
+        expect(described_class.of_error(UnnameableError.new("boom"))).to eq("UnnameableError: boom")
+      end
+
+      it "uses the class's constant name when to_s returns something other than a String" do
+        stub_const("SymbolNamedError", Class.new(StandardError) { def self.to_s = :name })
+
+        expect(described_class.of_error(SymbolNamedError.new("boom")))
+          .to eq("SymbolNamedError: boom")
+      end
+    end
   end
 end
