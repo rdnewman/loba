@@ -455,6 +455,15 @@ RSpec.describe Loba, ".value" do
 
       expect(written_record(sink)[:failed_writes]).to include(count: 1)
     end
+
+    it "warns instead of raising when the sink's own #inspect raises too" do
+      sink = Object.new
+      def sink.write(_line) = raise(Errno::ENOSPC)
+      def sink.inspect = raise("no inspect")
+
+      expect { described_class.value("traced", sink:) }
+        .to output(/No space left on device/).to_stderr
+    end
   end
 
   # Misusing loba's own API fails loudly at the line just written.

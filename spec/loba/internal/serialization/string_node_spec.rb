@@ -10,19 +10,19 @@ RSpec.describe Loba::Internal::Serialization::StringNode do
     end
 
     it "truncates to MAX_LENGTH chars with a continuation marker" do
-      long_string = "a" * (described_class::MAX_LENGTH + 523)
+      long_string = "a" * (Loba::Internal::Text::Truncated::MAX_LENGTH + 523)
 
       result = described_class.serialize(value: long_string)
 
       expect(result).to eq(
-        value: "#{'a' * described_class::MAX_LENGTH} [+523 chars]",
+        value: "#{'a' * Loba::Internal::Text::Truncated::MAX_LENGTH} [+523 chars]",
         value_type: "String",
         cut: [{ path: [], omitted: 523, unit: "chars" }]
       )
     end
 
     it "does not truncate a String at exactly MAX_LENGTH" do
-      exact_length_string = "a" * described_class::MAX_LENGTH
+      exact_length_string = "a" * Loba::Internal::Text::Truncated::MAX_LENGTH
 
       result = described_class.serialize(value: exact_length_string)
 
@@ -66,11 +66,11 @@ RSpec.describe Loba::Internal::Serialization::StringNode do
       end
 
       it "cuts long #inspect text like any long String" do
-        long_binary = ("\xFF" * described_class::MAX_LENGTH).b
+        long_binary = ("\xFF" * Loba::Internal::Text::Truncated::MAX_LENGTH).b
 
         result = described_class.serialize(value: long_binary)
 
-        omitted = long_binary.inspect.length - described_class::MAX_LENGTH
+        omitted = long_binary.inspect.length - Loba::Internal::Text::Truncated::MAX_LENGTH
         expect(result[:cut]).to eq([{ path: [], omitted:, unit: "chars" }])
         expect(result[:value]).to end_with(" chars]")
       end

@@ -10,6 +10,25 @@ RSpec.describe Loba::Internal::Serialization::SymbolNode do
       expect(described_class.serialize(value: symbol)).to eq(value: symbol, value_type: "Symbol")
     end
 
+    # A Symbol can come from runtime data (to_sym on a parsed key), so it's cut
+    # as a String is.
+    it "cuts a long Symbol's text, and lists the cut" do
+      max_length = Loba::Internal::Text::Truncated::MAX_LENGTH
+      symbol = ("k" * (max_length + 7)).to_sym
+
+      expect(described_class.serialize(value: symbol)).to eq(
+        value: "#{'k' * max_length} [+7 chars]",
+        value_type: "Symbol",
+        cut: [{ path: [], omitted: 7, unit: "chars" }]
+      )
+    end
+
+    it "serializes a Symbol exactly as long as the limit as itself" do
+      symbol = ("k" * Loba::Internal::Text::Truncated::MAX_LENGTH).to_sym
+
+      expect(described_class.serialize(value: symbol)).to eq(value: symbol, value_type: "Symbol")
+    end
+
     context "when the Symbol is binary data" do
       it "records its #inspect text, and says why" do
         expect(described_class.serialize(value: "k\xFF".b.to_sym)).to eq(
@@ -20,7 +39,7 @@ RSpec.describe Loba::Internal::Serialization::SymbolNode do
       end
 
       it "cuts long text as a String's is" do
-        max_length = Loba::Internal::Serialization::StringNode::MAX_LENGTH
+        max_length = Loba::Internal::Text::Truncated::MAX_LENGTH
         symbol = "#{'k' * max_length}\xFF".b.to_sym
 
         expect(described_class.serialize(value: symbol)[:cut])

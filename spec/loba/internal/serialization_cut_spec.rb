@@ -3,7 +3,7 @@
 # from a complete one without relying on a marker inside the data.
 RSpec.describe Loba::Internal::Serialization do
   describe ".serialize :cut" do
-    def max_length = Loba::Internal::Serialization::StringNode::MAX_LENGTH
+    def max_length = Loba::Internal::Text::Truncated::MAX_LENGTH
     def max_entries = Loba::Internal::Serialization::ContainerNode::MAX_ENTRIES
 
     def cut(value)
@@ -57,6 +57,14 @@ RSpec.describe Loba::Internal::Serialization do
 
       it "is the pair's path, marked key: true, for a key" do
         long_key = "k" * (max_length + 2)
+        cut_key = "#{'k' * max_length} [+2 chars]"
+
+        expect(cut({ long_key => 1 }))
+          .to eq([{ path: [cut_key], omitted: 2, unit: "chars", key: true }])
+      end
+
+      it "is the pair's path, marked key: true, for a Symbol key" do
+        long_key = ("k" * (max_length + 2)).to_sym
         cut_key = "#{'k' * max_length} [+2 chars]"
 
         expect(cut({ long_key => 1 }))

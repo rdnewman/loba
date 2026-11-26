@@ -153,16 +153,30 @@ module Loba
         end
 
         # How loba's messages name the sink: its target as +inspect+ shows it,
-        # so a path keeps its quotes.
+        # so a path keeps its quotes. Any object that responds to +#write+ can
+        # be a target, and its own +#inspect+ can raise or return something
+        # other than a String; then Ruby's default description names it.
         #
-        # @return [String] e.g. +"\"a.jsonl\""+
+        # @return [String] e.g. +"\"a.jsonl\""+, or +"#<MySink:0x...>"+
         def to_s
-          target.inspect
+          description = target.inspect
+
+          if ::String === description # rubocop:disable Style/CaseEquality -- works on a BasicObject
+            description
+          else
+            default_description
+          end
+        rescue StandardError
+          default_description
         end
 
       protected
 
         attr_reader :target
+
+      private
+
+        def default_description = ::Kernel.instance_method(:to_s).bind_call(target)
       end
     end
   end

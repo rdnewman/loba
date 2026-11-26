@@ -30,7 +30,7 @@ RSpec.describe Loba::Internal::Serialization::UnknownNode do
     end
 
     it "dispatches a String to StringNode, truncation included" do
-      max_length = Loba::Internal::Serialization::StringNode::MAX_LENGTH
+      max_length = Loba::Internal::Text::Truncated::MAX_LENGTH
       long_string = "a" * (max_length + 3)
 
       result = described_class.serialize(value: long_string)

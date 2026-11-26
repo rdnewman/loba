@@ -65,6 +65,25 @@ RSpec.describe Loba::Internal::Text do
       expect(described_class.of_error(error)).to eq("ReportError: ")
     end
 
+    # A message can carry runtime data (an object's #inspect, a SQL statement)
+    # and grow with it; a class name is code, written whole.
+    context "when the message is long" do
+      def max_length = Loba::Internal::Text::Truncated::MAX_LENGTH
+
+      it "cuts the message, marking how many more characters there were" do
+        error = error_class("ReportError").new("m" * (max_length + 10))
+
+        expect(described_class.of_error(error))
+          .to eq("ReportError: #{'m' * max_length} [+10 chars]")
+      end
+
+      it "keeps a long class name whole" do
+        long_name = "E" * (max_length + 10)
+
+        expect(described_class.of_error(error_class(long_name).new("m"))).to eq("#{long_name}: m")
+      end
+    end
+
     # The error's class is the traced program's, and so is its own to_s.
     context "when the error class's own to_s can't be used" do
       it "uses the class's constant name when to_s raises" do

@@ -237,10 +237,16 @@ An unknown option raises Ruby's `ArgumentError` at the call.
 
 ## Limits
 
-These limits keep records bounded in size, and in number per call site:
+These limits keep records bounded in size, and in number per call site. The size
+limits apply to text that can grow with runtime data; names from your code
+(labels, class and method names, file paths) are written whole.
 
 - Strings longer than 500 characters are cut to 500, followed by
-  `" [+N chars]"`. Text from `#inspect` or `#to_s` is cut the same way.
+  `" [+N chars]"`. Symbols, and text from `#inspect` or `#to_s`, are cut the
+  same way.
+- An error message, in `errors`, in `failed_writes`, or in loba's warnings on
+  `$stderr`, is cut the same way; the error's class name is not. The marker is
+  the only sign of that cut: `cut` lists parts of the value only.
 - Arrays and Hashes keep their first 50 entries. Nothing in `value` marks the
   cut; `cut` says where, and how many were left out.
 - Nesting deeper than 5 levels is rendered as text.
