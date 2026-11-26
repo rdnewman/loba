@@ -28,15 +28,16 @@ module Loba
           #   +nil+ keeps the last destination given
           # @yieldreturn [Integer] the +seq+ for a record counting skipped calls;
           #   asked for only when one is written
-          # @return [Hash{Symbol => Integer, Float, Boolean, nil}, :suppressed]
+          # @return [Hash{Symbol => Integer, Float, Hash, nil}, :suppressed]
           #   +:suppressed+ if the call is skipped; otherwise:
           #   * +:site_seq+ [Integer] - the call's order among the site's records
           #   * +:since_prev_at_site+ [Float, nil] - seconds since the site's previous numbered
           #     record (a record counting skipped calls doesn't count), or +nil+
           #     for its first
-          #   * +:capped+ [Boolean] - +true+, present only when the call is the
-          #     last its window lets through; later calls in the window are
-          #     skipped and counted
+          #   * +:site_limit+ [Hash{Symbol => Integer}] - the window's limit,
+          #     +{calls:, seconds:}+, present only when the call is the last its
+          #     window lets through; later calls in the window are skipped and
+          #     counted
           def note(now:, destination:, &)
             remember_destination(destination)
             roll(now:, &)
@@ -76,7 +77,7 @@ module Loba
 
           def cap_fields
             if window.at_cap?
-              { capped: true }
+              { site_limit: Window::LIMIT }
             else
               {}
             end

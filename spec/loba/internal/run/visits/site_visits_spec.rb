@@ -25,13 +25,23 @@ RSpec.describe Loba::Internal::Run::Visits::SiteVisits do
       expect(result).to eq(site_seq: 2, since_prev_at_site: 0.25)
     end
 
-    it "marks the call that reaches the cap as capped" do
+    it "gives the call that reaches the cap the site's limit" do
       destination = destination_to(StringIO.new)
       (cap - 1).times { site_visits.note(now: 100.0, destination:) { 1 } }
 
       result = site_visits.note(now: 100.0, destination:) { 1 }
 
-      expect(result).to eq(site_seq: cap, since_prev_at_site: 0.0, capped: true)
+      expect(result)
+        .to eq(site_seq: cap, since_prev_at_site: 0.0, site_limit: { calls: cap, seconds: 60 })
+    end
+
+    it "gives the limit as a frozen Hash, since every capped site shares it" do
+      destination = destination_to(StringIO.new)
+      (cap - 1).times { site_visits.note(now: 100.0, destination:) { 1 } }
+
+      result = site_visits.note(now: 100.0, destination:) { 1 }
+
+      expect(result[:site_limit]).to be_a(Hash).and be_frozen
     end
 
     it "suppresses a call past the cap, asking for no number", :aggregate_failures do

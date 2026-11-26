@@ -15,6 +15,10 @@ module Loba
 
             private_constant :CAP, :LENGTH
 
+            # The limit a window enforces, as a record states it. Every capped
+            # site's record shares this one Hash, so it's frozen.
+            LIMIT = { calls: CAP, seconds: LENGTH }.freeze
+
             # @return [Integer] calls skipped in this window
             attr_reader :skipped
 
